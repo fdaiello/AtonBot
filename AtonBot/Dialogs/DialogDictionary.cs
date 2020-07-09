@@ -1,5 +1,7 @@
 ﻿// Common Emojis and Messages
 // Used in Dialogs
+using System.Globalization;
+
 namespace MrBot.Dialogs
 {
 	public class DialogDictionary
@@ -72,7 +74,9 @@ namespace MrBot.Dialogs
 
 		public string RoundPushPin { get; } = "\U0001F4CD";
 		public string ExclamationMark { get; } = "\U00002757";
-	}
+		public string Automobile { get; } = "\U0001F697";
+		public string Calendar { get;} = "\U0001F4C5";
+}
 
 	public class SharedMessage
 	{

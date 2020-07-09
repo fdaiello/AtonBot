@@ -11,7 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
+using System.Collections.Generic;
 
 namespace MrBot
 {
@@ -472,6 +472,45 @@ namespace MrBot
 			}
 			return haschild;
 		}
+		// Return if a date is Holiday
+		public static bool IsHoliday(DateTime date)
+		{
+			var Holidays = new List<DateTime>();
+
+			// Fixos no Brasil
+			Holidays.Add(new DateTime(DateTime.Now.Year, 1, 1));	// Ano Novo
+			Holidays.Add(new DateTime(DateTime.Now.Year, 4, 21));   // Tira Dentes
+			Holidays.Add(new DateTime(DateTime.Now.Year, 5, 1));    // Dia do trabalho
+			Holidays.Add(new DateTime(DateTime.Now.Year, 9, 7));	// 7 de Setembro
+			Holidays.Add(new DateTime(DateTime.Now.Year, 10, 12));  // Nossa Senhora Aparecida
+			Holidays.Add(new DateTime(DateTime.Now.Year, 11, 2));   // Finados
+			Holidays.Add(new DateTime(DateTime.Now.Year, 11, 15));  // Proclamação da República
+			Holidays.Add(new DateTime(DateTime.Now.Year, 12, 25));  // Natal
+
+			// Moveis Brasil 2021
+			Holidays.Add(new DateTime(2021, 2, 15));   // Carnaval
+			Holidays.Add(new DateTime(2021, 2, 16));   // Carnaval
+			Holidays.Add(new DateTime(2021, 2, 17));   // Carnaval
+			Holidays.Add(new DateTime(2021, 4, 2));    // Sexta feira santa
+
+			return Holidays.Contains(date);
+		}
+		// Return true or false if a date is weend or not
+		public static bool IsWeekend(DateTime date)
+		{
+			return date.DayOfWeek == DayOfWeek.Saturday
+				|| date.DayOfWeek == DayOfWeek.Sunday;
+		}
+		// Return next business day after given date
+		public static DateTime GetNextWorkingDay(DateTime date)
+		{
+			do
+			{
+				date = date.AddDays(1);
+			} while (IsHoliday(date) || IsWeekend(date));
+			return date;
+		}
+
 	}
 }
 
