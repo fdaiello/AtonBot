@@ -44,6 +44,15 @@ namespace MrBot.Models
 		public string ApplicationUserId { get; set; }                      // When an Agent talks to customer, Agent ID is saved here
 		public ChannelType ChannelType { get; set; }					   // it will whatsApp Number, bot save 
 		public string Channel { get; set; }
+		public string Address { get; set; }
+		public string District { get; set; }
+		public string City { get; set; }
+		public string Zip { get; set; }
+		public string State { get; set; }
+		public string Country { get; set; }
+		public string Tag1 { get; set; }
+		public string Tag2 { get; set; }
+		public string Tag3 { get; set; }
 
 		public Customer ShallowCopy()
 		{

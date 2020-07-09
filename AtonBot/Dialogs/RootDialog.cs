@@ -25,7 +25,7 @@ namespace MrBot.Dialogs
 		private readonly ConversationState _conversationState;
 		private readonly ILogger _logger;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MainMenuDialog mainMenuDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog)
 		{
 			// Injected objects
@@ -39,13 +39,13 @@ namespace MrBot.Dialogs
 
 			// Adiciona os subdialogos
 			AddDialog(profileDialog);
-			AddDialog(mainMenuDialog);
+			AddDialog(agendamentoDialog);
 
 			// Array com a lista de métodos que este WaterFall Dialog vai executar.
 			var waterfallSteps = new WaterfallStep[]
 			{
 				CheckAndCallProfileDialogStepAsync,
-				CallMainMenuDialogStepAsync
+				CallAgendamentoDialogStepAsync
 			};
 
 			// Adiciona um diálogo do tipo WaterFall a este conjunto de diálogos, com os passos listados acima
@@ -64,10 +64,6 @@ namespace MrBot.Dialogs
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-			// Salva a primeira pergunta que o cliente fez
-			conversationData.FirstQuestion = stepContext.Context.Activity.Text;
-
 
 			// Consulta se o usuário já está cadastrado na base do Bot
 			Customer customer = _botDbContext.Customers
@@ -88,8 +84,12 @@ namespace MrBot.Dialogs
 			// Se o usuario já esta no banco do Bot
 			else
 			{
-				// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionar não comporta recursão dos filhos
+				// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionario não comporta recursão dos filhos
 				conversationData.Customer = customer.ShallowCopy();
+
+				// Language Generation message: Como posso Ajudar?
+				string text = conversationData.Customer != null ? "Oi " + Utility.FirstName(conversationData.Customer.Name) : "Oi.";
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text(text), cancellationToken).ConfigureAwait(false);
 
 				// Vai para o proximo passo, que chama o menu Principal - passa como null a resposta deste passo
 				return await stepContext.NextAsync(null, cancellationToken).ConfigureAwait(false);
@@ -97,30 +97,11 @@ namespace MrBot.Dialogs
 
 		}
 
-		// Chama o Diálogo do Menu Principal
-		private async Task<DialogTurnResult> CallMainMenuDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		// Chama o Diálogo do Agendamento
+		private async Task<DialogTurnResult> CallAgendamentoDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Ponteiro para os dados persistentes da conversa
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-			// Confere se tem inteção digitada - e processa
-			var result = await base.CheckIntentAsync(stepContext, cancellationToken).ConfigureAwait(false);
-
-			// Limpa a primeira frase digitada no dialogo
-			conversationData.FirstQuestion = string.Empty;
-
-			// Se fez algo baseado em inteção digitada
-			if (result != null)
-				// Retorna com o resultado do que foi feito - encerra por aqui
-				return result;
-
-			// Frase inicial antes do Menu
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Escolha uma opção do menu, ou diga o que você precisa. Você pode teclar ou me enviar um áudio."), cancellationToken).ConfigureAwait(false);
-
 			// Call MainMenuDialog
-			return await stepContext.BeginDialogAsync(nameof(MainMenuDialog), null, cancellationToken).ConfigureAwait(false);
-
+			return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 		}
 
 		// Insere um novo registro para este usuario

@@ -10,7 +10,10 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
+using MrBot.Data;
+using MrBot.Models;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -22,13 +25,17 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
+		private readonly BotDbContext _botDbContext;
+		private readonly ConversationState _conversationState;
 
-		public AgendamentoDialog(DialogDictionary dialogDictionary, IBotTelemetryClient telemetryClient)
+		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient)
 			: base(nameof(AgendamentoDialog))
 		{
 
 			// Injected objects
 			_dialogDictionary = dialogDictionary;
+			_botDbContext = botContext;
+			_conversationState = conversationState;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -49,6 +56,7 @@ namespace MrBot.Dialogs
 				AskCepStepAsync,
 				AskDateStepAsync,
 				AskTimeStepAsync,
+				SaveStepAsync
 			}));
 
 			// Configura para iniciar no WaterFall Dialog
@@ -117,6 +125,9 @@ namespace MrBot.Dialogs
 			// Salva o cep em variavel persistente do diálogo
 			stepContext.Values["cep"] = cep;
 
+			// Chama api dos Correios e salva cidade, bairro, estado
+			GetAddressFromZip(stepContext, cep);
+
 			// Procura as opções de data com base no CEP informado
 			List<string> nextAvailableDates= GetNextAvailableDates(cep);
 
@@ -128,7 +139,7 @@ namespace MrBot.Dialogs
 				Buttons = new List<CardAction> { }
 			};
 			// Adiciona botões para as datas disponíveis
-			for ( int x = 0; x <= nextAvailableDates.Count; x++)
+			for ( int x = 0; x <= nextAvailableDates.Count-1; x++)
 				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x], value: nextAvailableDates[x]));
 			
 			// Send the card(s) to the user as an attachment to the activity
@@ -159,10 +170,6 @@ namespace MrBot.Dialogs
 				},
 			};
 
-			// Text do hero card exclusivo pro WhatsApp
-			if (stepContext.Context.Activity.ChannelId == "whatsapp")
-				card.Text += $"Digite ou envie áudio{_dialogDictionary.Emoji.ExclamationMark}";
-
 			// Send the card(s) to the user as an attachment to the activity
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
@@ -183,6 +190,12 @@ namespace MrBot.Dialogs
 			var msg = $"Ok! Obrigado. Sua visita técnica está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 
+			// Salva os dados do Customer no banco de dados
+			await UpdateCustomer(stepContext).ConfigureAwait(false);
+
+			// Envia os dados do cliente para o Ploomes
+
+
 			// Termina este diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);
 
@@ -192,7 +205,7 @@ namespace MrBot.Dialogs
 		{
 			bool IsValid;
 
-			// Verifica se o que o cliente digitou uma escolha de 1 a 2
+			// Verifica se o que o cliente digitou sim ou não
 			string choice = promptContext.Context.Activity.Text.ToLower();
 			IsValid = choice == "sim" || choice == "não" || choice == "nao";
 
@@ -239,6 +252,78 @@ namespace MrBot.Dialogs
 			} while (nextAvailableDates.Count < choicesQuantity);
 
 			return nextAvailableDates;
+		}
+		// Atualiza o registro do usuario
+		private async Task UpdateCustomer(WaterfallStepContext stepContext)
+		{
+			// Procura pelo registro do usuario
+			Customer customer = _botDbContext.Customers
+								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
+								.FirstOrDefault();
+
+			// Confirma que achou o registro
+			if (customer != null)
+			{
+				// Atualiza o cliente
+				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
+					customer.Zip = (string)stepContext.Values["cep"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["data"]))
+					customer.Tag1 = (string)stepContext.Values["data"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["turno"]))
+					customer.Tag2 = (string)stepContext.Values["turno"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["cidade"]))
+					customer.City = (string)stepContext.Values["cidade"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["estado"]))
+					customer.State = (string)stepContext.Values["estado"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["bairro"]))
+					customer.District = (string)stepContext.Values["bairro"];
+
+				// Salva o cliente no banco
+				_botDbContext.Customers.Update(customer);
+				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+
+				// Ponteiro para os dados persistentes da conversa
+				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+				// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionar não comporta recursão dos filhos
+				conversationData.Customer = customer.ShallowCopy();
+			}
+		}
+		// Busca detalhes do endereço com base no CEP
+		private static void GetAddressFromZip(WaterfallStepContext stepContext, string cep)
+		{
+
+			stepContext.Values["bairro"] = string.Empty;
+			stepContext.Values["cidade"] = string.Empty;
+			stepContext.Values["estado"] = string.Empty;
+
+			// Consulta o cep nos Correios para buscar cidade, estado e bairro
+			var _correios = new Correios.AtendeClienteClient();
+			var _cp = new Correios.consultaCEP
+			{
+				cep = cep.Replace("-", "")
+			};
+
+			try
+			{
+				var _return = _correios.consultaCEP(_cp);
+
+				if (_return.@return != null)
+				{
+					stepContext.Values["bairro"] = _return.@return.bairro;
+					stepContext.Values["cidade"] = _return.@return.cidade;
+					stepContext.Values["estado"] = _return.@return.uf;
+				}
+
+			}
+			catch (Exception)
+			{
+			}
+
+			_correios.Close();
+
+			return;
 		}
 	}
 }

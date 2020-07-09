@@ -61,7 +61,7 @@ namespace MrBot
 		{
 
 			// Logger
-			_logger.LogInformation("Suzi-Bot Start up");
+			_logger.LogInformation("Aton-Bot Start up");
 
 			// Configure MVC
 			services.AddControllers();
@@ -94,7 +94,7 @@ namespace MrBot
 			// Registra o Middleware que faz o log dos Chats - passa as configurações do MbContext
 			var optionsBuilder = new DbContextOptionsBuilder<BotDbContext>();
 			optionsBuilder.UseSqlServer(Configuration.GetConnectionString("BotContext"),
-					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(10).TotalSeconds));
+					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(20).TotalSeconds));
 
 			var transcriptMiddleware = new TranscriptLoggerMiddleware(new BotDbContextTranscriptStore(optionsBuilder, _logger));
 			services.AddSingleton(transcriptMiddleware);
@@ -137,6 +137,7 @@ namespace MrBot
 			services.AddTransient<QnAMakerMultiturnDialog>();
 			services.AddTransient<QuerAtendimentoDialog>();
 			services.AddTransient<MainMenuDialog>();
+			services.AddTransient<AgendamentoDialog>();
 
 
 			// Langage Generation

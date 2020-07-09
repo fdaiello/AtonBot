@@ -173,58 +173,59 @@ namespace MrBot.Dialogs
 						return new DialogTurnResult(DialogTurnStatus.Waiting);
 					}
 
-					// Falar com atendente
-					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
-					{
-						if (intentDetails.Atendente != null)
-							mensagem = "Certo, falar com " + intentDetails.Atendente;
-						else
-							mensagem = "Tudo bem, falar com um atendente ...";
-						await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
+					//// Falar com atendente
+					//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
+					//{
+					//	if (intentDetails.Atendente != null)
+					//		mensagem = "Certo, falar com " + intentDetails.Atendente;
+					//	else
+					//		mensagem = "Tudo bem, falar com um atendente ...";
+					//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
 
-						// Limpa a primeira frase digitada no dialogo
-						conversationData.FirstQuestion = string.Empty;
+					//	// Limpa a primeira frase digitada no dialogo
+					//	conversationData.FirstQuestion = string.Empty;
 
-						// Cancela os dialogos atuais
-						await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
+					//	// Cancela os dialogos atuais
+					//	await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
 
-						// Dispara o diálogo pra falar com atendente
-						return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
-					}
+					//	// Dispara o diálogo pra falar com atendente
+					//	return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
+					//}
 
 				}
 
-				// QNA
-				if (!Utility.DialogIsRunning(innerDc, nameof(QnAMakerMultiturnDialog)) & string.IsNullOrEmpty(conversationData.FirstQuestion))
-				{
-					try
-					{
-						// Calling QnAMaker to get response.
-						var qnaResponses = await _qnaService.GetAnswersAsync(innerDc.Context).ConfigureAwait(false);
+				//// QNA
+				//// Confere se o que foi digitado tem pelo menos 3 palavras, e se não está dentro do diálogo "QnADialog"
+				//if (userinput.Split(" ").GetLength(0) > 2 && !Utility.DialogIsRunning(innerDc, nameof(QnAMakerMultiturnDialog)) & string.IsNullOrEmpty(conversationData.FirstQuestion))
+				//{
+				//	try
+				//	{
+				//		// Calling QnAMaker to get response.
+				//		var qnaResponses = await _qnaService.GetAnswersAsync(innerDc.Context).ConfigureAwait(false);
 
-						// Se achou alguma resposta
-						if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
-						{
-							// Limpa a primeira frase digitada no dialogo
-							conversationData.FirstQuestion = string.Empty;
+				//		// Se achou alguma resposta
+				//		if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
+				//		{
+				//			// Limpa a primeira frase digitada no dialogo
+				//			conversationData.FirstQuestion = string.Empty;
 
-							// Chama o QnaMakerMultiturnDialog
-							return await CallQnaDialog(innerDc, cancellationToken).ConfigureAwait(false);
-						}
+				//			// Chama o QnaMakerMultiturnDialog
+				//			return await CallQnaDialog(innerDc, cancellationToken).ConfigureAwait(false);
+				//		}
 
-					}
-					catch ( Exception ex)
-					{
-						_logger.LogError(ex.Message);
-					}
-				}
+				//	}
+				//	catch ( Exception ex)
+				//	{
+				//		_logger.LogError(ex.Message);
+				//	}
+				//}
 
-				// Confere se tem numero escrito por extenso - nao roda nas perguntas de data
-				else if (!Utility.DialogIsRunning(innerDc, "ProfileDialog") && !Utility.DialogIsRunning(innerDc, "ProfileDialog3") && !Utility.DialogIsRunning(innerDc, "ProfileDialog2") && !Utility.DialogIsRunning(innerDc, "AskAccount") && !Utility.DialogIsRunning(innerDc, "DueDate") && luisResult.TopIntent().intent == MisterBotLuis.Intent.None & luisResult.Entities.number != null)
-				{
-					// coloca no texto o numero digitado
-					innerDc.Context.Activity.Text = luisResult.Entities.number[0].ToString(CultureInfo.InvariantCulture);
-				}
+				//// Confere se tem numero escrito por extenso - nao roda nas perguntas de data
+				//else if (!Utility.DialogIsRunning(innerDc, "ProfileDialog") && !Utility.DialogIsRunning(innerDc, "ProfileDialog3") && !Utility.DialogIsRunning(innerDc, "ProfileDialog2") && !Utility.DialogIsRunning(innerDc, "AskAccount") && !Utility.DialogIsRunning(innerDc, "DueDate") && luisResult.TopIntent().intent == MisterBotLuis.Intent.None & luisResult.Entities.number != null)
+				//{
+				//	// coloca no texto o numero digitado
+				//	innerDc.Context.Activity.Text = luisResult.Entities.number[0].ToString(CultureInfo.InvariantCulture);
+				//}
 
 				// Versao
 				else if (innerDc.Context.Activity.Text == "versao")
