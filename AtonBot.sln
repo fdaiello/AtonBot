@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtonBot", "AtonBot\AtonBot.csproj", "{1472BCFD-C7C5-4C88-9472-3CE077E52693}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4D7C8264-1928-44C3-83FF-F205949018C9}"
+	ProjectSection(SolutionItems) = preProject
+		NuGet.Config = NuGet.Config
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1472BCFD-C7C5-4C88-9472-3CE077E52693}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1472BCFD-C7C5-4C88-9472-3CE077E52693}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1472BCFD-C7C5-4C88-9472-3CE077E52693}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1472BCFD-C7C5-4C88-9472-3CE077E52693}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EC027403-0ACC-45AF-A55F-10DCA6899BDF}
+	EndGlobalSection
+EndGlobal
