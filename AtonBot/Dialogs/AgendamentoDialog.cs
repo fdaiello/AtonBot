@@ -20,6 +20,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
 
+using Newtonsoft.Json;
+
 namespace MrBot.Dialogs
 {
 	public class AgendamentoDialog: ComponentDialog
@@ -70,7 +72,6 @@ namespace MrBot.Dialogs
 		//   Gostaria de agendar uma visita técnica para realizar a instalação em sua residência?
 		private async Task<DialogTurnResult> AskQuerAgendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-
 			// Initialize values
 			stepContext.Values["name"] = string.Empty;
 			stepContext.Values["phone"] = string.Empty;

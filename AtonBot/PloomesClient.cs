@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using AdaptiveExpressions;
+using Microsoft.Extensions.Options;
 
 namespace PloomesApi
 {
@@ -19,19 +20,19 @@ namespace PloomesApi
 		private readonly Uri serverUri;
 
 		// Constructor
-		public PloomesClient(PloomesSettings settings)
+		public PloomesClient(IOptions<PloomesSettings> settings)
 		{
 			if (settings == null)
 				throw new ArgumentException("Argument missing:", nameof(settings));
 
-			userKey = settings.UserKey;
-			serverUri = settings.ServerUri;
+			userKey = settings.Value.UserKey;
+			serverUri = settings.Value.ServerUri;
 		}
 
 		public async Task<int> PostContact(string name, string phonenumber, int zipcode, string note)
 		{
 
-			Contact contact = new Contact { Name = name, ZipCode = zipcode, Note = note };
+			Contact contact = new Contact { Name = name, ZipCode = zipcode, Note = note, TypeId=2 };
 			contact.AddPhone(phonenumber);
 
 			HttpClient httpClient = new HttpClient();
@@ -158,7 +159,7 @@ namespace PloomesApi
 		public object CompanyId { get; set; }
 		public object RelationshipId { get; set; }
 		public object LineOfBusinessId { get; set; }
-		public int OriginId { get; set; }
+		public object OriginId { get; set; }
 		public object NumberOfEmployeesId { get; set; }
 		public int ClassId { get; set; }
 		public object OwnerId { get; set; }
