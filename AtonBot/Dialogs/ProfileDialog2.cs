@@ -7,7 +7,6 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using MPEntities;
 using MrBot.Data;
 using MrBot.Models;
 using MrBot.CognitiveModels;

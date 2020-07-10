@@ -18,8 +18,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Primitives;
-using System.Reflection.PortableExecutable;
+using PloomesApi;
 
 namespace MrBot.Dialogs
 {
@@ -29,8 +28,9 @@ namespace MrBot.Dialogs
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
+		private readonly PloomesClient _ploomesclient;
 
-		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient)
+		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient)
 			: base(nameof(AgendamentoDialog))
 		{
 
@@ -38,6 +38,7 @@ namespace MrBot.Dialogs
 			_dialogDictionary = dialogDictionary;
 			_botDbContext = botContext;
 			_conversationState = conversationState;
+			_ploomesclient = ploomesClient;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -69,6 +70,10 @@ namespace MrBot.Dialogs
 		//   Gostaria de agendar uma visita técnica para realizar a instalação em sua residência?
 		private async Task<DialogTurnResult> AskQuerAgendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+
+			// Initialize values
+			stepContext.Values["name"] = string.Empty;
+			stepContext.Values["phone"] = string.Empty;
 
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
@@ -209,7 +214,8 @@ namespace MrBot.Dialogs
 			await UpdateCustomer(stepContext).ConfigureAwait(false);
 
 			// Envia os dados do cliente para o Ploomes
-
+			string note = $"dia {(string)stepContext.Values["data"]} turno da {turno}";
+			await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
 
 			// Termina este diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);
@@ -296,6 +302,10 @@ namespace MrBot.Dialogs
 			// Confirma que achou o registro
 			if (customer != null)
 			{
+				// Salva o nome do cliente
+				stepContext.Values["name"] = customer.Name;
+				stepContext.Values["phone"] = customer.MobilePhone;
+
 				// Atualiza o cliente
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
 					customer.Zip = (string)stepContext.Values["cep"];
@@ -308,7 +318,7 @@ namespace MrBot.Dialogs
 				if (!string.IsNullOrEmpty((string)stepContext.Values["estado"]))
 					customer.State = (string)stepContext.Values["estado"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["bairro"]))
-					customer.District = (string)stepContext.Values["bairro"];
+					customer.Neighborhood = (string)stepContext.Values["bairro"];
 
 				// Salva o cliente no banco
 				_botDbContext.Customers.Update(customer);

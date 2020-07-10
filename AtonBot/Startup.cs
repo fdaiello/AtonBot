@@ -19,7 +19,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MPEntities;
 using MrBot.Bots;
 using MrBot.Data;
 using MrBot.Dialogs;
@@ -31,6 +30,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using Azure.Storage.Blobs;
+using PloomesApi;
 
 namespace MrBot
 {
@@ -119,11 +119,15 @@ namespace MrBot
 				});
 			});
 
-			// Web Push R settings
+			// WebPushApi
 			IConfigurationSection wpushsettings = Configuration.GetSection("WebPushR");
 			services.Configure<WpushSettings>(wpushsettings);
-			// WebPushApi
 			services.AddSingleton<WpushApi>();
+
+			// Ploomes Api
+			IConfigurationSection ploomessettings = Configuration.GetSection("PloomesApi");
+			services.Configure<PloomesSettings>(ploomessettings);
+			services.AddSingleton<PloomesClient>();
 
 			// Dicionario com smileys e msgs para os diálogos
 			services.AddSingleton<DialogDictionary>();
