@@ -76,6 +76,7 @@ namespace MrBot.Dialogs
 		public string ExclamationMark { get; } = "\U00002757";
 		public string Automobile { get; } = "\U0001F697";
 		public string Calendar { get;} = "\U0001F4C5";
+		public string OpenMailBox { get; } = "\U0001F4EC";
 }
 
 	public class SharedMessage

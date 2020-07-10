@@ -18,6 +18,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Primitives;
+using System.Reflection.PortableExecutable;
 
 namespace MrBot.Dialogs
 {
@@ -42,8 +44,8 @@ namespace MrBot.Dialogs
 
 			// Adiciona um diálogo de prompt de texto para continuar
 			AddDialog(new TextPrompt("sim_nao", YesNoValidatorAsync));
-			// Adiciona um diálogo de prompt de texto sem validação
-			AddDialog(new TextPrompt(nameof(TextPrompt)));
+			// Adiciona um diálogo de prompt de texto com validação das datas
+			AddDialog(new TextPrompt("dateprompt", DateValidatorAsync));
 			// Adiciona um diálogo de prompt de texto sem validação
 			AddDialog(new TextPrompt("turnoprompt",TurnoValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao de CEP
@@ -101,7 +103,7 @@ namespace MrBot.Dialogs
 			// Se dise que sim
 			if ( choice == "sim")
 				// Pergunta o CEP
-				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text("Ótimo. Poderia nos informar por favor o cep da sua residência para checarmos a disponibilidae do técnico na sua região?"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
+				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar por favor o cep {_dialogDictionary.Emoji.OpenMailBox} da sua residência para checarmos a disponibilidae do técnico na sua região?"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
 
 			// Se disse que não
 			else
@@ -131,6 +133,16 @@ namespace MrBot.Dialogs
 			// Procura as opções de data com base no CEP informado
 			List<string> nextAvailableDates= GetNextAvailableDates(cep);
 
+			// Salva as datas disponiveis em variavel persistente
+			stepContext.Values["nextAvailableDates"] = nextAvailableDates;
+
+			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			foreach ( string availableDate in nextAvailableDates)
+				conversationData.AddAvailableDate(availableDate);
+			
+
 			// Monta HeroCard para perguntar a data desejada, dentro das opções disponíveis
 			var card = new HeroCard
 			{
@@ -146,7 +158,10 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = null }, cancellationToken).ConfigureAwait(false);
+			string retryText = "Por favor, escolha uma destas datas: ";
+			foreach (string nextavailabledate in nextAvailableDates)
+				retryText += " " + nextavailabledate;
+			return await stepContext.PromptAsync("dateprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text(retryText) }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// 4- Pergunta o turno
@@ -162,7 +177,7 @@ namespace MrBot.Dialogs
 			var card = new HeroCard
 			{
 				Title = $"Turno {_dialogDictionary.Emoji.AlarmClock}",
-				Text = "Você prefere atendimento no período da manhã (08h as 13h) ou da tarde ( 13h às 18h)?",
+				Text = "Você prefere atendimento no período da manhã (08h as 13h) ou da tarde (13h às 18h)?",
 				Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: $"manhã", value: "manhã"),
@@ -187,7 +202,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["turno"] = turno;
 
 			// Responde para o usuário
-			var msg = $"Ok! Obrigado. Sua visita técnica está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
+			var msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 
 			// Salva os dados do Customer no banco de dados
@@ -229,6 +244,23 @@ namespace MrBot.Dialogs
 		{
 			// retorna
 			return await Task.FromResult(Utility.IsValidCEP(Utility.FormataCEP(promptContext.Context.Activity.Text))).ConfigureAwait(false);
+		}
+		// Valida as datas
+		private async Task<bool> DateValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		{
+
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+			// Busca o que foi digitado
+			string choice = (string)promptContext.Context.Activity.Text;
+
+			// Busca novamente as datas disponíveis
+			List<string> nextAvailableDates = conversationData.NextAvailableDates;
+
+			// Devolve true or false se a escolha esta dentro da lista de datas disponíveis
+			return nextAvailableDates.Contains(choice);
 		}
 		// Busca as próximas datas disponiveis, com base no CEP informado
 		private static List<string> GetNextAvailableDates(string cep)

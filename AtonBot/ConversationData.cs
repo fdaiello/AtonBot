@@ -1,4 +1,6 @@
-﻿using MrBot.Models;
+﻿using Microsoft.VisualBasic;
+using MrBot.Models;
+using System.Collections.Generic;
 
 namespace MrBot
 {
@@ -19,5 +21,12 @@ namespace MrBot
 		// Number of intent recognition failed attempts
 		public int IntentNotRecognized { get; set; } = 0;
 
+		// NextAvailableDates 
+		public List<string> NextAvailableDates { get; } = new List<string>();
+
+		public void AddAvailableDate( string availabledate)
+		{
+			this.NextAvailableDates.Add(availabledate);
+		}
 	}
 }

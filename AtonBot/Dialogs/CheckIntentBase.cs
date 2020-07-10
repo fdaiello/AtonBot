@@ -37,7 +37,6 @@ namespace MrBot.Dialogs
 
 		// Score pra aceitar Intencao
 		private double minScoreLuis = 0.5;
-		private readonly double minScoreQna = 0.5;
 
 		// Langague Generation
 		readonly Templates _lgTemplates;
@@ -139,9 +138,6 @@ namespace MrBot.Dialogs
 				// Se a inteção tem atendente
 				if (luisResult.Entities.atendente != null) intentDetails.Atendente = luisResult.Entities.atendente[0];
 
-				// Mensagem a ser devolvida
-				string mensagem;
-
 				// Verifica se o score da intenção ( a melhor pontuada ) tem pelo menos 0.5 de pontos ( menos que isso não esta correto )
 				if (luisResult.TopIntent().score > minScoreLuis)
 				{
@@ -159,8 +155,8 @@ namespace MrBot.Dialogs
 						return new DialogTurnResult(DialogTurnStatus.Waiting);
 					}
 
-					// Saudação - exceto se for a primeira pergunta da conversa
-					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion))
+					// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
+					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
 					{
 						// Language Generation message: Como posso Ajudar?
 						string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
