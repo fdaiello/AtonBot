@@ -217,7 +217,7 @@ namespace MrBot.Dialogs
 			// Confirma se conseguiu inserir corretamente o Lead
 			string msg;
 			if (ploomesContactId != 0)
-				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
+				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\nAntes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
 			else
 				msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
 
@@ -268,12 +268,23 @@ namespace MrBot.Dialogs
 
 			// Busca o que foi digitado
 			string choice = (string)promptContext.Context.Activity.Text;
+			// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
+			choice = choice.Replace("-", "/").Replace("dia ","");
 
 			// Busca novamente as datas disponíveis
 			List<string> nextAvailableDates = conversationData.NextAvailableDates;
+			// Copia o aray
+			List<string> validchoices= new List<string>();
+
+			// Adiciona as datas e os dia das datas as possibilidaes de validação- pra validar se o cliente digitar somente o dia
+			foreach (string data in nextAvailableDates)
+			{
+				validchoices.Add(data);
+				validchoices.Add(data.Split("/")[0]);
+			}
 
 			// Devolve true or false se a escolha esta dentro da lista de datas disponíveis
-			return nextAvailableDates.Contains(choice);
+			return validchoices.Contains(choice);
 		}
 		// Busca as próximas datas disponiveis, com base no CEP informado
 		private static List<string> GetNextAvailableDates(string cep)

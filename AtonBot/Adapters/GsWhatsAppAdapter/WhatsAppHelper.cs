@@ -490,7 +490,7 @@ namespace GsWhatsAppAdapter
 		//    Adiciona um asterisco antes e outro depois do numero - negrito no whats app
 		private static string BoldFirstDigit(string line)
 		{
-			if (line.Substring(1, 1).IsNumber())
+			if (line.Length > 2 && line.Substring(1, 1).IsNumber() && line.Substring(2, 1) == " ")
 				return line.Substring(0, 1).Replace("1", "*1*").Replace("2", "*2*").Replace("3", "*3*").Replace("4", "*4*").Replace("5", "*5*").Replace("6", "*6*").Replace("7", "*7*").Replace("8", "*8*").Replace("9", "*9*") + line.Substring(1);
 			else
 				return heroCardButtonPin + line;
