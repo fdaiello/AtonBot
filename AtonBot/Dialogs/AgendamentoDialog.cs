@@ -207,16 +207,22 @@ namespace MrBot.Dialogs
 			// Salva o turno em varivel persitente ao diálogo
 			stepContext.Values["turno"] = turno;
 
-			// Responde para o usuário
-			var msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
-
 			// Salva os dados do Customer no banco de dados
 			await UpdateCustomer(stepContext).ConfigureAwait(false);
 
 			// Envia os dados do cliente para o Ploomes
 			string note = $"dia {(string)stepContext.Values["data"]} turno da {turno}";
-			await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
+			int ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
+
+			// Confirma se conseguiu inserir corretamente o Lead
+			string msg;
+			if (ploomesContactId != 0)
+				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\n48 horas antes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
+			else
+				msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+
+			// Envia resposta para o cliente
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 
 			// Termina este diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);

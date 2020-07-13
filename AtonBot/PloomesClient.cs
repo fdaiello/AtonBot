@@ -60,7 +60,7 @@ namespace PloomesApi
 				PostContactResponse postContactResponse = JsonConvert.DeserializeObject<PostContactResponse>(resp);
 
 				// Devolve o Id da mensagem
-				if (postContactResponse.Value != null && postContactResponse.Value[0].IsNumber())
+				if (postContactResponse.Value != null && postContactResponse.Value.Count>0 && postContactResponse.Value[0].Id.IsNumber())
 					return postContactResponse.Value[0].Id;
 				else
 					return 0;
@@ -214,6 +214,38 @@ namespace PloomesApi
 		public string Odata { get; set; }
 		[JsonProperty("value")]
 		public List<Value> Value { get; set; }
+
+	}
+	internal class Lead
+	{
+		public int Id { get; set; }
+		public object CompanyId { get; set; }
+		public object PersonId { get; set; }
+		public string CompanyName { get; set; }
+		public object CompanyLegalName { get; set; }
+		public object CompanyRegister { get; set; }
+		public string PersonName { get; set; }
+		public object Origin { get; set; }
+		public object Email { get; set; }
+		public object OwnerId { get; set; }
+		public int StatusId { get; set; }
+		public object NextContact { get; set; }
+		public object NoTime { get; set; }
+		public object ReminderId { get; set; }
+		public object DiscardReasonId { get; set; }
+		public bool Editable { get; set; }
+		public bool Deletable { get; set; }
+		public bool Workable { get; set; }
+		public int CreatorId { get; set; }
+		public object UpdaterId { get; set; }
+		public DateTime CreateDate { get; set; }
+		public DateTime LastUpdateDate { get; set; }
+		public object LastStatusUpdateDate { get; set; }
+		public bool NextContactScheduled { get; set; }
+		public int StatusOrdination { get; set; }
+		public DateTime NextContactOrdination { get; set; }
+		public object CreateImportId { get; set; }
+		public object UpdateImportId { get; set; }
 
 	}
 #pragma warning restore CA1812

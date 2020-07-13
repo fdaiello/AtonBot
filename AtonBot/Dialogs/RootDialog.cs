@@ -100,6 +100,21 @@ namespace MrBot.Dialogs
 		// Chama o Diálogo do Agendamento
 		private async Task<DialogTurnResult> CallAgendamentoDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+			// Confere se tem inteção digitada - e processa
+			var result = await base.CheckIntentAsync(stepContext, cancellationToken).ConfigureAwait(false);
+
+			// Limpa a primeira frase digitada no dialogo
+			conversationData.FirstQuestion = string.Empty;
+
+			// Se fez algo baseado em inteção digitada
+			if (result != null)
+				// Retorna com o resultado do que foi feito - encerra por aqui
+				return result;
+
 			// Call MainMenuDialog
 			return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 		}
