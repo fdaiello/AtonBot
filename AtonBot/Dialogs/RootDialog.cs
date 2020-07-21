@@ -178,7 +178,7 @@ namespace MrBot.Dialogs
 			Group groups = await _botDbContext.Groups.Where(p => p.BotName == appName).FirstOrDefaultAsync().ConfigureAwait(false);
 
 			if (groups == null)
-				return 2;
+				return 1;
 			else
 				return groups.Id;
 

@@ -31,8 +31,9 @@ namespace GsWhatsAppAdapter
 		internal bool querystringused;
 		internal string textresponse;
 
-		// whats app source number - will be initialized when payload is receaved - Acording to GupShup App Name, WaNumber will be get from UGroup
+		// Theese will be initialized when payload is receaved - Acording to GupShup App Name
 		internal string whatsAppNumber;
+		internal int groupID=1;
 
 		internal static string heroCardButtonPin = "\U0001F4CD";
 
@@ -122,14 +123,20 @@ namespace GsWhatsAppAdapter
 				activity = await JsonPayloadToActivity(httpRequest, logger).ConfigureAwait(false);
 
 			// Confere se vieram parametros corretos por querystring - Testes
-			else if (!string.IsNullOrEmpty(httpRequest.Query["text"]) && !string.IsNullOrEmpty(httpRequest.Query["from"]) && !string.IsNullOrEmpty(httpRequest.Query["id"]))
+			else if (!string.IsNullOrEmpty(httpRequest.Query["text"]) && !string.IsNullOrEmpty(httpRequest.Query["from"]) && !string.IsNullOrEmpty(httpRequest.Query["groupid"]))
 			{
 				// marca em flag pra saber lidar com o retorno
 				querystringused = true;
 				isspeechturn = false;
 
+				// Inicializa o GroupID e WhatsAppNumber
+				await GetWhatsAppNumberNGroupIdFromAppName(httpRequest.Query["groupid"]).ConfigureAwait(false);
+
+				// Gera um ActivityID
+				string activityId = "Qs" + DateTime.Now.ToString(CultureInfo.InvariantCulture);
+
 				// monta atividade com base nos parametros query string
-				activity = MessageActivityBuilder(httpRequest.Query["id"], httpRequest.Query["from"], "text", httpRequest.Query["text"], string.Empty, string.Empty);
+				activity = MessageActivityBuilder(activityId, httpRequest.Query["from"], "text", httpRequest.Query["text"], string.Empty, string.Empty);
 			}
 
 			// Erro
@@ -148,9 +155,11 @@ namespace GsWhatsAppAdapter
 		/*
 		 * Searchs Bot Database, table UGroup
 		 * Finds BotName that matches appName passed as parameter
-		 * Returns WhatsAppNumber ( source number ) associated with that Bot
+		 * Initializes internal varibles:
+		 *    - WhatsAppNumber ( source number ) associated with that Bot
+		 *    - GroupId
 		 */
-		internal async Task<string> GetWhatsAppNumberFromAppName(string appName)
+		internal async Task GetWhatsAppNumberNGroupIdFromAppName(string appName)
 		{
 			// Configurações para o banco de dados
 			var optionsBuilder = new DbContextOptionsBuilder<BotDbContext>();
@@ -159,14 +168,16 @@ namespace GsWhatsAppAdapter
 
 			// Cria a referencia para o banco de dados
 			BotDbContext botDbContext = new BotDbContext(optionsBuilder.Options);
-			Group groups = await botDbContext.Groups.Where(p => p.BotName == appName).FirstOrDefaultAsync().ConfigureAwait(false);
+			Group group = await botDbContext.Groups.Where(p => p.BotName == appName).FirstOrDefaultAsync().ConfigureAwait(false);
 			botDbContext.Dispose();
 
-			if (groups == null)
-				return string.Empty;
-			else
-				return groups.WhatsAppNumber;
+			if (group != null)
+            {
+				whatsAppNumber = group.WhatsAppNumber;
+				groupID = group.Id;
+            }
 
+			return;
 		}
 		/* 
 		 * Check Paylod receaved in HttpRequest - according to GupShup V2 Api - https://www.gupshup.io/developer/docs/bot-platform/guide/whatsapp-api-documentation
@@ -174,6 +185,10 @@ namespace GsWhatsAppAdapter
 		 */
 		internal async Task<Activity> JsonPayloadToActivity(HttpRequest httpRequest, ILogger logger)
 		{
+
+			// Resseta flag que indica se tem que mandar audio de volta
+			isspeechturn = false;
+
 			// Bot Activity que será construido com base na requisição http
 			Activity activity;
 
@@ -188,7 +203,9 @@ namespace GsWhatsAppAdapter
 
 			// Procura o nome da aplicaçao que gerou o PayLoad
 			if (!string.IsNullOrEmpty(gsCallBack.App))
-				whatsAppNumber = await GetWhatsAppNumberFromAppName(gsCallBack.App).ConfigureAwait(false);
+				// Inicializa o GroupID e WhatsAppNumber
+				await GetWhatsAppNumberNGroupIdFromAppName(gsCallBack.App).ConfigureAwait(false);
+
 			else
 				// Grava em um arquivo de Log indicando que não recebeu PayLoad com App name
 				logger.LogError("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), $"App name not identified: {gsCallBack.Type}");
@@ -258,9 +275,12 @@ namespace GsWhatsAppAdapter
 				return await reader.ReadToEndAsync().ConfigureAwait(false);
 		}
 
-		// Envia uma mensagem para o Bot
-		private static Activity MessageActivityBuilder(string messageId, string from, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] Stream stream)
+		// Generates a Bot Activity with message to be passed to the Bot
+		private Activity MessageActivityBuilder(string messageId, string from, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] Stream stream)
 		{
+			// Generates a customerID - based on GroupID + WhatsApp From number
+			string customerId = groupID + "-" + from;
+
 			// Instancia uma nova Activity
 			Activity activity = new Activity
 			{
@@ -269,11 +289,11 @@ namespace GsWhatsAppAdapter
 				ChannelId = "whatsapp",
 				Conversation = new ConversationAccount()
 				{
-					Id = from,
+					Id = customerId,
 				},
 				From = new ChannelAccount()
 				{
-					Id = from,
+					Id = customerId,
 				},
 				Recipient = new ChannelAccount()
 				{
@@ -294,7 +314,7 @@ namespace GsWhatsAppAdapter
 				activity.Attachments[0] = CreateAttachment(url, "image/png", attachmentName);
 
 			}
-			else if (type == "audio" | type == "voice")
+			else if (type == "audio" | type == "voice" | stream != null)
 			{
 				activity.Attachments = new Attachment[1];
 				activity.Attachments[0] = CreateInlineAttachment(attachmentName, "audio/ogg", stream);
@@ -345,6 +365,12 @@ namespace GsWhatsAppAdapter
 		// Envia uma atividade para o WhatsApp
 		public async Task<string> SendActivityToWhatsApp(Activity activity)
 		{
+			// Busca o número de destino
+			string recipient = activity.Recipient.Id;
+			// Se tiver identificaçao do grupo na frente, busca o numero que vem depois do simbolo -
+			if (recipient.Contains("-"))
+				recipient = recipient.Split("-")[1];
+
 			// Se for uma mensagem de texto
 			if (activity.Text != null)
 			{
@@ -354,7 +380,7 @@ namespace GsWhatsAppAdapter
 				// Se está conversando por Audio
 				if (isspeechturn)
 					// envia o texto como Audio
-					activity.Id = await SendVoice(activity.Text, activity.Id, activity.Recipient.Id).ConfigureAwait(false);
+					activity.Id = await SendVoice(activity.Text, activity.Id, recipient).ConfigureAwait(false);
 
 				// Confere se tem Suggested Actions ( ações sugeridas )
 				if (activity.SuggestedActions != null && activity.SuggestedActions.Actions.Any())
@@ -375,7 +401,7 @@ namespace GsWhatsAppAdapter
 				}
 				else
 					// Se não é teste, envia via API ( se enviar na mesma requisição, fica grudado na mesma mensagem )
-					activity.Id = await _gsWhatsAppClient.SendText(whatsAppNumber, activity.Recipient.Id, reply).ConfigureAwait(false);
+					activity.Id = await _gsWhatsAppClient.SendText(whatsAppNumber, recipient, reply).ConfigureAwait(false);
 
 			}
 
@@ -392,34 +418,34 @@ namespace GsWhatsAppAdapter
 						case "image/jpg":
 						case "image/jpeg":
 							// Chama o método para enviar a imagem para o cliente via Gushup API
-							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, activity.Recipient.Id, GsWhatsAppClient.Mediatype.image, attachment.Name, new Uri(attachment.ContentUrl), attachment.ThumbnailUrl == null ? null : new Uri(attachment.ThumbnailUrl)).ConfigureAwait(false);
+							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, recipient, GsWhatsAppClient.Mediatype.image, attachment.Name, new Uri(attachment.ContentUrl), attachment.ThumbnailUrl == null ? null : new Uri(attachment.ThumbnailUrl)).ConfigureAwait(false);
 							break;
 
 						case "application/pdf":
 							// Chama o método para enviar o video para o cliente via Gushup API
-							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, activity.Recipient.Id, GsWhatsAppClient.Mediatype.file, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
+							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, recipient, GsWhatsAppClient.Mediatype.file, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
 							break;
 
 						case "video/mpeg":
 							// Chama o método para enviar o video para o cliente via Gushup API
-							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, activity.Recipient.Id, GsWhatsAppClient.Mediatype.video, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
+							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, recipient, GsWhatsAppClient.Mediatype.video, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
 							break;
 
 						case "audio/ogg":
 							// Chama o método para enviar o video para o cliente via Gushup API
-							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, activity.Recipient.Id, GsWhatsAppClient.Mediatype.audio, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
+							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, recipient, GsWhatsAppClient.Mediatype.audio, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
 							break;
 
 						case "audio/mp3":
 							// Chama o método para enviar o video para o cliente via Gushup API
-							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, activity.Recipient.Id, GsWhatsAppClient.Mediatype.audio, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
+							activity.Id = await _gsWhatsAppClient.SendMedia(whatsAppNumber, recipient, GsWhatsAppClient.Mediatype.audio, attachment.Name, new Uri(attachment.ContentUrl)).ConfigureAwait(false);
 							break;
 
 						case "application/vnd.microsoft.card.hero":
 							// Se é conversa por audio
 							if (isspeechturn)
 								// Envia o texto do HeroCard por audio
-								activity.Id = await SendVoiceFromHeroText(attachment, activity.Id, activity.Recipient.Id).ConfigureAwait(false);
+								activity.Id = await SendVoiceFromHeroText(attachment, activity.Id, recipient).ConfigureAwait(false);
 
 							// Se é teste 
 							if (querystringused)
@@ -430,7 +456,7 @@ namespace GsWhatsAppAdapter
 							}
 							else
 								// envia para o cliente via API
-								activity.Id = await _gsWhatsAppClient.SendText(whatsAppNumber, activity.Recipient.Id, ConvertHeroCardToWhatsApp(attachment)).ConfigureAwait(false);
+								activity.Id = await _gsWhatsAppClient.SendText(whatsAppNumber, recipient, ConvertHeroCardToWhatsApp(attachment)).ConfigureAwait(false);
 
 							break;
 
@@ -490,7 +516,7 @@ namespace GsWhatsAppAdapter
 		//    Adiciona um asterisco antes e outro depois do numero - negrito no whats app
 		private static string BoldFirstDigit(string line)
 		{
-			if (line.Length > 2 && line.Substring(1, 1).IsNumber() && line.Substring(2, 1) == " ")
+			if (line.Substring(1, 1).IsNumber())
 				return line.Substring(0, 1).Replace("1", "*1*").Replace("2", "*2*").Replace("3", "*3*").Replace("4", "*4*").Replace("5", "*5*").Replace("6", "*6*").Replace("7", "*7*").Replace("8", "*8*").Replace("9", "*9*") + line.Substring(1);
 			else
 				return heroCardButtonPin + line;
@@ -540,7 +566,8 @@ namespace GsWhatsAppAdapter
 		private static byte[] ConverteStreamToByteArray(Stream stream)
 		{
 			using MemoryStream mStream = new MemoryStream();
-			stream.CopyTo(mStream);
+			if ( stream != null && stream.Length >0 )
+				stream.CopyTo(mStream);
 			return mStream.ToArray();
 		}
 		// Converte um texto em Audio, converte para MP3, e envia

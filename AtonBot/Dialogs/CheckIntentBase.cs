@@ -96,6 +96,11 @@ namespace MrBot.Dialogs
 
 				// Limpa ponto final, o ponto de exclamação , e o termo Susi ( atrapalha o LUIS )
 				var userinput = Utility.CleanUtterance(innerDc.Context.Activity.Text);
+
+				// Confere se não é em branco
+				if (userinput.Length == 0)
+					return null;
+
 				innerDc.Context.Activity.Text = userinput;
 
 				if (userinput == "cancelar" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "*cancelar*")

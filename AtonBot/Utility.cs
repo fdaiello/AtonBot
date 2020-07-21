@@ -162,11 +162,15 @@ namespace MrBot
 			return Regex.IsMatch(phone, @"^1\d\d(\d\d)?$|^0800 ?\d{3} ?\d{4}$|^(\(0?([1-9a-zA-Z][0-9a-zA-Z])?[1-9]\d\) ?|0?([1-9a-zA-Z][0-9a-zA-Z])?[1-9]\d[ .-]?)?(9|9[ .-])?[2-9]\d{3}[ .-]?\d{4}$") & ClearStringNumber(phone).Length >= 11;
 		}
 		// Formata um Celular - verifica se tem 9 digitos + DDD + DDI - e nao é nextel ( 77, 78, 79, 70 ) nem fixo ( 2, 3, 4, 5 )
+		// Se for Brasil, retira o 55 da frente
 		public static string FormataCelular(string phone)
 		{
 			phone = ClearStringNumber(phone);
-			if (phone.Length == 12 && phone.Substring(5,2)!="70" & phone.Substring(5, 2) != "77" & phone.Substring(5, 2) != "78" & phone.Substring(5, 2) != "79" & phone.Substring(5, 1) != "2" & phone.Substring(5, 1) != "3" & phone.Substring(5, 1) != "4" & phone.Substring(5, 1) != "5")
-				return phone.Substring(1, 4) + "9" + phone.Substring(5);
+			if (phone.Substring(0, 2) == "55" & phone.Length >= 12)
+				if (phone.Length == 12 & phone.Substring(5, 2) != "70" & phone.Substring(5, 2) != "77" & phone.Substring(5, 2) != "78" & phone.Substring(5, 2) != "79" & phone.Substring(5, 1) != "2" & phone.Substring(5, 1) != "3" & phone.Substring(5, 1) != "4" & phone.Substring(5, 1) != "5")
+					return phone.Substring(2, 2) + "9" + phone.Substring(4);
+				else
+					return phone.Substring(2);
 			else
 				return phone;
 		}
@@ -442,11 +446,11 @@ namespace MrBot
 
 			return string.Empty;
 		}
-		public static string CleanUtterance ( string userinput )
+		public static string CleanUtterance(string userinput)
 		{
-			userinput = userinput.Replace("Susie", "").Replace("Susi", "").Replace("Suzi", "").Replace("Suzy", "").Replace("Susy", "").Replace("Susie", "").Replace("Suso", "").Replace("!"," ").Trim() ;
+			userinput = userinput.Replace("Susie", "").Replace("Susi", "").Replace("Suzi", "").Replace("Suzy", "").Replace("Susy", "").Replace("Susie", "").Replace("Suso", "").Replace("!", " ").Trim();
 
-			if (userinput.Substring(userinput.Length - 1) == ".")
+			if (userinput.Length > 0 && userinput.Substring(userinput.Length - 1) == ".")
 				userinput = userinput.Substring(0, userinput.Length - 1);
 
 			return userinput.Trim();

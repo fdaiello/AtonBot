@@ -93,10 +93,18 @@ namespace MrBot.Dialogs
 				stepContext.Values["name"] = string.Empty;
 
 			// Confere se a conexão e whatsapp, entao o Id é o telefone 
-			if (stepContext.Context.Activity.ChannelId == "whatsapp" | stepContext.Context.Activity.ChannelId == "emulator") 
-				// pula a pergunta do Celular, e ja devolve como resposta o ID do cliente
-				return await stepContext.NextAsync(stepContext.Context.Activity.From.Id, cancellationToken).ConfigureAwait(false);
+			if (stepContext.Context.Activity.ChannelId == "whatsapp" | stepContext.Context.Activity.ChannelId == "emulator")
+			{
+				// Extracts WhatsApp customer number inserted at Activity.From.ID
+				string mobilephone;
+				if (stepContext.Context.Activity.From.Id.Contains("-"))
+					mobilephone = stepContext.Context.Activity.From.Id.Split("-")[1];
+				else
+					mobilephone = stepContext.Context.Activity.From.Id;
 
+				// pula a pergunta do Celular, e ja devolve como resposta o ID do cliente
+				return await stepContext.NextAsync(mobilephone, cancellationToken).ConfigureAwait(false);
+			}
 			else
 			{
 				// Responde para o usuário
