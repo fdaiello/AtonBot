@@ -26,6 +26,8 @@ namespace MrBot.Models
 		public string Id { get; set; }                                      // Primary Key, NOT identiy
 		public int GroupId { get; set; }									// Group Id , foreign Key
 		public string Name { get; set; }                                    // Name
+		public string FullName { get; set; }                                // Name
+		public string NickName { get; set; }                                // Name
 		public string MobilePhone { get; set; }                             // Mobile phone
 		public string Email { get; set; }
 

@@ -165,7 +165,10 @@ namespace MrBot.Dialogs
 			{
 				// Atualiza o cliente
 				if (!string.IsNullOrEmpty((string)stepContext.Values["name"]))
-					customer.Name = (string)stepContext.Values["name"];
+                {
+					customer.Name = Utility.FirstName((string)stepContext.Values["name"]);
+					customer.FullName = (string)stepContext.Values["name"];
+				}
 				if (!string.IsNullOrEmpty((string)stepContext.Values["mobilephone"]))
 					customer.MobilePhone = Utility.ClearStringNumber((string)stepContext.Values["mobilephone"]);
 				customer.LastActivity = Utility.HoraLocal();
