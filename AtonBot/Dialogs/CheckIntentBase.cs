@@ -4,9 +4,7 @@
 // Os demais diálogos herdam este diálogo, que pode então ser acionado a qualquer momento
 
 using System;
-using System.Globalization;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;

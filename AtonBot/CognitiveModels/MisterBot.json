@@ -163,6 +163,11 @@
       "entities": []
     },
     {
+      "text": "ok",
+      "intent": "obrigado",
+      "entities": []
+    },
+    {
       "text": "olá",
       "intent": "saudacao",
       "entities": []

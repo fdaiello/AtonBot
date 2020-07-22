@@ -1,8 +1,6 @@
 ﻿# ComoPossoAjudar
-- Oi ${userName}. Como posso ajudar?
-- Ola ${userName}! O que você precisa hoje?
-- Estou a sua disposição, ${userName}!
-- Oi ${userName}. Digite ou mande um audio dizendo o que você precisa!
+- Oi ${userName}. 
+- Ola ${userName}!
 
 # DeNada
 - De nada!
@@ -10,15 +8,5 @@
 - Conte comigo.
 - Disponha!
 
-# EscolhaComoAutenticar
-- Digite 1 para receber o código por SMS ou 2 para receber por email.
-- Preciso autenticar sua conta. Digite 1 para receber por SMS ou 2 para receber por email.
-- Oi ${userName}, me diga se você quer que eu envie um codigo por email ou por sms.
-
 # Versao
 - Esta é a minha versão 1.1.1
-
-# NaoLocalizeiConta
-- Me desculpe, mas eu não localizei a sua conta.
-- Não to achando ...
-- Ainda não consegui achar sua conta no cadastro.

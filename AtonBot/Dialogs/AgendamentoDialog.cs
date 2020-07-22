@@ -107,7 +107,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["choice"] = choice;
 
 			// Se dise que sim
-			if ( choice == "sim")
+			if ( choice == "sim" | choice == "s")
 				// Pergunta o CEP
 				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar por favor o cep {_dialogDictionary.Emoji.OpenMailBox} da sua residência para checarmos a disponibilidae do técnico na sua região?"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
 
@@ -235,7 +235,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou sim ou não
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "sim" || choice == "não" || choice == "nao";
+			IsValid = choice == "sim" || choice == "não" || choice == "nao" || choice == "s";
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
