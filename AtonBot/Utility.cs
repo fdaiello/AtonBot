@@ -11,6 +11,9 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
+using Microsoft.Bot.Builder.AI.QnA;
+using MrBot.Dialogs;
 using System.Collections.Generic;
 
 namespace MrBot
@@ -446,9 +449,9 @@ namespace MrBot
 
 			return string.Empty;
 		}
-		public static string CleanUtterance(string userinput)
+		public static string CleanUtterance ( string userinput )
 		{
-			userinput = userinput.Replace("Susie", "").Replace("Susi", "").Replace("Suzi", "").Replace("Suzy", "").Replace("Susy", "").Replace("Susie", "").Replace("Suso", "").Replace("!", " ").Trim();
+			userinput = userinput.Replace("Susie", "").Replace("Susi", "").Replace("Suzi", "").Replace("Suzy", "").Replace("Susy", "").Replace("Susie", "").Replace("Suso", "").Replace("!"," ").Trim() ;
 
 			if (userinput.Length > 0 && userinput.Substring(userinput.Length - 1) == ".")
 				userinput = userinput.Substring(0, userinput.Length - 1);
@@ -476,16 +479,48 @@ namespace MrBot
 			}
 			return haschild;
 		}
+		public static async Task<DialogTurnResult> CallQnaDialog(DialogContext innerDc, CancellationToken cancellationToken)
+		{
+			// Set values for generate answer options.
+			var qnamakerOptions = new QnAMakerOptions
+			{
+				ScoreThreshold = QnAMakerMultiturnDialog.DefaultThreshold,
+				Top = QnAMakerMultiturnDialog.DefaultTopN,
+				Context = new QnARequestContext()
+			};
+
+			var noAnswer = (Activity)Activity.CreateMessageActivity();
+			noAnswer.Text = QnAMakerMultiturnDialog.DefaultNoAnswer;
+
+			var cardNoMatchResponse = new Activity(QnAMakerMultiturnDialog.DefaultCardNoMatchResponse);
+
+			// Set values for dialog responses.	
+			var qnaDialogResponseOptions = new QnADialogResponseOptions
+			{
+				NoAnswer = noAnswer,
+				ActiveLearningCardTitle = QnAMakerMultiturnDialog.DefaultCardTitle,
+				CardNoMatchText = QnAMakerMultiturnDialog.DefaultCardNoMatchText,
+				CardNoMatchResponse = cardNoMatchResponse
+			};
+
+			var dialogOptions = new Dictionary<string, object>
+			{
+				[QnAMakerMultiturnDialog.QnAOptions] = qnamakerOptions,
+				[QnAMakerMultiturnDialog.QnADialogResponseOptions] = qnaDialogResponseOptions
+			};
+
+			return await innerDc.BeginDialogAsync(nameof(QnAMakerMultiturnDialog), dialogOptions, cancellationToken).ConfigureAwait(false);
+		}
 		// Return if a date is Holiday
 		public static bool IsHoliday(DateTime date)
 		{
 			var Holidays = new List<DateTime>();
 
 			// Fixos no Brasil
-			Holidays.Add(new DateTime(DateTime.Now.Year, 1, 1));	// Ano Novo
+			Holidays.Add(new DateTime(DateTime.Now.Year, 1, 1));    // Ano Novo
 			Holidays.Add(new DateTime(DateTime.Now.Year, 4, 21));   // Tira Dentes
 			Holidays.Add(new DateTime(DateTime.Now.Year, 5, 1));    // Dia do trabalho
-			Holidays.Add(new DateTime(DateTime.Now.Year, 9, 7));	// 7 de Setembro
+			Holidays.Add(new DateTime(DateTime.Now.Year, 9, 7));    // 7 de Setembro
 			Holidays.Add(new DateTime(DateTime.Now.Year, 10, 12));  // Nossa Senhora Aparecida
 			Holidays.Add(new DateTime(DateTime.Now.Year, 11, 2));   // Finados
 			Holidays.Add(new DateTime(DateTime.Now.Year, 11, 15));  // Proclamação da República
@@ -517,4 +552,5 @@ namespace MrBot
 
 	}
 }
+
 

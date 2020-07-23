@@ -11,6 +11,7 @@ using Microsoft.Bot.Builder.LanguageGeneration;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Bot.Schema;
+using Microsoft.Bot.Builder.AI.QnA;
 using Azure.Storage.Blobs;
 using MrBot.Data;
 using MrBot.Models;
@@ -24,6 +25,8 @@ namespace MrBot.Dialogs
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly ILogger _logger;
+		private readonly QnAMaker _qnaService;
+		private readonly double minScoreQna = 0.5;                                  // Score minimo pra aceitar QnA
 
 		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog)
@@ -33,6 +36,7 @@ namespace MrBot.Dialogs
 			_dialogDictionary = dialogDictionary;
 			_conversationState = conversationState;
 			_logger = logger;
+			_qnaService = services?.QnAMakerService ?? throw new ArgumentNullException(nameof(services));
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -45,6 +49,7 @@ namespace MrBot.Dialogs
 			var waterfallSteps = new WaterfallStep[]
 			{
 				CheckAndCallProfileDialogStepAsync,
+				//CheckNCallQnAStepAsync,
 				CallAgendamentoDialogStepAsync
 			};
 
@@ -110,6 +115,23 @@ namespace MrBot.Dialogs
 
 		}
 
+		// Confere se a frase tem resposta em QnA
+		private async Task<DialogTurnResult> CheckNCallQnAStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		{
+			// Calling QnAMaker to get response.
+			var qnaResponses = await _qnaService.GetAnswersAsync(stepContext.Context).ConfigureAwait(false);
+
+			// Se achou alguma resposta
+			if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
+			{
+				// Chama o QnaMakerMultiturnDialog
+				return await Utility.CallQnaDialog(stepContext, cancellationToken).ConfigureAwait(false);
+			}
+			else
+				// Vai para o proximo passo, que chama o menu Principal - passa como null a resposta deste passo
+				return await stepContext.NextAsync(null, cancellationToken).ConfigureAwait(false);
+
+		}
 		// Chama o Diálogo do Agendamento
 		private async Task<DialogTurnResult> CallAgendamentoDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{

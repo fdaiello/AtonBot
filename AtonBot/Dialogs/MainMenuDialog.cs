@@ -94,7 +94,7 @@ namespace MrBot.Dialogs
 			if (choice.Contains("informacoes") | choice.Contains("informações") )
 			{
 				// E chama o QnA
-				return await CallQnaDialog(stepContext, cancellationToken).ConfigureAwait(false);
+				return await Utility.CallQnaDialog(stepContext, cancellationToken).ConfigureAwait(false);
 			}
 			else if (choice.Contains("atendente") )
 				// Call Falar com um Atendente
@@ -122,40 +122,6 @@ namespace MrBot.Dialogs
 					return await stepContext.ReplaceDialogAsync(InitialDialogId, null, cancellationToken).ConfigureAwait(false);
 			}
 
-		}
-
-
-		private static async Task<DialogTurnResult> CallQnaDialog(DialogContext innerDc, CancellationToken cancellationToken)
-		{
-			// Set values for generate answer options.
-			var qnamakerOptions = new QnAMakerOptions
-			{
-				ScoreThreshold = QnAMakerMultiturnDialog.DefaultThreshold,
-				Top = QnAMakerMultiturnDialog.DefaultTopN,
-				Context = new QnARequestContext()
-			};
-
-			var noAnswer = (Activity)Activity.CreateMessageActivity();
-			noAnswer.Text = QnAMakerMultiturnDialog.DefaultNoAnswer;
-
-			var cardNoMatchResponse = new Activity(QnAMakerMultiturnDialog.DefaultCardNoMatchResponse);
-
-			// Set values for dialog responses.	
-			var qnaDialogResponseOptions = new QnADialogResponseOptions
-			{
-				NoAnswer = noAnswer,
-				ActiveLearningCardTitle = QnAMakerMultiturnDialog.DefaultCardTitle,
-				CardNoMatchText = QnAMakerMultiturnDialog.DefaultCardNoMatchText,
-				CardNoMatchResponse = cardNoMatchResponse
-			};
-
-			var dialogOptions = new Dictionary<string, object>
-			{
-				[QnAMakerMultiturnDialog.QnAOptions] = qnamakerOptions,
-				[QnAMakerMultiturnDialog.QnADialogResponseOptions] = qnaDialogResponseOptions
-			};
-
-			return await innerDc.BeginDialogAsync(nameof(QnAMakerMultiturnDialog), dialogOptions, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }
