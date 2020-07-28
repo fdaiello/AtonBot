@@ -124,6 +124,13 @@ namespace MrBot.Dialogs
 			// Se achou alguma resposta
 			if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
 			{
+				// Ponteiro para os dados persistentes da conversa
+				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+				// Salva a primeira pergunta que o cliente fez
+				conversationData.FirstQuestion = string.Empty;
+
 				// Chama o QnaMakerMultiturnDialog
 				return await Utility.CallQnaDialog(stepContext, cancellationToken).ConfigureAwait(false);
 			}
