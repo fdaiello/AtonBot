@@ -68,10 +68,25 @@ namespace MrBot.Dialogs
 			InitialDialogId = nameof(WaterfallDialog);
 		}
 
+		// Verifica se já tem algum agendamento: se não tem
 		// 1- Quer agendar?
 		//   Gostaria de agendar uma visita técnica para realizar a instalação em sua residência?
+		// Se já tem:
+		//       Quer fazer um novo reagendamento?
 		private async Task<DialogTurnResult> AskQuerAgendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+			// Texto inicial
+			string initialText = "Você gostaria de agendar uma visita técnica para realizar a instalação em sua residência? " + _dialogDictionary.Emoji.Person;
+
+			// Procura pelo registro do usuario
+			Customer customer = _botDbContext.Customers
+								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
+								.FirstOrDefault();
+
+			// Verifica se já tem agendamento salvo
+			if (customer != null && !string.IsNullOrEmpty(customer.Tag1))
+				initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag1} no turno da {customer.Tag2}. Você quer reagendar?";
+
 			// Initialize values
 			stepContext.Values["name"] = string.Empty;
 			stepContext.Values["phone"] = string.Empty;
@@ -79,7 +94,7 @@ namespace MrBot.Dialogs
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
 			{
-				Text = "Você gostaria de agendar uma visita técnica para realizar a instalação em sua residência? " + _dialogDictionary.Emoji.Person,
+				Text = initialText,
 				Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
