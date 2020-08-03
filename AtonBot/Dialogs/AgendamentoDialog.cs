@@ -32,7 +32,7 @@ namespace MrBot.Dialogs
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
 
-		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient)
+		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog)
 			: base(nameof(AgendamentoDialog))
 		{
 
@@ -63,6 +63,8 @@ namespace MrBot.Dialogs
 				AskTimeStepAsync,
 				SaveStepAsync
 			}));
+
+			AddDialog(querAtendimentoDialog);
 
 			// Configura para iniciar no WaterFall Dialog
 			InitialDialogId = nameof(WaterfallDialog);
@@ -129,12 +131,11 @@ namespace MrBot.Dialogs
 			// Se disse que não
 			else
 			{
-				// Envia a mensagem explicativa
-				string message = "Tudo bem. Se quiser voltar outra hora, estarei a sua disposição.";
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text(message), cancellationToken).ConfigureAwait(false);
+				// Finaliza o diálogo atual
+				await stepContext.EndDialogAsync().ConfigureAwait(false);
 
-				// E encerra
-				return await stepContext.EndDialogAsync(null, cancellationToken).ConfigureAwait(false);
+				// Chama quer atendimento Dialogo
+				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
 
 			}
 		}

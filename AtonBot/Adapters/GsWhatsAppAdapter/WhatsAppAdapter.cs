@@ -21,6 +21,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using GsWhatsApp;
+using MrBot.Data;
 
 namespace GsWhatsAppAdapter
 {
@@ -40,6 +41,7 @@ namespace GsWhatsAppAdapter
 		/// <param name="configuration">An <see cref="IConfiguration"/> instance.</param>
 		/// <remarks>
 		/// The configuration keys are:
+		/// WhatsAppNumber: The phone number associated with the WhatsApp Business account.
 		/// GsApiKey: The API KEY from the account at GupShup.IO associated with WhatsApp number
 		/// GsApiUri: URI for API calls
 		/// GsMediaUri: URI for retreaving media

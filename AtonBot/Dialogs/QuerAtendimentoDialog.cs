@@ -92,7 +92,7 @@ namespace MrBot.Dialogs
 			else
 			{
 				// Envia a mensagem explicativa
-				string message = "Ok, enquanto isto, estou por aqui se tiver alguma outra dúvida.";
+				string message = "Ok, quando precisar, estarei a disposição.";
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text(message), cancellationToken).ConfigureAwait(false);
 
 				// E encerra

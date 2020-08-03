@@ -109,7 +109,7 @@ namespace MrBot.Dialogs
 				{
 					// Notifica o atendente informado
 					string webPushId = applicationUsers.Where(p => p.NickName == nickname).FirstOrDefault().WebPushId;
-					await _wpushApi.SendNotification("Suzi Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), webPushId).ConfigureAwait(false);
+					await _wpushApi.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), webPushId).ConfigureAwait(false);
 
 					// Confere se foi acionado direto por intençao
 					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para {atendente}, que em breve vai se conectar e teclar com você. Enquanto isto, eu estou por aqui.";
@@ -120,26 +120,21 @@ namespace MrBot.Dialogs
 					foreach (ApplicationUser applicationUser in applicationUsers)
 					{
 						// Sends WebPush Notification for this Agent
-						await _wpushApi.SendNotification("Suzi Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), applicationUser.WebPushId).ConfigureAwait(false);
+						await _wpushApi.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), applicationUser.WebPushId).ConfigureAwait(false);
 					}
 					// Confere se foi acionado direto por intençao
-					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Em breve alguém vai conectar e teclar com você. Enquanto isto, eu estou por aqui.";
+					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Em breve alguém vai conectar e teclar com você. Por favor, aguarde ...";
 				}
 
 				if (stepContext.Options != null)
 				{
 					// Envia a mensagem
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text(msgtoshow), cancellationToken).ConfigureAwait(false);
-					// Envia a mensagem "algo mais?"
-					await stepContext.Context.SendActivityAsync(MessageFactory.Text(_dialogDictionary.SharedMessage.MsgAlgoMais), cancellationToken).ConfigureAwait(false);
 					// Finaliza o diálogo
 					return await stepContext.EndDialogAsync().ConfigureAwait(false);
 				}
 				else
 				{
-					// Acrescenta "voltar ao menu" a mensagem
-					msgtoshow += "\r\n" + _dialogDictionary.SharedMessage.MsgVoltarMenu;
-
 					// Envia a mensagem como prompt de texto
 					return await stepContext.PromptAsync((nameof(TextPrompt)), new PromptOptions { Prompt = MessageFactory.Text(msgtoshow) }, cancellationToken).ConfigureAwait(false);
 				}

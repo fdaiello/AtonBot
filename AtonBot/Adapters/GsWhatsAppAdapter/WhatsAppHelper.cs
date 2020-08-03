@@ -123,20 +123,20 @@ namespace GsWhatsAppAdapter
 				activity = await JsonPayloadToActivity(httpRequest, logger).ConfigureAwait(false);
 
 			// Confere se vieram parametros corretos por querystring - Testes
-			else if (!string.IsNullOrEmpty(httpRequest.Query["text"]) && !string.IsNullOrEmpty(httpRequest.Query["from"]) && !string.IsNullOrEmpty(httpRequest.Query["groupid"]))
+			else if (!string.IsNullOrEmpty(httpRequest.Query["text"]) && !string.IsNullOrEmpty(httpRequest.Query["from"]) && !string.IsNullOrEmpty(httpRequest.Query["appName"]) )
 			{
 				// marca em flag pra saber lidar com o retorno
 				querystringused = true;
 				isspeechturn = false;
 
 				// Inicializa o GroupID e WhatsAppNumber
-				await GetWhatsAppNumberNGroupIdFromAppName(httpRequest.Query["groupid"]).ConfigureAwait(false);
+				await GetWhatsAppNumberNGroupIdFromAppName(httpRequest.Query["appName"]).ConfigureAwait(false);
 
 				// Gera um ActivityID
 				string activityId = "Qs" + DateTime.Now.ToString(CultureInfo.InvariantCulture);
 
 				// monta atividade com base nos parametros query string
-				activity = MessageActivityBuilder(activityId, httpRequest.Query["from"], "text", httpRequest.Query["text"], string.Empty, string.Empty);
+				activity = MessageActivityBuilder(activityId, httpRequest.Query["from"], httpRequest.Query["name"], "text", httpRequest.Query["text"], string.Empty, string.Empty);
 			}
 
 			// Erro
@@ -218,7 +218,7 @@ namespace GsWhatsAppAdapter
 			// Confere se o tipo da mensagem é texto
 			else if ( gsCallBack.Type=="message" && (gsCallBack.Payload.Type == "text" || gsCallBack.Payload.Type == "image" || gsCallBack.Payload.Type == "file"))
 				// constroi a Activity com base no que veio na requisição
-				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
+				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
 
 			else if (gsCallBack.Type == "message" && gsCallBack.Payload.Type == "audio")
 			{
@@ -236,11 +236,11 @@ namespace GsWhatsAppAdapter
 					isspeechturn = true;
 
 					// constroi a Activity com base no que veio na requisição
-					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, "text", speechtotext, gsCallBack.App);
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, "text", speechtotext, gsCallBack.App);
 				}
 				else
 					// constroi a Activity com base no que veio na requisição
-					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Type, string.Empty, gsCallBack.App, gsCallBack.Payload.Payload2.Url);
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, string.Empty, gsCallBack.App, gsCallBack.Payload.Payload2.Url);
 
 			}
 			else if (gsCallBack.Type == "user-event")
@@ -276,7 +276,7 @@ namespace GsWhatsAppAdapter
 		}
 
 		// Generates a Bot Activity with message to be passed to the Bot
-		private Activity MessageActivityBuilder(string messageId, string from, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] Stream stream)
+		private Activity MessageActivityBuilder(string messageId, string from, string name, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] Stream stream)
 		{
 			// Generates a customerID - based on GroupID + WhatsApp From number
 			string customerId = groupID + "-" + from;
@@ -294,6 +294,7 @@ namespace GsWhatsAppAdapter
 				From = new ChannelAccount()
 				{
 					Id = customerId,
+					Name = name
 				},
 				Recipient = new ChannelAccount()
 				{
@@ -516,7 +517,7 @@ namespace GsWhatsAppAdapter
 		//    Adiciona um asterisco antes e outro depois do numero - negrito no whats app
 		private static string BoldFirstDigit(string line)
 		{
-			if (line.Substring(1, 1).IsNumber() & line.Length > 3 & line.Substring(2,1) == " ")
+			if (line.Substring(1, 1).IsNumber())
 				return line.Substring(0, 1).Replace("1", "*1*").Replace("2", "*2*").Replace("3", "*3*").Replace("4", "*4*").Replace("5", "*5*").Replace("6", "*6*").Replace("7", "*7*").Replace("8", "*8*").Replace("9", "*9*") + line.Substring(1);
 			else
 				return heroCardButtonPin + line;
@@ -646,7 +647,10 @@ namespace GsWhatsAppAdapter
 		public string Phone { get; set; }
 		[JsonProperty(PropertyName = "name")]
 		public string Name { get; set; }
-
+		[JsonProperty(PropertyName = "country_code")]
+		public string CountryCode { get; set; }
+		[JsonProperty(PropertyName = "dial_code")]
+		public string DialCode { get; set; }
 	}
 	public class Payload2
 	{

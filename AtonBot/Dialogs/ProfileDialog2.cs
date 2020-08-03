@@ -43,7 +43,6 @@ namespace MrBot.Dialogs
 			{
 				AskNameStepAsync,
 				AskSobreNomeStepAsync,
-				AskEmailStepAsync,
 				AskPhoneStepAsync,
 				SaveProfile2StepAsync
 			};
@@ -85,7 +84,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["askphone"] = string.IsNullOrEmpty(customer.MobilePhone) || !Utility.IsValidPhone(customer.MobilePhone);
 
 			// Se falta algum dado
-			if (string.IsNullOrEmpty(customer.Name) || !customer.Name.Contains(" ") || string.IsNullOrEmpty(customer.Email) || string.IsNullOrEmpty(customer.MobilePhone) || !Utility.IsValidPhone(customer.MobilePhone))
+			if (string.IsNullOrEmpty(customer.Name) || !customer.FullName.Contains(" ") || string.IsNullOrEmpty(customer.MobilePhone) || !Utility.IsValidPhone(customer.MobilePhone))
 				// avisa que tem que preencher o cadastro
 				await stepContext.Context.SendActivityAsync(initmsg).ConfigureAwait(false);
 			else
@@ -95,8 +94,8 @@ namespace MrBot.Dialogs
 			// Se tem nome 
 			if (!string.IsNullOrEmpty(customer.Name))
 				// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
-				return await stepContext.NextAsync(customer.Name, cancellationToken).ConfigureAwait(false);
-			
+				return await stepContext.NextAsync(customer.FullName, cancellationToken).ConfigureAwait(false);
+
 			else
 				// pergunta o nome do cliente
 				return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Por favor, qual é o seu nome?"), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
@@ -120,25 +119,6 @@ namespace MrBot.Dialogs
 				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
 
 		}
-		// Pergunta o email
-		private async Task<DialogTurnResult> AskEmailStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-		{
-			// salva o que foi digitado no passo anterior
-			stepContext.Values["sobrenome"] = (string)stepContext.Result;
-
-			// Salva os dados
-			await SaveCustomerData(stepContext).ConfigureAwait(false);
-
-			// Se não tem email
-			if ((bool)stepContext.Values["askemail"])
-				// pergunta email do cliente
-				return await stepContext.PromptAsync("EmailPrompt", new PromptOptions { Prompt = MessageFactory.Text("Me informe o seu email, por favor."), RetryPrompt = MessageFactory.Text("Por favor, informe seu email. É só para eu completar seu cadastro.") }, cancellationToken).ConfigureAwait(false);
-
-			else
-				// Pula pro proximo passo
-				return await stepContext.NextAsync(null).ConfigureAwait(false);
-		}
-
 		// Pergunta o telefone
 		private async Task<DialogTurnResult> AskPhoneStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
