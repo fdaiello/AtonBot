@@ -233,7 +233,7 @@ namespace MrBot.Dialogs
 			// Confirma se conseguiu inserir corretamente o Lead
 			string msg;
 			if (ploomesContactId != 0)
-				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\nAntes do agendamento disponibilizaremos informações do técnico que fará a visita." + _dialogDictionary.Emoji.ThumbsUp;
+				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
 			else
 				msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
 
