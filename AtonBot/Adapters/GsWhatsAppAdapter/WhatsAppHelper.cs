@@ -218,7 +218,7 @@ namespace GsWhatsAppAdapter
 			// Confere se o tipo da mensagem é texto
 			else if ( gsCallBack.Type=="message" && (gsCallBack.Payload.Type == "text" || gsCallBack.Payload.Type == "image" || gsCallBack.Payload.Type == "file"))
 				// constroi a Activity com base no que veio na requisição
-				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
+				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption, gsCallBack.Payload.Context==null ? null : gsCallBack.Payload.Context.GsId);
 
 			else if (gsCallBack.Type == "message" && gsCallBack.Payload.Type == "audio")
 			{
@@ -231,16 +231,14 @@ namespace GsWhatsAppAdapter
 
 				// Se Reconheceu com sucesso
 				if (!string.IsNullOrEmpty(speechtotext) && speechtotext != "NOMATCH" && !speechtotext.StartsWith("CANCELED", StringComparison.OrdinalIgnoreCase))
-				{
 					// Salva em variavel da classe que o turno tem conversa
 					isspeechturn = true;
-
-					// constroi a Activity com base no que veio na requisição
-					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, "text", speechtotext, gsCallBack.App);
-				}
 				else
-					// constroi a Activity com base no que veio na requisição
-					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, string.Empty, gsCallBack.App, gsCallBack.Payload.Payload2.Url);
+					// Se não reconheceu, deixa o texto em branco
+					speechtotext = string.Empty;
+
+				// constroi a Activity com o audio e o texto
+				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, speechtotext, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
 
 			}
 			else if (gsCallBack.Type == "user-event")
@@ -276,7 +274,7 @@ namespace GsWhatsAppAdapter
 		}
 
 		// Generates a Bot Activity with message to be passed to the Bot
-		private Activity MessageActivityBuilder(string messageId, string from, string name, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] Stream stream)
+		private Activity MessageActivityBuilder(string messageId, string from, string name, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] string ContextId)
 		{
 			// Generates a customerID - based on GroupID + WhatsApp From number
 			string customerId = groupID + "-" + from;
@@ -303,35 +301,33 @@ namespace GsWhatsAppAdapter
 				Type = ActivityTypes.Message,
 			};
 
+			activity.Text = text;
+
+			// Se tem Id de "quotted" message
+			if (ContextId != null)
+				activity.ChannelData = ContextId;
+
 			// Verifica o tipo da mensagem e os atributos que devem ser atribuidos
-			if (type == "text")
-			{
-				activity.Text = text;
-				activity.Attachments = null;
-			}
-			else if (type == "image")
+			if (type == "image")
 			{
 				activity.Attachments = new Attachment[1];
 				activity.Attachments[0] = CreateAttachment(url, "image/png", attachmentName);
-
 			}
-			else if (type == "audio" | type == "voice" | stream != null)
+			else if (type == "audio" | type == "voice" )
 			{
 				activity.Attachments = new Attachment[1];
-				activity.Attachments[0] = CreateInlineAttachment(attachmentName, "audio/ogg", stream);
+				activity.Attachments[0] = CreateAttachment(url, "audio/ogg", attachmentName);
 			}
 			else if (type == "file")
 			{
 				activity.Attachments = new Attachment[1];
 				activity.Attachments[0] = CreateAttachment(url, "application/pdf", attachmentName);
-
 			}
 			else if (type == "event")
 			{
 				activity.Type = ActivityTypes.Event;
 				activity.Attachments = null;
 			}
-
 			return (activity);
 
 		}
@@ -547,23 +543,6 @@ namespace GsWhatsAppAdapter
 			return attachment;
 		}
 
-		// Cria um Inline Attachment - o conteudo vai dentro do Attachmento, ao inves de uma URL
-		private static Attachment CreateInlineAttachment(string attachmentName, string contenttype, Stream stream)
-		{
-			// Copia a stream para um array de bytes - tem que passar por um MemoryStream
-			byte[] bytes = ConverteStreamToByteArray(stream);
-
-			// Gera string com o array de bytes codificado em base64
-			string base64 = Convert.ToBase64String(bytes);
-
-			// ContentUrl Leva os dados inline no formato: "contentUrl": "data:audio/ogg;base64,iVBORw0KGgo…",
-			return new Attachment
-			{
-				Name = attachmentName + "." + contenttype.Split("/").Last(),
-				ContentType = contenttype,
-				ContentUrl = "data:" + contenttype + ";base64," + base64
-			};
-		}
 		private static byte[] ConverteStreamToByteArray(Stream stream)
 		{
 			using MemoryStream mStream = new MemoryStream();
@@ -637,6 +616,8 @@ namespace GsWhatsAppAdapter
 		public Payload2 Payload2 { get; set; }
 		[JsonProperty(PropertyName = "sender")]
 		public Sender Sender { get; set; }
+		[JsonProperty(PropertyName = "context")]
+		public Context Context { get; set; }
 		[JsonProperty(PropertyName = "destination")]
 		public string Destination { get; set; }
 
@@ -651,6 +632,14 @@ namespace GsWhatsAppAdapter
 		public string CountryCode { get; set; }
 		[JsonProperty(PropertyName = "dial_code")]
 		public string DialCode { get; set; }
+	}
+	public class Context
+    {
+		[JsonProperty(PropertyName = "id")]
+		public string Id { get; set; }
+		[JsonProperty(PropertyName = "gsId")]
+		public string GsId { get; set; }
+
 	}
 	public class Payload2
 	{

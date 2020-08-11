@@ -83,7 +83,7 @@ namespace MrBot
 
 			if ( activity.Timestamp == null)
 			{
-				return activity.Id + "-" + RemoveAcentos(filename).Replace(" ", "-");
+				return activity.Id + "-" + RemoveAcentos(filename).Replace(" ", "-").Replace("?", "").Replace("&", "");
 			}
 			else
 			{

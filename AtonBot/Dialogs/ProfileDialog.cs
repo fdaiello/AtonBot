@@ -58,7 +58,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Oi. Eu sou um Bot {_dialogDictionary.Emoji.InformationDeskPerson}.\nEstou aqui para fazer o agendamento da instalação do seu carregador Volvo.{_dialogDictionary.Emoji.Automobile}"), cancellationToken).ConfigureAwait(false);
 
 			// Se tem nome vindo do canal
-			if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))
+			if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name.Trim()) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))
 			{
 				// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
 				return await stepContext.NextAsync(stepContext.Context.Activity.From.Name, cancellationToken).ConfigureAwait(false);

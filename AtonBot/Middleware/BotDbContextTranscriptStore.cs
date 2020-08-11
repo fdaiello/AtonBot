@@ -81,7 +81,7 @@ namespace MrBot.Middleware
 							{
 								lasttext = message.Text;
 
-								// Insere no banco de dados
+								// Cria um objeto chattinglog com os dados recebidos
 								ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = source, Type = message.Type, CustomerId = customerid, ActivityId= activity.Id, GroupId = customer.GroupId };
 								if (message.Type == ChatMsgType.Text)
 									chattingLog.Text = message.Text;
@@ -89,9 +89,17 @@ namespace MrBot.Middleware
 								{
 									chattingLog.Filename = message.FileName;
 									chattingLog.Text = string.Empty;
-									lasttext = message.FileName;
+									if (message.Type ==ChatMsgType.Voice)
+										lasttext = "audio";
+									else
+										lasttext = "file";
 								}
 
+								// Se tem contexto - "quoted" message
+								if (activity.ChannelData != null)
+									chattingLog.QuotedActivityId = activity.ChannelData	;
+
+								// Insere no banco
 								botDbContext.ChattingLogs.Add(chattingLog);
 							}
 							// Atualiza a ultima mensagem recebida direto no registro do cliente
@@ -224,9 +232,9 @@ namespace MrBot.Middleware
 							messages.Add(new Message { FileName = filename, Type = ChatMsgType.Word });
 							break;
 
-						case "application / vnd.openxmlformats - officedocument.spreadsheetml.sheet":
+						case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 							// Adiciona a URL da media a lista de mensagens
-							messages.Add(new Message { FileName = filename, Type = ChatMsgType.Word });
+							messages.Add(new Message { FileName = filename, Type = ChatMsgType.Excel });
 							break;
 
 						case "video/mpeg":

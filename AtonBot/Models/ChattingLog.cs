@@ -41,7 +41,8 @@ namespace MrBot.Models
 		public string ActivityId { get; set; }					// ActivityID
 		public MsgStatus Status { get; set; }					// None, Enqueued, Failed, Sent, Delivered, Read
 		public DateTime StatusTime { get; set; }                // Time when status was last update
-		public int GroupId { get; set; }						// CustomerID.GroupID - Denormalization for Dashboard
+		public int GroupId { get; set; }                        // CustomerID.GroupID - Denormalization for Dashboard
+		public string QuotedActivityId { get; set; }            // When a message is "quoted" ( cited ), this shows the ActivityID of the message beeing quoted
 
 	}
 }
