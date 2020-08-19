@@ -99,8 +99,8 @@ namespace MrBot.Dialogs
 				Text = initialText,
 				Buttons = new List<CardAction>
 				{
-					new CardAction(ActionTypes.ImBack, title: "A. Sim", value: "sim"),
-					new CardAction(ActionTypes.ImBack, title: "B. Não", value: "não"),
+					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
+					new CardAction(ActionTypes.ImBack, title: "Não", value: "não"),
 				},
 			};
 
@@ -108,7 +108,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: A. Sim ou B. Não") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
 		}
 
 		// 2- Pergunta CEP
@@ -124,7 +124,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["choice"] = choice;
 
 			// Se dise que sim
-			if ( choice == "sim" | choice == "s" | choice == "a")
+			if ( choice == "sim" | choice == "s" )
 				// Pergunta o CEP
 				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar por favor o cep {_dialogDictionary.Emoji.OpenMailBox} da sua residência para checarmos a disponibilidae do técnico na sua região?"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
 
@@ -172,12 +172,10 @@ namespace MrBot.Dialogs
 				Text = "Obrigado pela informação. Para seu endereço temos as seguintes datas disponíveis:",
 				Buttons = new List<CardAction> { }
 			};
-			// Array com letras para colocar antes das datas
-			string[] letras = new string[] { "A", "B", "C"};
 
 			// Adiciona botões para as datas disponíveis
 			for ( int x = 0; x <= nextAvailableDates.Count-1; x++)
-				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: letras[x] + ". " + nextAvailableDates[x], value: nextAvailableDates[x]));
+				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x], value: nextAvailableDates[x]));
 			
 			// Send the card(s) to the user as an attachment to the activity
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
@@ -195,25 +193,6 @@ namespace MrBot.Dialogs
 			// Busca a data informada no passo anterior
 			string data = ((string)stepContext.Result).ToUpperInvariant();
 
-			// Se foi A, B ou C
-			if (data == "A" | data == "B" | data == "C")
-            {
-				// Ponteiro para os dados persistentes da conversa
-				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-				// Busca novamente as datas disponíveis
-				List<string> nextAvailableDates = conversationData.NextAvailableDates;
-
-				if (data == "A")
-					data = nextAvailableDates[0];
-				else if ( data == "B")
-					data = nextAvailableDates[1];
-				else
-					data = nextAvailableDates[2];
-			}
-
-
 			// Salva a data em varivel persitente ao diálogo
 			stepContext.Values["data"] = data;
 
@@ -224,8 +203,8 @@ namespace MrBot.Dialogs
 				Text = "Você prefere atendimento no período da manhã (08h as 13h) ou da tarde (13h às 18h)?",
 				Buttons = new List<CardAction>
 				{
-					new CardAction(ActionTypes.ImBack, title: $"A. manhã", value: "manhã"),
-					new CardAction(ActionTypes.ImBack, title: $"B. tarde", value: "tarde"),
+					new CardAction(ActionTypes.ImBack, title: $"manhã", value: "manhã"),
+					new CardAction(ActionTypes.ImBack, title: $"tarde", value: "tarde"),
 				},
 			};
 
@@ -233,7 +212,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			return await stepContext.PromptAsync("turnoprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: A. manhã ou B. tarde") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("turnoprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: manhã ou tarde") }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// 5- Salva os dados no banco, salva o Lead no Ploomes, e confirma o agendamento
@@ -241,10 +220,6 @@ namespace MrBot.Dialogs
 		{
 			// Busca o turno
 			string turno = ((string)stepContext.Result).ToUpperInvariant();
-			if (turno == "A")
-				turno = "manhã";
-			else if (turno == "B")
-				turno = "tarde";
 
 			// Salva o turno em varivel persitente ao diálogo
 			stepContext.Values["turno"] = turno;
@@ -277,7 +252,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou sim ou não
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "sim" || choice == "não" || choice == "nao" || choice == "s" || choice == "n" || choice == "a" || choice == "b";
+			IsValid = choice == "sim" || choice == "não" || choice == "nao" || choice == "s" || choice == "n" ;
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
@@ -289,7 +264,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou manhã ou tarde
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde" || choice == "a" || choice == "b";
+			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde";
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
@@ -307,10 +282,6 @@ namespace MrBot.Dialogs
 			// Busca o que foi digitado
 			string choice = (string)promptContext.Context.Activity.Text;
 			choice = choice.ToUpperInvariant();
-
-			// Se foi A, B ou C - ta ok
-			if (choice == "A" | choice == "B" | choice == "C")
-				return true;
 
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));

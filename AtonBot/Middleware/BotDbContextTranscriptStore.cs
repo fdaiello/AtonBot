@@ -85,6 +85,16 @@ namespace MrBot.Middleware
 								ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = source, Type = message.Type, CustomerId = customerid, ActivityId= activity.Id, GroupId = customer.GroupId };
 								if (message.Type == ChatMsgType.Text)
 									chattingLog.Text = message.Text;
+								else if ( message.Type == ChatMsgType.Location)
+								{
+									chattingLog.Text = message.Text;
+									lasttext = "location";
+								}
+								else if (message.Type == ChatMsgType.Contacts)
+								{
+									chattingLog.Text = message.Text;
+									lasttext = "contact";
+								}
 								else
 								{
 									chattingLog.Filename = message.FileName;
@@ -96,11 +106,12 @@ namespace MrBot.Middleware
 								}
 
 								// Se tem contexto - "quoted" message
-								if (activity.ChannelData != null)
+								if (activity.ChannelId == "whatsapp" && activity.ChannelData != null)
 									chattingLog.QuotedActivityId = activity.ChannelData	;
 
 								// Insere no banco
-								botDbContext.ChattingLogs.Add(chattingLog);
+								if ( !string.IsNullOrEmpty(message.Text) | !string.IsNullOrEmpty(message.FileName))
+									botDbContext.ChattingLogs.Add(chattingLog);
 							}
 							// Atualiza a ultima mensagem recebida direto no registro do cliente
 							customer.LastText = lasttext;
@@ -257,6 +268,13 @@ namespace MrBot.Middleware
 							messages.Add(new Message { Text = ConvertHeroCardToText(attachment), Type = ChatMsgType.Text });
 							break;
 
+						case "application/json":
+							// Salva objeto json no campo texto
+							if (attachment.Name == "location")
+								messages.Add(new Message { Text = attachment.Content.ToString(), Type = ChatMsgType.Location, FileName= ChatMsgType.Location.ToString() });
+							else if ( attachment.Name =="contact")
+								messages.Add(new Message { Text = attachment.Content.ToString(), Type = ChatMsgType.Contacts, FileName = ChatMsgType.Contacts.ToString() });
+							break;
 					}
 				}
 			}

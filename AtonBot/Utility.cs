@@ -34,7 +34,6 @@ namespace MrBot
 				// Search all file objects within the incoming Activity
 				foreach (var file in turnContext.Activity.Attachments)
 				{
-
 					// Nome unico para o arquivo
 					filename = UniqueFileName(turnContext.Activity, file.Name);
 
@@ -44,34 +43,38 @@ namespace MrBot
 					// Determine where the file is hosted.
 					var contentUrl = file.ContentUrl;
 
-					// Stream para ler o conteudo do arquivo
-					Stream stream;
-
-					// Se é attachment Inline: data dentro da URL no formato "data:audio/ogg;base64,iVBORw0KGgo…"
-					if (contentUrl.StartsWith("data:"))
+					if (contentUrl != null)
 					{
-						// cria stream com o conteudo - primeiro passa pra array de bytes
-						string data = contentUrl.Split("base64,").Last();
-						byte[] bytes = Convert.FromBase64String(data);
-						stream = new MemoryStream(bytes);
+
+						// Stream para ler o conteudo do arquivo
+						Stream stream;
+
+						// Se é attachment Inline: data dentro da URL no formato "data:audio/ogg;base64,iVBORw0KGgo…"
+						if (contentUrl.StartsWith("data:"))
+						{
+							// cria stream com o conteudo - primeiro passa pra array de bytes
+							string data = contentUrl.Split("base64,").Last();
+							byte[] bytes = Convert.FromBase64String(data);
+							stream = new MemoryStream(bytes);
+						}
+
+						// Se é URL hospedada na Web
+						else
+						{
+							// Download the actual attachment
+							using var webClient = new WebClient();
+							Uri uri = new Uri(contentUrl);
+							stream = new MemoryStream(webClient.DownloadData(uri));
+						}
+
+						// Faz upload da stream para o Blob
+						await blob.DeleteIfExistsAsync().ConfigureAwait(false);
+						await blob.UploadAsync(stream).ConfigureAwait(false);
+
+						// Libera a stream
+						stream.Dispose();
+
 					}
-
-					// Se é URL hospedada na Web
-					else
-					{
-						// Download the actual attachment
-						using var webClient = new WebClient();
-						Uri uri = new Uri(contentUrl);
-						stream = new MemoryStream(webClient.DownloadData(uri));
-					}
-
-					// Faz upload da stream para o Blob
-					await blob.DeleteIfExistsAsync().ConfigureAwait(false);
-					await blob.UploadAsync(stream).ConfigureAwait(false);
-
-					// Libera a stream
-					stream.Dispose();
-
 				}
 
 			}
@@ -451,7 +454,7 @@ namespace MrBot
 		}
 		public static string CleanUtterance ( string userinput )
 		{
-			userinput = userinput.Replace("Susie", "").Replace("Susi", "").Replace("Suzi", "").Replace("Suzy", "").Replace("Susy", "").Replace("Susie", "").Replace("Suso", "").Replace("!"," ").Trim() ;
+			userinput = userinput.Replace("!"," ").Trim() ;
 
 			if (userinput.Length > 0 && userinput.Substring(userinput.Length - 1) == ".")
 				userinput = userinput.Substring(0, userinput.Length - 1);
@@ -549,8 +552,6 @@ namespace MrBot
 			} while (IsHoliday(date) || IsWeekend(date));
 			return date;
 		}
-
 	}
 }
-
 

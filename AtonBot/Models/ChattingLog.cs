@@ -16,7 +16,9 @@ namespace MrBot.Models
 		PDF,                            // Docs - pdf
 		Word,                           // Docs - doc, docx
 		Excel,                          // Excel - xls,xlsx,csv
-		File                            // Other files
+		File,                           // Other files
+		Location,						// Geografic Location
+		Contacts						// Contact Card
 	}
 	public enum MsgStatus
 	{

@@ -198,62 +198,94 @@ namespace GsWhatsAppAdapter
 			// Registra em Log os dados recebidos
 			logger.LogInformation("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), Environment.NewLine + "in: " + jsondata);
 
-			// Desserializa os dados recebidos como Json
-			GsCallBack gsCallBack = JsonConvert.DeserializeObject<GsCallBack>(jsondata);
-
-			// Procura o nome da aplicaçao que gerou o PayLoad
-			if (!string.IsNullOrEmpty(gsCallBack.App))
-				// Inicializa o GroupID e WhatsAppNumber
-				await GetWhatsAppNumberNGroupIdFromAppName(gsCallBack.App).ConfigureAwait(false);
-
-			else
-				// Grava em um arquivo de Log indicando que não recebeu PayLoad com App name
-				logger.LogError("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), $"App name not identified: {gsCallBack.Type}");
-
-			// Se o tipo de mensagem é Evento
-			if (gsCallBack.Type == "message-event")
-				// constroi a Event-Activity com base no que veio na requisição
-				activity = EventActivityBuilder(gsCallBack.Payload.GsId ?? gsCallBack.Payload.Id, gsCallBack.Payload.Type, gsCallBack.Payload.Destination, gsCallBack.App);
-
-			// Confere se o tipo da mensagem é texto
-			else if ( gsCallBack.Type=="message" && (gsCallBack.Payload.Type == "text" || gsCallBack.Payload.Type == "image" || gsCallBack.Payload.Type == "file"))
-				// constroi a Activity com base no que veio na requisição
-				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption, gsCallBack.Payload.Context==null ? null : gsCallBack.Payload.Context.GsId);
-
-			else if (gsCallBack.Type == "message" && gsCallBack.Payload.Type == "audio")
+			try
 			{
+				// Desserializa os dados recebidos como Json
+				GsCallBack gsCallBack = JsonConvert.DeserializeObject<GsCallBack>(jsondata);
 
-				// Busca a stream com o audio
-				Stream stream = await _gsWhatsAppClient.GetAudio(new Uri(gsCallBack.Payload.Payload2.Url)).ConfigureAwait(false);
+				// Procura o nome da aplicaçao que gerou o PayLoad
+				if (!string.IsNullOrEmpty(gsCallBack.App))
+					// Inicializa o GroupID e WhatsAppNumber
+					await GetWhatsAppNumberNGroupIdFromAppName(gsCallBack.App).ConfigureAwait(false);
 
-				// Tenta reconhecer o Audio
-				string speechtotext = await _speechClient.RecognizeOggStream(stream, gsCallBack.Payload.Id).ConfigureAwait(false);
-
-				// Se Reconheceu com sucesso
-				if (!string.IsNullOrEmpty(speechtotext) && speechtotext != "NOMATCH" && !speechtotext.StartsWith("CANCELED", StringComparison.OrdinalIgnoreCase))
-					// Salva em variavel da classe que o turno tem conversa
-					isspeechturn = true;
 				else
-					// Se não reconheceu, deixa o texto em branco
-					speechtotext = string.Empty;
+					// Grava em um arquivo de Log indicando que não recebeu PayLoad com App name
+					logger.LogError("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), $"App name not identified: {gsCallBack.Type}");
 
-				// constroi a Activity com o audio e o texto
-				activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, speechtotext, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
+				// Se o tipo de mensagem é Evento
+				if (gsCallBack.Type == "message-event")
+					// constroi a Event-Activity com base no que veio na requisição
+					activity = EventActivityBuilder(gsCallBack.Payload.GsId ?? gsCallBack.Payload.Id, gsCallBack.Payload.Type, gsCallBack.Payload.Destination, gsCallBack.App);
+
+				// Confere se o tipo da mensagem é texto, image ou file
+				else if (gsCallBack.Type == "message" && (gsCallBack.Payload.Type == "text" || gsCallBack.Payload.Type == "image" || gsCallBack.Payload.Type == "file"))
+					// constroi a Activity com base no que veio na requisição
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, gsCallBack.Payload.Payload2.Text, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption, gsCallBack.Payload.Context == null ? null : gsCallBack.Payload.Context.GsId);
+
+				// Confere se o tipo da mensagem é location
+				else if (gsCallBack.Type == "message" & gsCallBack.Payload.Type == "location")
+				{
+					// Busca as cordenadas, e monta um objeton Json com os dados
+					Location location = new Location { Latitude = gsCallBack.Payload.Payload2.Latitude, Longitude = gsCallBack.Payload.Payload2.Longitude };
+					string jsonLocation = JsonConvert.SerializeObject(location);
+
+					// constroi a Activity com base no que veio na requisição
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, string.Empty, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption, gsCallBack.Payload.Context == null ? null : gsCallBack.Payload.Context.GsId, jsonLocation);
+
+				}
+				// Confere se o tipo da mensagem é contact
+				else if (gsCallBack.Type == "message" && gsCallBack.Payload.Type == "contact" && gsCallBack.Payload.Payload2 != null)
+				{
+					// Busca o contact card, e monta uma string json com os dados do objeto
+					var contacts = gsCallBack.Payload.Payload2.Contacts;
+					string jsonContacts = JsonConvert.SerializeObject(contacts);
+
+					// constroi a Activity com base no que veio na requisição
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, string.Empty, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption, gsCallBack.Payload.Context == null ? null : gsCallBack.Payload.Context.GsId, jsonContacts);
+
+				}
+
+				else if (gsCallBack.Type == "message" && gsCallBack.Payload.Type == "audio")
+				{
+
+					// Busca a stream com o audio
+					Stream stream = await _gsWhatsAppClient.GetAudio(new Uri(gsCallBack.Payload.Payload2.Url)).ConfigureAwait(false);
+
+					// Tenta reconhecer o Audio
+					string speechtotext = await _speechClient.RecognizeOggStream(stream, gsCallBack.Payload.Id).ConfigureAwait(false);
+
+					// Se Reconheceu com sucesso
+					if (!string.IsNullOrEmpty(speechtotext) && speechtotext != "NOMATCH" && !speechtotext.StartsWith("CANCELED", StringComparison.OrdinalIgnoreCase))
+						// Salva em variavel da classe que o turno tem conversa
+						isspeechturn = true;
+					else
+						// Se não reconheceu, deixa o texto em branco
+						speechtotext = string.Empty;
+
+					// constroi a Activity com o audio e o texto
+					activity = MessageActivityBuilder(gsCallBack.Payload.Id, gsCallBack.Payload.Sender.Phone, gsCallBack.Payload.Sender.Name, gsCallBack.Payload.Type, speechtotext, gsCallBack.App, gsCallBack.Payload.Payload2.Url, gsCallBack.Payload.Payload2.Caption);
+
+				}
+				else if (gsCallBack.Type == "user-event")
+					// TODO: Manage USER Events
+					// Opted In
+					// Opted Out
+					activity = null;
+
+				else
+				{
+					// retorna Null
+					activity = null;
+
+					// Grava em um arquivo de Log indicando que veio um tipo não esperado
+					logger.LogInformation("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), $"Tipo de mensagem não esperado: {gsCallBack.Type}");
+				}
 
 			}
-			else if (gsCallBack.Type == "user-event")
-				// TODO: Manage USER Events
-				// Opted In
-				// Opted Out
-				activity = null;
-
-			else
+			catch (Exception ex)
 			{
-				// retorna Null
+				Console.WriteLine(ex);
 				activity = null;
-
-				// Grava em um arquivo de Log indicando que veio um tipo não esperado
-				logger.LogInformation("GsWhatsAppAdapter-" + DateTime.Today.ToString("G", culture), $"Tipo de mensagem não esperado: {gsCallBack.Type}");
 			}
 
 			return activity;
@@ -274,7 +306,7 @@ namespace GsWhatsAppAdapter
 		}
 
 		// Generates a Bot Activity with message to be passed to the Bot
-		private Activity MessageActivityBuilder(string messageId, string from, string name, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] string ContextId)
+		private Activity MessageActivityBuilder(string messageId, string from, string name, string type, string text, string botname, [Optional] string url, [Optional] string attachmentName, [Optional] string ContextId, [Optional] string jsondata)
 		{
 			// Generates a customerID - based on GroupID + WhatsApp From number
 			string customerId = groupID + "-" + from;
@@ -322,6 +354,16 @@ namespace GsWhatsAppAdapter
 			{
 				activity.Attachments = new Attachment[1];
 				activity.Attachments[0] = CreateAttachment(url, "application/pdf", attachmentName);
+			}
+			else if (type == "location")
+			{
+				activity.Attachments = new Attachment[1];
+				activity.Attachments[0] = new Attachment { ContentType = "application/json", Name = "location", Content = jsondata };
+			}
+			else if (type == "contact")
+			{
+				activity.Attachments = new Attachment[1];
+				activity.Attachments[0] = new Attachment { ContentType = "application/json", Name = "contact", Content = jsondata };
 			}
 			else if (type == "event")
 			{
@@ -487,7 +529,7 @@ namespace GsWhatsAppAdapter
 
 				if (heroCard.Buttons != null)
 					foreach (CardAction button in heroCard.Buttons)
-						waoutput += BoldFirstDigit(button.Title) + "\n";
+						waoutput += button.Title + "\n";
 
 				if (heroCard.Images != null)
 					foreach (CardImage image in heroCard.Images)
@@ -508,15 +550,6 @@ namespace GsWhatsAppAdapter
 			}
 
 			return string.Empty;
-		}
-		// Se a linha começa com um digito ( padrão de menu )...
-		//    Adiciona um asterisco antes e outro depois do numero - negrito no whats app
-		private static string BoldFirstDigit(string line)
-		{
-			if (line.Substring(1, 1).IsNumber())
-				return line.Substring(0, 1).Replace("1", "*1*").Replace("2", "*2*").Replace("3", "*3*").Replace("4", "*4*").Replace("5", "*5*").Replace("6", "*6*").Replace("7", "*7*").Replace("8", "*8*").Replace("9", "*9*") + line.Substring(1);
-			else
-				return heroCardButtonPin + line;
 		}
 
 		// Creates an <see cref="Attachment"/> to be sent from the bot to the user from a HTTP URL.
@@ -543,13 +576,6 @@ namespace GsWhatsAppAdapter
 			return attachment;
 		}
 
-		private static byte[] ConverteStreamToByteArray(Stream stream)
-		{
-			using MemoryStream mStream = new MemoryStream();
-			if ( stream != null && stream.Length >0 )
-				stream.CopyTo(mStream);
-			return mStream.ToArray();
-		}
 		// Converte um texto em Audio, converte para MP3, e envia
 		private async Task<string> SendVoice(string text, string voiceid, string usernumber)
 		{
@@ -651,26 +677,20 @@ namespace GsWhatsAppAdapter
 		public string Url { get; set; }
 		[JsonProperty(PropertyName = "urlExpiry")]
 		public long UrlExpiry { get; set; }
-
+		[JsonProperty(PropertyName = "latitude")]
+		public string Latitude { get; set; }
+		[JsonProperty(PropertyName = "longitude")]
+		public string Longitude { get; set; }
+		[JsonProperty(PropertyName = "contacts")]
+		public Object Contacts { get; set; }
 	}
-	// Mensagem GupShup vinda no CallBAck da API - V1
-	public class GsMessageObj
+	public class Location
 	{
-		public string From { get; set; }
-		[JsonProperty(PropertyName = "id")]
-		public string Id { get; set; }
-		[JsonProperty(PropertyName = "gsId")]
-		public string GsId { get; set; }
-		public string Text { get; set; }
-		public string Timestamp { get; set; }
-		public string Type { get; set; }
-		public string Url { get; set; }
-		public string Imgdata { get; set; }
-		public GsVoice Voice { get; set; }
-		[JsonProperty(PropertyName = "caption")]
-		public string Caption { get; set; }
-		[JsonProperty(PropertyName = "status")]
-		public string Status { get; set; }
+		[JsonProperty(PropertyName = "latitude")]
+		public string Latitude { get; set; }
+		[JsonProperty(PropertyName = "longitude")]
+		public string Longitude { get; set; }
+
 	}
 	// Mensagem de Voz - padrão GupShup
 	public class GsVoice

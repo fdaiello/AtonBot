@@ -101,7 +101,7 @@ namespace MrBot.Dialogs
 
 				innerDc.Context.Activity.Text = userinput;
 
-				if (userinput == "cancelar" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "*cancelar*")
+				if (userinput == "cancelar" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa")
 				{
 					// Envia mensagem
 					string text;
@@ -123,7 +123,7 @@ namespace MrBot.Dialogs
 					innerDc.Context.Activity.Text = string.Empty;
 
 					// E volta pro Menu Principal
-					return await innerDc.ReplaceDialogAsync(nameof(MainMenuDialog), null, cancellationToken).ConfigureAwait(false);
+					return await innerDc.ReplaceDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 				}
 
 				// Call LUIS and gather intent and any potential details
@@ -159,7 +159,7 @@ namespace MrBot.Dialogs
 					}
 
 					// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
-					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
+					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion))
 					{
 						// Language Generation message: Como posso Ajudar?
 						string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
@@ -168,8 +168,8 @@ namespace MrBot.Dialogs
 						// Limpa a primeira frase digitada no dialogo
 						conversationData.FirstQuestion = string.Empty;
 
-						// E continua o turno
-						return new DialogTurnResult(DialogTurnStatus.Waiting);
+						// Cancela os diálogos
+						return await innerDc.CancelAllDialogsAsync(cancellationToken).ConfigureAwait(false);
 					}
 
 					//// Falar com atendente
