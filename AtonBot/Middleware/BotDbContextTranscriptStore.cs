@@ -300,7 +300,7 @@ namespace MrBot.Middleware
 
 				if (heroCard.Buttons != null)
 					foreach (CardAction button in heroCard.Buttons)
-						waoutput += BoldFirstDigit(button.Title) + "\n";
+						waoutput += button.Title + "\n";
 
 				if (heroCard.Images != null)
 					foreach (CardImage image in heroCard.Images)
@@ -311,10 +311,6 @@ namespace MrBot.Middleware
 
 			return waoutput;
 
-		}
-		private static string BoldFirstDigit(string line)
-		{
-			return line.Substring(0, 1).Replace("1", "*1*").Replace("2", "*2*").Replace("3", "*3*").Replace("4", "*4*").Replace("5", "*5*").Replace("6", "*6*").Replace("7", "*7*").Replace("8", "*8*").Replace("9", "*9*") + line.Substring(1);
 		}
 
 		class Message
