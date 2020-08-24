@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿
+using Newtonsoft.Json;
 using System;
 using System.Text;
 using System.Net.Http;
@@ -73,51 +74,56 @@ namespace PloomesApi
 			}
 
 		}
+		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario )
+		{
+
+			Deal deal = new Deal { Title = title, ContactId = contactid };
+			deal.AddOtherProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4",null,data,null);									          // Data: DateTimeValue, format yyyy-MM-dd
+			if ( periodo == "tarde")
+				deal.AddOtherProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", null, null, 7710080);								  // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
+			else
+				deal.AddOtherProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", null, null, 7710081);
+			deal.AddOtherProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", null, horario, null);		  // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				string content = JsonConvert.SerializeObject(deal);
+
+				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
+
+				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+				Uri postDealUri = new Uri(serverUri.ToString() + "/Deals");
+				var httpResponseMessage = await httpClient.PostAsync(postDealUri, httpContent).ConfigureAwait(false);
+				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpContent.Dispose();
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				PostContactResponse postContactResponse = JsonConvert.DeserializeObject<PostContactResponse>(resp);
+
+				// Devolve o Id gerado
+				if (postContactResponse.Value != null && postContactResponse.Value.Count > 0 && postContactResponse.Value[0].Id.IsNumber())
+					return postContactResponse.Value[0].Id;
+				else
+					return 0;
+
+			}
+			catch (Exception)
+			{
+				httpClient.Dispose();
+				return 0;
+			}
+
+		}
 	}
-	//internal class Innererror
-	//{
-	//	[JsonProperty("message")]
-	//	public string Message { get; set; }
-	//	[JsonProperty("type")]
-	//	public string Type { get; set; }
-	//	[JsonProperty("stacktrace")]
-	//	public string StackTrace { get; set; }
-
-	//}
-
-	//internal class PloomesError
-	//{
-	//	[JsonProperty("code")]
-	//	public string Code { get; set; }
-	//	[JsonProperty("message")]
-	//	public string Message { get; set; }
-	//	[JsonProperty("innererror")]
-	//	public Innererror Innererror { get; set; }
-
-	//}
-
-	//internal class PloomesResponse
-	//{
-	//	[JsonProperty("error")]
-	//	public PloomesError Error { get; set; }
-
-	//}
-	//internal class OtherProperty
-	//{
-	//	public string FieldKey { get; set; }
-	//	public int IntegerValue { get; set; }
-
-	//}
-
-	//internal class Lead
-	//{
-	//	public string CompanyName { get; set; }
-	//	public string PersonName { get; set; }
-	//	public List<Phone> Phones { get; set; }
-	//	public string Origin { get; set; }
-	//	public int OwnerId { get; set; }
-	//	public List<OtherProperty> OtherProperties { get; set; }
-	//}
 	internal class Phone
 	{
 		public string PhoneNumber { get; set; }
@@ -216,37 +222,25 @@ namespace PloomesApi
 		public List<Value> Value { get; set; }
 
 	}
-	internal class Lead
+	internal class OtherProperty
 	{
-		public int Id { get; set; }
-		public object CompanyId { get; set; }
-		public object PersonId { get; set; }
-		public string CompanyName { get; set; }
-		public object CompanyLegalName { get; set; }
-		public object CompanyRegister { get; set; }
-		public string PersonName { get; set; }
-		public object Origin { get; set; }
-		public object Email { get; set; }
-		public object OwnerId { get; set; }
-		public int StatusId { get; set; }
-		public object NextContact { get; set; }
-		public object NoTime { get; set; }
-		public object ReminderId { get; set; }
-		public object DiscardReasonId { get; set; }
-		public bool Editable { get; set; }
-		public bool Deletable { get; set; }
-		public bool Workable { get; set; }
-		public int CreatorId { get; set; }
-		public object UpdaterId { get; set; }
-		public DateTime CreateDate { get; set; }
-		public DateTime LastUpdateDate { get; set; }
-		public object LastStatusUpdateDate { get; set; }
-		public bool NextContactScheduled { get; set; }
-		public int StatusOrdination { get; set; }
-		public DateTime NextContactOrdination { get; set; }
-		public object CreateImportId { get; set; }
-		public object UpdateImportId { get; set; }
+		public string FieldKey { get; set; }
+		public object StringValue { get; set; }
+		public object DateTimeValue { get; set; }
+		public object IntegerValue { get; set; }
 
 	}
+
+	internal class Deal
+	{
+		public string Title { get; set; }
+		public int ContactId { get; set; }
+		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
+		internal void AddOtherProperty(string fieldkey, object stringvalue, object datetimevalue, object integervalue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, DateTimeValue = datetimevalue, IntegerValue = integervalue });
+		}
+	}
+
 #pragma warning restore CA1812
 }

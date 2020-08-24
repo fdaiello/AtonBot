@@ -93,7 +93,7 @@ namespace MrBot.Dialogs
 				stepContext.Values["name"] = string.Empty;
 
 			// Confere se a conexão e whatsapp, entao o Id é o telefone 
-			if (stepContext.Context.Activity.ChannelId == "whatsapp" | stepContext.Context.Activity.ChannelId == "emulator")
+			if (stepContext.Context.Activity.ChannelId == "whatsapp" )
 			{
 				// Extracts WhatsApp customer number inserted at Activity.From.ID
 				string mobilephone;
@@ -125,7 +125,7 @@ namespace MrBot.Dialogs
 			if (Utility.IsValidPhone(mobilephone) | stepContext.Context.Activity.ChannelId == "emulator")
 			{
 				// Somente se for WhatsApp - caso contrario, já deu obrigado antes ...
-				if (stepContext.Context.Activity.ChannelId == "whatsapp" | stepContext.Context.Activity.ChannelId == "emulator")
+				if (stepContext.Context.Activity.ChannelId == "whatsapp" )
 				{
 					// Responde para o usuário
 					var msg = $"Obrigado pelo seu contato, {Utility.FirstName((string)stepContext.Values["name"])}." + _dialogDictionary.Emoji.ThumbsUp;

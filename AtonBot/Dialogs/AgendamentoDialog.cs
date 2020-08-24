@@ -80,18 +80,33 @@ namespace MrBot.Dialogs
 			// Texto inicial
 			string initialText = "Você gostaria de agendar uma visita técnica para realizar a instalação em sua residência? " + _dialogDictionary.Emoji.Person;
 
+			// Initialize values
+			stepContext.Values["name"] = string.Empty;
+			stepContext.Values["phone"] = string.Empty;
+			stepContext.Values["ploomesid"] = string.Empty;
+
 			// Procura pelo registro do usuario
 			Customer customer = _botDbContext.Customers
 								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 								.FirstOrDefault();
 
-			// Verifica se já tem agendamento salvo
-			if (customer != null && !string.IsNullOrEmpty(customer.Tag1))
-				initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag1} no turno da {customer.Tag2}. Você quer reagendar?";
+			// Valida que achou o registro
+			if (customer != null)
+            {
+				stepContext.Values["name"] = customer.Name;
+				stepContext.Values["phone"] = customer.MobilePhone;
+				stepContext.Values["ploomesid"] = customer.Tag3 != null ? customer.Tag3.ToString() : string.Empty;
 
-			// Initialize values
-			stepContext.Values["name"] = string.Empty;
-			stepContext.Values["phone"] = string.Empty;
+				// Verifica se já tem agendamento salvo
+				if ( !string.IsNullOrEmpty(customer.Tag1))
+					initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag1} 📝no turno da {customer.Tag2}. Você quer reagendar?";
+			}
+            else
+            {
+				// Não deveria cair aqui
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ocorreu algum erro e não achei seu registro."), cancellationToken).ConfigureAwait(false);
+				await stepContext.CancelAllDialogsAsync().ConfigureAwait(false);
+            }
 
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
@@ -153,7 +168,7 @@ namespace MrBot.Dialogs
 			GetAddressFromZip(stepContext, cep);
 
 			// Procura as opções de data com base no CEP informado
-			List<string> nextAvailableDates= GetNextAvailableDates(cep);
+			List<DateTime> nextAvailableDates= GetNextAvailableDates(cep);
 
 			// Salva as datas disponiveis em variavel persistente
 			stepContext.Values["nextAvailableDates"] = nextAvailableDates;
@@ -161,9 +176,8 @@ namespace MrBot.Dialogs
 			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-			foreach ( string availableDate in nextAvailableDates)
+			foreach ( DateTime availableDate in nextAvailableDates)
 				conversationData.AddAvailableDate(availableDate);
-			
 
 			// Monta HeroCard para perguntar a data desejada, dentro das opções disponíveis
 			var card = new HeroCard
@@ -175,26 +189,43 @@ namespace MrBot.Dialogs
 
 			// Adiciona botões para as datas disponíveis
 			for ( int x = 0; x <= nextAvailableDates.Count-1; x++)
-				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x], value: nextAvailableDates[x]));
+				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x].ToString("dd/MM", CultureInfo.InvariantCulture), value: nextAvailableDates[x]));
 			
 			// Send the card(s) to the user as an attachment to the activity
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
 			string retryText = "Por favor, escolha uma destas datas: ";
-			foreach (string nextavailabledate in nextAvailableDates)
-				retryText += " " + nextavailabledate;
+			foreach (DateTime nextavailabledate in nextAvailableDates)
+				retryText += " " + nextavailabledate.ToString("dd/MM", CultureInfo.InvariantCulture);
 			return await stepContext.PromptAsync("dateprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text(retryText) }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// 4- Pergunta o turno
 		private async Task<DialogTurnResult> AskTimeStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Busca a data informada no passo anterior
-			string data = ((string)stepContext.Result).ToUpperInvariant();
+			// Busca a data em formato string que informada no passo anterior
+			string choice = ((string)stepContext.Result).PadLeft(2,'0');
 
-			// Salva a data em varivel persitente ao diálogo
-			stepContext.Values["data"] = data;
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+			// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
+			choice = choice.Replace("-", "/").Replace("dia ", "");
+
+			// Busca novamente as datas disponíveis
+			List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;
+
+			// Varre as datas pra conferir com que data a string digitada de escolha confere
+			foreach (DateTime data in nextAvailableDates)
+			{
+				if ( choice == data.ToString("dd/MM", CultureInfo.InvariantCulture) | choice == data.ToString("dd/MM", CultureInfo.InvariantCulture).Split("/")[0])
+                {
+					// Salva a data em varivel persitente ao diálogo
+					stepContext.Values["data"] = data;
+				}
+			}
 
 			// Pergunta o Turno desejado
 			var card = new HeroCard
@@ -219,24 +250,42 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> SaveStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o turno
-			string turno = ((string)stepContext.Result).ToUpperInvariant();
+			string turno = ((string)stepContext.Result).ToLowerInvariant();
 
 			// Salva o turno em varivel persitente ao diálogo
 			stepContext.Values["turno"] = turno;
 
-			// Salva os dados do Customer no banco de dados
-			await UpdateCustomer(stepContext).ConfigureAwait(false);
+			// Avisa o cliente para aguardar enquanto salva os dados
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
 
-			// Envia os dados do cliente para o Ploomes
-			string note = $"dia {(string)stepContext.Values["data"]} turno da {turno}";
-			int ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
+			// Verifica se já não estava cadastrado antes
+			int ploomesContactId;
+			if ( string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
+            {
+				// Insere o cliente no Ploomes
+				string note = $"dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} turno da {turno}";
+				ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
+			}
+            else
+            {
+				ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesid"]);
+            }
+
+			// Insere o Negocio no Ploomes
+			int ploomesDealId = 1; //await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["name"], (DateTime)stepContext.Values["data"], turno, (DateTime)stepContext.Values["data"]).ConfigureAwait(false);
 
 			// Confirma se conseguiu inserir corretamente o Lead
 			string msg;
-			if (ploomesContactId != 0)
-				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {stepContext.Values["data"]} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+			if (ploomesContactId != 0 & ploomesDealId != 0)
+            {
+				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+				stepContext.Values["ploomesid"] = ploomesContactId.ToString();
+			}
 			else
 				msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+
+			// Salva os dados do Customer no banco de dados
+			await UpdateCustomer(stepContext).ConfigureAwait(false);
 
 			// Envia resposta para o cliente
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
@@ -281,7 +330,7 @@ namespace MrBot.Dialogs
 
 			// Busca o que foi digitado
 			string choice = (string)promptContext.Context.Activity.Text;
-			choice = choice.ToUpperInvariant();
+			choice = choice.PadLeft(2, '0');
 
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
@@ -291,24 +340,24 @@ namespace MrBot.Dialogs
 			choice = choice.Replace("-", "/").Replace("dia ","");
 
 			// Busca novamente as datas disponíveis
-			List<string> nextAvailableDates = conversationData.NextAvailableDates;
-			// Copia o aray
+			List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;
+			// Array com as escolhas em format string dd/MM
 			List<string> validchoices= new List<string>();
 
 			// Adiciona as datas e os dia das datas as possibilidaes de validação- pra validar se o cliente digitar somente o dia
-			foreach (string data in nextAvailableDates)
+			foreach (DateTime data in nextAvailableDates)
 			{
-				validchoices.Add(data);
-				validchoices.Add(data.Split("/")[0]);
+				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture));
+				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture).Split("/")[0]);
 			}
 
 			// Devolve true or false se a escolha esta dentro da lista de datas disponíveis
 			return validchoices.Contains(choice);
 		}
 		// Busca as próximas datas disponiveis, com base no CEP informado
-		private static List<string> GetNextAvailableDates(string cep)
+		private static List<DateTime> GetNextAvailableDates(string cep)
 		{
-			List<string> nextAvailableDates = new List<string>();
+			List<DateTime> nextAvailableDates = new List<DateTime>();
 
 			//TODO: Lógica para obter as próximas datas disponíveis
 			int choicesQuantity = 3;
@@ -323,7 +372,7 @@ namespace MrBot.Dialogs
 			do
 			{
 				nextDate = Utility.GetNextWorkingDay(nextDate);
-				nextAvailableDates.Add(nextDate.ToString("dd/MM",CultureInfo.InvariantCulture));
+				nextAvailableDates.Add(nextDate);
 
 			} while (nextAvailableDates.Count < choicesQuantity);
 
@@ -340,17 +389,15 @@ namespace MrBot.Dialogs
 			// Confirma que achou o registro
 			if (customer != null)
 			{
-				// Salva o nome do cliente
-				stepContext.Values["name"] = customer.Name;
-				stepContext.Values["phone"] = customer.MobilePhone;
-
 				// Atualiza o cliente
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
 					customer.Zip = (string)stepContext.Values["cep"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["data"]))
-					customer.Tag1 = (string)stepContext.Values["data"];
+				if ((DateTime)stepContext.Values["data"] != null)
+					customer.Tag1 = ((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture);
 				if (!string.IsNullOrEmpty((string)stepContext.Values["turno"]))
 					customer.Tag2 = (string)stepContext.Values["turno"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
+					customer.Tag3 = (string)stepContext.Values["ploomesid"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cidade"]))
 					customer.City = (string)stepContext.Values["cidade"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["estado"]))

@@ -159,7 +159,7 @@ namespace MrBot.Dialogs
 					}
 
 					// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
-					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion))
+					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
 					{
 						// Language Generation message: Como posso Ajudar?
 						string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
@@ -168,8 +168,8 @@ namespace MrBot.Dialogs
 						// Limpa a primeira frase digitada no dialogo
 						conversationData.FirstQuestion = string.Empty;
 
-						// Cancela os diálogos
-						return await innerDc.CancelAllDialogsAsync(cancellationToken).ConfigureAwait(false);
+						// E continua o turno
+						return new DialogTurnResult(DialogTurnStatus.Waiting);
 					}
 
 					//// Falar com atendente

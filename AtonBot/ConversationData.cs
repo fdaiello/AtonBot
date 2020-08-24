@@ -1,5 +1,5 @@
-﻿using Microsoft.VisualBasic;
-using MrBot.Models;
+﻿using MrBot.Models;
+using System;
 using System.Collections.Generic;
 
 namespace MrBot
@@ -22,9 +22,9 @@ namespace MrBot
 		public int IntentNotRecognized { get; set; } = 0;
 
 		// NextAvailableDates 
-		public List<string> NextAvailableDates { get; } = new List<string>();
+		public List<DateTime> NextAvailableDates { get; } = new List<DateTime>();
 
-		public void AddAvailableDate( string availabledate)
+		public void AddAvailableDate( DateTime availabledate)
 		{
 			this.NextAvailableDates.Add(availabledate);
 		}
