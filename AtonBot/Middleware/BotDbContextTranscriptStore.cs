@@ -290,10 +290,10 @@ namespace MrBot.Middleware
 			if (heroCard != null)
 			{
 				if (!string.IsNullOrEmpty(heroCard.Title))
-					waoutput += heroCard.Title + "\n";
+					waoutput += "*" + heroCard.Title + "*\n";
 
 				if (!string.IsNullOrEmpty(heroCard.Text))
-					waoutput += "*" + heroCard.Text + "*\n";
+					waoutput +=  heroCard.Text + "\n";
 
 				if (!string.IsNullOrEmpty(waoutput))
 					waoutput += "\n";

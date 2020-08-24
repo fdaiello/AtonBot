@@ -201,6 +201,7 @@ namespace MrBot.Dialogs
 			return await stepContext.PromptAsync("dateprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text(retryText) }, cancellationToken).ConfigureAwait(false);
 
 		}
+
 		// 4- Pergunta o turno
 		private async Task<DialogTurnResult> AskTimeStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
