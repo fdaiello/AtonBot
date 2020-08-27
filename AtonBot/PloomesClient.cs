@@ -30,11 +30,20 @@ namespace PloomesApi
 			serverUri = settings.Value.ServerUri;
 		}
 
-		public async Task<int> PostContact(string name, string phonenumber, int zipcode, string note)
+		public async Task<int> PostContact(string name, string phonenumber, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2)
 		{
 
-			Contact contact = new Contact { Name = name, ZipCode = zipcode, Note = note, TypeId=2 };
+			Contact contact = new Contact { Name = name, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
 			contact.AddPhone(phonenumber);
+
+			int stateId = await GetStateId(state).ConfigureAwait(false);
+			if (stateId > 0)
+            {
+				contact.StateId = stateId;
+				int cityId = await GetCityId(city.ToUpperInvariant(), stateId).ConfigureAwait(false);
+				if (cityId > 0)
+					contact.CityId = cityId;
+			}
 
 			HttpClient httpClient = new HttpClient();
 			try
@@ -58,11 +67,11 @@ namespace PloomesApi
 				httpClient.Dispose();
 
 				// Desserializa o objeto mensagem
-				PostContactResponse postContactResponse = JsonConvert.DeserializeObject<PostContactResponse>(resp);
+				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
 
 				// Devolve o Id da mensagem
-				if (postContactResponse.Value != null && postContactResponse.Value.Count>0 && postContactResponse.Value[0].Id.IsNumber())
-					return postContactResponse.Value[0].Id;
+				if (apiResponse.Value != null && apiResponse.Value.Count>0 && apiResponse.Value[0].Id.IsNumber())
+					return apiResponse.Value[0].Id;
 				else
 					return 0;
 
@@ -107,11 +116,77 @@ namespace PloomesApi
 				httpClient.Dispose();
 
 				// Desserializa o objeto mensagem
-				PostContactResponse postContactResponse = JsonConvert.DeserializeObject<PostContactResponse>(resp);
+				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
 
 				// Devolve o Id gerado
-				if (postContactResponse.Value != null && postContactResponse.Value.Count > 0 && postContactResponse.Value[0].Id.IsNumber())
-					return postContactResponse.Value[0].Id;
+				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
+					return apiResponse.Value[0].Id;
+				else
+					return 0;
+
+			}
+			catch (Exception)
+			{
+				httpClient.Dispose();
+				return 0;
+			}
+
+		}
+		public async Task<int> GetStateId(string uf)
+		{
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				Uri getStateIdUri = new Uri(serverUri.ToString() + $"/Cities@Countries@States?$filter=CountryId+eq+76+and+Short+eq+'{uf}'");
+				var httpResponseMessage = await httpClient.GetAsync(getStateIdUri).ConfigureAwait(false);
+				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+
+				// Devolve o Id gerado
+				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
+					return apiResponse.Value[0].Id;
+				else
+					return 0;
+
+			}
+			catch (Exception)
+			{
+				httpClient.Dispose();
+				return 0;
+			}
+
+		}
+		public async Task<int> GetCityId(string city, int stateid )
+		{
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				Uri getCityIdUri = new Uri(serverUri.ToString() + $"/Cities?$top=1&$filter=StateId+eq+{stateid}+and+Name+eq+'{city}'");
+				var httpResponseMessage = await httpClient.GetAsync(getCityIdUri).ConfigureAwait(false);
+				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+
+				// Devolve o Id gerado
+				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
+					return apiResponse.Value[0].Id;
 				else
 					return 0;
 
@@ -139,7 +214,12 @@ namespace PloomesApi
 		public int ZipCode { get; set; }
 		public int OriginId { get; set; }
 		public object CompanyId { get; set; }
+		public string StreetAddress { get; set; }
 		public string StreetAddressNumber { get; set; }
+		public string StreetAddressLine2 { get; set; }
+		public int CityId { get; set; }
+		public int StateId { get; set; }
+		public int CountryId { get; set; }
 		public int TypeId { get; set; }
 		public string Note { get; set; }
 		public List<Phone> Phones { get; } = new List<Phone>();
@@ -214,7 +294,7 @@ namespace PloomesApi
 		public object AvatarUrl { get; set; }
 
 	}
-	internal class PostContactResponse
+	internal class ApiResponse
 	{
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
@@ -240,6 +320,25 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, DateTimeValue = datetimevalue, IntegerValue = integervalue });
 		}
+	}
+	internal class State
+	{
+		public int Id { get; set; }
+		public string Short { get; set; }
+		public string Name { get; set; }
+		public int CountryId { get; set; }
+
+	}
+	internal class City
+	{
+		public int Id { get; set; }
+		public string Name { get; set; }
+		public int CountryId { get; set; }
+		public int StateId { get; set; }
+		public int IBGECode { get; set; }
+		public DateTime LastUpdateDate { get; set; }
+		public bool Editable { get; set; }
+
 	}
 
 #pragma warning restore CA1812

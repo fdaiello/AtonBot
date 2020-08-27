@@ -49,16 +49,19 @@ namespace MrBot.Dialogs
 			AddDialog(new TextPrompt("sim_nao", YesNoValidatorAsync));
 			// Adiciona um diálogo de prompt de texto com validação das datas
 			AddDialog(new TextPrompt("dateprompt", DateValidatorAsync));
-			// Adiciona um diálogo de prompt de texto sem validação
+			// Adiciona um diálogo de prompt de texto para validar o turno
 			AddDialog(new TextPrompt("turnoprompt",TurnoValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao de CEP
 			AddDialog(new TextPrompt("CepPrompt", CEPValidatorAsync));
+			// Adiciona um diálogo de texto sem validação
+			AddDialog(new TextPrompt("TextPrompt"));
 
 			// Adiciona um dialogo WaterFall com os 2 passos: Mostra as opções, Executa as opções
 			AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
 			{
 				AskQuerAgendarStepAsync,
 				AskCepStepAsync,
+				AskAddressNumberAsync,
 				AskDateStepAsync,
 				AskTimeStepAsync,
 				SaveStepAsync
@@ -154,10 +157,9 @@ namespace MrBot.Dialogs
 
 			}
 		}
-
-		// 3- Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
-		private async Task<DialogTurnResult> AskDateStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-		{
+		// Pergunta o numero e complemento do endereço
+		private async Task<DialogTurnResult> AskAddressNumberAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        {
 			// Busca o cep informado no passo anterior
 			string cep = ((string)stepContext.Result).ToLower();
 
@@ -167,8 +169,26 @@ namespace MrBot.Dialogs
 			// Chama api dos Correios e salva cidade, bairro, estado
 			GetAddressFromZip(stepContext, cep);
 
+			// Se encontrou resultados, mostra,
+			if ( ! string.IsNullOrEmpty((string)stepContext.Values["cep"]))
+				// Mostra o endereço
+				await stepContext.Context.SendActivityAsync($"Certo, {(string)stepContext.Values["end"]}, {(string)stepContext.Values["bairro"]}, {(string)stepContext.Values["cidade"]}").ConfigureAwait(false);
+
+			// Pergunta o numero e o complemento
+			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Me informe por favor o número, e se tiver, o complemento também.") }, cancellationToken).ConfigureAwait(false);
+
+		}
+		// Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
+		private async Task<DialogTurnResult> AskDateStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		{
+			// Busca o número e complemento informado no passo anterior
+			string numero = (string)stepContext.Result;
+
+			// Salva o número e complemento em variável persitente ao diálogo
+			stepContext.Values["numero"] = numero;
+
 			// Procura as opções de data com base no CEP informado
-			List<DateTime> nextAvailableDates= GetNextAvailableDates(cep);
+			List<DateTime> nextAvailableDates= GetNextAvailableDates((string)stepContext.Values["cep"]);
 
 			// Salva as datas disponiveis em variavel persistente
 			stepContext.Values["nextAvailableDates"] = nextAvailableDates;
@@ -250,11 +270,13 @@ namespace MrBot.Dialogs
 		// 5- Salva os dados no banco, salva o Lead no Ploomes, e confirma o agendamento
 		private async Task<DialogTurnResult> SaveStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Busca o turno
-			string turno = ((string)stepContext.Result).ToLowerInvariant();
+            // Busca o turno
+#pragma warning disable CA1308 // Normalize strings to uppercase
+            string turno = ((string)stepContext.Result).ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
-			// Salva o turno em varivel persitente ao diálogo
-			stepContext.Values["turno"] = turno;
+            // Salva o turno em varivel persitente ao diálogo
+            stepContext.Values["turno"] = turno;
 
 			// Avisa o cliente para aguardar enquanto salva os dados
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
@@ -264,8 +286,8 @@ namespace MrBot.Dialogs
 			if ( string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
             {
 				// Insere o cliente no Ploomes
-				string note = $"dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} turno da {turno}";
-				ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), note).ConfigureAwait(false);
+                SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
+				ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])),(string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2).ConfigureAwait(false);
 			}
             else
             {
@@ -273,7 +295,7 @@ namespace MrBot.Dialogs
             }
 
 			// Insere o Negocio no Ploomes
-			int ploomesDealId = 1; //await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["name"], (DateTime)stepContext.Values["data"], turno, (DateTime)stepContext.Values["data"]).ConfigureAwait(false);
+			int ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["name"], (DateTime)stepContext.Values["data"], turno, (DateTime)stepContext.Values["data"]).ConfigureAwait(false);
 
 			// Confirma se conseguiu inserir corretamente o Lead
 			string msg;
@@ -401,8 +423,8 @@ namespace MrBot.Dialogs
 					customer.Tag3 = (string)stepContext.Values["ploomesid"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cidade"]))
 					customer.City = (string)stepContext.Values["cidade"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["estado"]))
-					customer.State = (string)stepContext.Values["estado"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["uf"]))
+					customer.State = (string)stepContext.Values["uf"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["bairro"]))
 					customer.Neighborhood = (string)stepContext.Values["bairro"];
 
@@ -424,7 +446,8 @@ namespace MrBot.Dialogs
 
 			stepContext.Values["bairro"] = string.Empty;
 			stepContext.Values["cidade"] = string.Empty;
-			stepContext.Values["estado"] = string.Empty;
+			stepContext.Values["uf"] = string.Empty;
+			stepContext.Values["end"] = string.Empty;
 
 			// Consulta o cep nos Correios para buscar cidade, estado e bairro
 			var _correios = new Correios.AtendeClienteClient();
@@ -441,7 +464,8 @@ namespace MrBot.Dialogs
 				{
 					stepContext.Values["bairro"] = _return.@return.bairro;
 					stepContext.Values["cidade"] = _return.@return.cidade;
-					stepContext.Values["estado"] = _return.@return.uf;
+					stepContext.Values["uf"] = _return.@return.uf;
+					stepContext.Values["end"] = _return.@return.end;
 				}
 
 			}
@@ -495,5 +519,30 @@ namespace MrBot.Dialogs
             }
 			return false;
 		}
+		// Quebra o numero e complemento
+		private static void SplitAddressNumberAndLine2( string numberAndLine2, out string number, out string line2)
+        {
+			number = numberAndLine2;
+			line2 = string.Empty;
+			if (numberAndLine2.Contains("/"))
+            {
+				string[] splitNumber = numberAndLine2.Split("/");
+				number = splitNumber[0].Trim() ;
+				line2 = "/" + string.Join("/", splitNumber, 1, splitNumber.Length - 1);
+			}
+			else if (numberAndLine2.Contains("ap"))
+			{
+				string[] splitNumber = numberAndLine2.Split("ap");
+				number = splitNumber[0].Trim();
+				line2 = "ap" + string.Join(" ", splitNumber, 1, splitNumber.Length - 1);
+			}
+			else if (numberAndLine2.Contains("apto"))
+			{
+				string[] splitNumber = numberAndLine2.Split("apto");
+				number = splitNumber[0].Trim();
+				line2 = "apto " + string.Join(" ", splitNumber, 1, splitNumber.Length - 1);
+			}
+			return;
+        }
 	}
 }
