@@ -126,120 +126,126 @@ namespace MrBot.Dialogs
 					return await innerDc.ReplaceDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 				}
 
-				// Call LUIS and gather intent and any potential details
-				var luisResult = await _recognizer.RecognizeAsync<MisterBotLuis>(innerDc.Context, cancellationToken).ConfigureAwait(false);
+                // Call LUIS and gather intent and any potential details
+                try
+                {
+					var luisResult = await _recognizer.RecognizeAsync<MisterBotLuis>(innerDc.Context, cancellationToken).ConfigureAwait(false);
+					// Salva os detalhes da intenção em ojbeto que será enviado pro Diálogo
+					IntentDetails intentDetails = new IntentDetails { Intent = luisResult.TopIntent().intent };
 
-				// Salva os detalhes da intenção em ojbeto que será enviado pro Diálogo
-				IntentDetails intentDetails = new IntentDetails { Intent = luisResult.TopIntent().intent };
+					// Se a inteção tem numero ( quantidade ) copia pro objeto intentDetails
+					if (luisResult.Entities.number != null) intentDetails.Quantidade = Utility.GetNumberFromLuis(luisResult);
 
-				// Se a inteção tem numero ( quantidade ) copia pro objeto intentDetails
-				if (luisResult.Entities.number != null) intentDetails.Quantidade = Utility.GetNumberFromLuis(luisResult);
+					// Se a inteção tem vencimento, copia pro objeto intentDetails
+					if (luisResult.Entities.datetime != null) intentDetails.DataSpec = luisResult.Entities.datetime[0];
 
-				// Se a inteção tem vencimento, copia pro objeto intentDetails
-				if (luisResult.Entities.datetime != null) intentDetails.DataSpec = luisResult.Entities.datetime[0];
+					// Se a inteção tem atendente
+					if (luisResult.Entities.atendente != null) intentDetails.Atendente = luisResult.Entities.atendente[0];
 
-				// Se a inteção tem atendente
-				if (luisResult.Entities.atendente != null) intentDetails.Atendente = luisResult.Entities.atendente[0];
-
-				// Verifica se o score da intenção ( a melhor pontuada ) tem pelo menos 0.5 de pontos ( menos que isso não esta correto )
-				if (luisResult.TopIntent().score > minScoreLuis)
-				{
-					// Obrigado
-					if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & ! Utility.DialogIsRunning(innerDc,nameof(ProfileDialog)))
+					// Verifica se o score da intenção ( a melhor pontuada ) tem pelo menos 0.5 de pontos ( menos que isso não esta correto )
+					if (luisResult.TopIntent().score > minScoreLuis)
 					{
-						// Language Generation message: De nada!
-						string lgOutput = _lgTemplates.Evaluate("DeNada", null).ToString();
-						await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
+						// Obrigado
+						if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & !Utility.DialogIsRunning(innerDc, nameof(ProfileDialog)))
+						{
+							// Language Generation message: De nada!
+							string lgOutput = _lgTemplates.Evaluate("DeNada", null).ToString();
+							await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
 
-						// Limpa a primeira frase digitada no dialogo
-						conversationData.FirstQuestion = string.Empty;
+							// Limpa a primeira frase digitada no dialogo
+							conversationData.FirstQuestion = string.Empty;
 
-						// E continua o turno
-						return new DialogTurnResult(DialogTurnStatus.Waiting);
+							// E continua o turno
+							return new DialogTurnResult(DialogTurnStatus.Waiting);
+						}
+
+						// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
+						else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
+						{
+							// Language Generation message: Como posso Ajudar?
+							string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
+							await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
+
+							// Limpa a primeira frase digitada no dialogo
+							conversationData.FirstQuestion = string.Empty;
+
+							// E continua o turno
+							return new DialogTurnResult(DialogTurnStatus.Waiting);
+						}
+
+						//// Falar com atendente
+						//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
+						//{
+						//	if (intentDetails.Atendente != null)
+						//		mensagem = "Certo, falar com " + intentDetails.Atendente;
+						//	else
+						//		mensagem = "Tudo bem, falar com um atendente ...";
+						//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
+
+						//	// Limpa a primeira frase digitada no dialogo
+						//	conversationData.FirstQuestion = string.Empty;
+
+						//	// Cancela os dialogos atuais
+						//	await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
+
+						//	// Dispara o diálogo pra falar com atendente
+						//	return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
+						//}
+
 					}
 
-					// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
-					else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
-					{
-						// Language Generation message: Como posso Ajudar?
-						string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
-						await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
-
-						// Limpa a primeira frase digitada no dialogo
-						conversationData.FirstQuestion = string.Empty;
-
-						// E continua o turno
-						return new DialogTurnResult(DialogTurnStatus.Waiting);
-					}
-
-					//// Falar com atendente
-					//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
+					//// QNA
+					//// Confere se o que foi digitado tem pelo menos 3 palavras, e se não está dentro do diálogo "QnADialog"
+					//if (userinput.Split(" ").GetLength(0) > 2 && !Utility.DialogIsRunning(innerDc, nameof(QnAMakerMultiturnDialog)) & string.IsNullOrEmpty(conversationData.FirstQuestion))
 					//{
-					//	if (intentDetails.Atendente != null)
-					//		mensagem = "Certo, falar com " + intentDetails.Atendente;
-					//	else
-					//		mensagem = "Tudo bem, falar com um atendente ...";
-					//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
+					//	try
+					//	{
+					//		// Calling QnAMaker to get response.
+					//		var qnaResponses = await _qnaService.GetAnswersAsync(innerDc.Context).ConfigureAwait(false);
 
-					//	// Limpa a primeira frase digitada no dialogo
-					//	conversationData.FirstQuestion = string.Empty;
+					//		// Se achou alguma resposta
+					//		if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
+					//		{
+					//			// Limpa a primeira frase digitada no dialogo
+					//			conversationData.FirstQuestion = string.Empty;
 
-					//	// Cancela os dialogos atuais
-					//	await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
+					//			// Chama o QnaMakerMultiturnDialog
+					//			return await Utility.CallQnaDialog(innerDc, cancellationToken).ConfigureAwait(false);
+					//		}
 
-					//	// Dispara o diálogo pra falar com atendente
-					//	return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
+					//	}
+					//	catch ( Exception ex)
+					//	{
+					//		_logger.LogError(ex.Message);
+					//	}
 					//}
 
+					//// Confere se tem numero escrito por extenso - nao roda nas perguntas de data
+					//else if (!Utility.DialogIsRunning(innerDc, "ProfileDialog") && !Utility.DialogIsRunning(innerDc, "ProfileDialog3") && !Utility.DialogIsRunning(innerDc, "ProfileDialog2") && !Utility.DialogIsRunning(innerDc, "AskAccount") && !Utility.DialogIsRunning(innerDc, "DueDate") && luisResult.TopIntent().intent == MisterBotLuis.Intent.None & luisResult.Entities.number != null)
+					//{
+					//	// coloca no texto o numero digitado
+					//	innerDc.Context.Activity.Text = luisResult.Entities.number[0].ToString(CultureInfo.InvariantCulture);
+					//}
+
+					// Versao
+					else if (innerDc.Context.Activity.Text == "versao")
+					{
+						// Language Generation message: Como posso Ajudar?
+						string lgOutput = _lgTemplates.Evaluate("Versao").ToString();
+						await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
+
+						// Limpa a primeira frase digitada no dialogo
+						conversationData.FirstQuestion = string.Empty;
+
+						// E continua o turno
+						return new DialogTurnResult(DialogTurnStatus.Waiting);
+					}
+
 				}
-
-				//// QNA
-				//// Confere se o que foi digitado tem pelo menos 3 palavras, e se não está dentro do diálogo "QnADialog"
-				//if (userinput.Split(" ").GetLength(0) > 2 && !Utility.DialogIsRunning(innerDc, nameof(QnAMakerMultiturnDialog)) & string.IsNullOrEmpty(conversationData.FirstQuestion))
-				//{
-				//	try
-				//	{
-				//		// Calling QnAMaker to get response.
-				//		var qnaResponses = await _qnaService.GetAnswersAsync(innerDc.Context).ConfigureAwait(false);
-
-				//		// Se achou alguma resposta
-				//		if (qnaResponses.Any() && qnaResponses.First().Score > minScoreQna)
-				//		{
-				//			// Limpa a primeira frase digitada no dialogo
-				//			conversationData.FirstQuestion = string.Empty;
-
-				//			// Chama o QnaMakerMultiturnDialog
-				//			return await Utility.CallQnaDialog(innerDc, cancellationToken).ConfigureAwait(false);
-				//		}
-
-				//	}
-				//	catch ( Exception ex)
-				//	{
-				//		_logger.LogError(ex.Message);
-				//	}
-				//}
-
-				//// Confere se tem numero escrito por extenso - nao roda nas perguntas de data
-				//else if (!Utility.DialogIsRunning(innerDc, "ProfileDialog") && !Utility.DialogIsRunning(innerDc, "ProfileDialog3") && !Utility.DialogIsRunning(innerDc, "ProfileDialog2") && !Utility.DialogIsRunning(innerDc, "AskAccount") && !Utility.DialogIsRunning(innerDc, "DueDate") && luisResult.TopIntent().intent == MisterBotLuis.Intent.None & luisResult.Entities.number != null)
-				//{
-				//	// coloca no texto o numero digitado
-				//	innerDc.Context.Activity.Text = luisResult.Entities.number[0].ToString(CultureInfo.InvariantCulture);
-				//}
-
-				// Versao
-				else if (innerDc.Context.Activity.Text == "versao")
-				{
-					// Language Generation message: Como posso Ajudar?
-					string lgOutput = _lgTemplates.Evaluate("Versao").ToString();
-					await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
-
-					// Limpa a primeira frase digitada no dialogo
-					conversationData.FirstQuestion = string.Empty;
-
-					// E continua o turno
-					return new DialogTurnResult(DialogTurnStatus.Waiting);
-				}
-
+				catch (Exception)
+                {
+					return null;
+                }
 			}
 
 			// Se veio anexo, e não está no diálogo de enviar comprovante

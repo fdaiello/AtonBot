@@ -53,16 +53,16 @@ namespace MrBot
 				await turnContext.TraceActivityAsync("OnTurnError Trace", exception.Message, "https://www.botframework.com/schemas/error", "TurnError").ConfigureAwait(false);
 
 				// Registra no banco o erro
-				await LogBotMessageToDatabase(turnContext.Activity.Text, turnContext.Activity.From.Id).ConfigureAwait(false);
-				await LogBotMessageToDatabase("Foi mal ... estou enfrentando um problema no meu servidor.", turnContext.Activity.From.Id).ConfigureAwait(false);
-				await LogBotMessageToDatabase("Vamos tentar recomeçar pra ver se da certo. Por favor, tecle: menu", turnContext.Activity.From.Id).ConfigureAwait(false);
-				await LogBotMessageToDatabase(exception.Message, turnContext.Activity.From.Id).ConfigureAwait(false);
+				await LogBotMessageToDatabase(turnContext.Activity.Text, turnContext.Activity.From.Id, MessageSource.Customer).ConfigureAwait(false);
+				await LogBotMessageToDatabase("Foi mal ... estou enfrentando um problema no meu servidor.", turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
+				await LogBotMessageToDatabase("Vamos tentar recomeçar pra ver se da certo. Por favor, tecle: menu", turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
+				await LogBotMessageToDatabase(exception.Message, turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
 
 				// Se tem inner exception
 				if ( exception.InnerException != null)
 				{
 					logger.LogError(exception, $"{exception.InnerException}");
-					await LogBotMessageToDatabase(exception.InnerException.ToString(), turnContext.Activity.From.Id).ConfigureAwait(false);
+					await LogBotMessageToDatabase(exception.InnerException.ToString(), turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
 				}
 
 				if (conversationState != null)
@@ -85,7 +85,7 @@ namespace MrBot
 			Use(telemetryInitializerMiddleware);
 
 		}
-		private async Task LogBotMessageToDatabase( string textmessage, string customerid)
+		private async Task LogBotMessageToDatabase( string textmessage, string customerid, MessageSource source)
 		{
 			// Configurações para o banco de dados
 			var optionsBuilder = new DbContextOptionsBuilder<BotDbContext>();
@@ -96,7 +96,7 @@ namespace MrBot
 			BotDbContext botDbContext = new BotDbContext(optionsBuilder.Options);
 
 			// Insere a mensagem
-			ChattingLog chattingLog = new ChattingLog { Text = textmessage, Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customerid };
+			ChattingLog chattingLog = new ChattingLog { Text = textmessage, Time = Utility.HoraLocal(), Source = source, Type = ChatMsgType.Text, CustomerId = customerid };
 			botDbContext.ChattingLogs.Add(chattingLog);
 			await botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
