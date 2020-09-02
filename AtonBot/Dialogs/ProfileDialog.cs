@@ -73,7 +73,7 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> PhoneStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o nome informado no passo anterior
-			string name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase((Utility.CleanName((string)stepContext.Result))?.Trim().ToLower());
+			string name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Utility.CleanName((string)stepContext.Result)?.Trim().ToLower());
 
 			// Verifica se digitou um nome válido
 			if (Utility.IsValidName(name))

@@ -30,10 +30,10 @@ namespace PloomesApi
 			serverUri = settings.Value.ServerUri;
 		}
 
-		public async Task<int> PostContact(string name, string phonenumber, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2)
+		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2)
 		{
 
-			Contact contact = new Contact { Name = name, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
+			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
 			contact.AddPhone(phonenumber);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
@@ -83,16 +83,22 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario )
+		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio )
 		{
 
 			Deal deal = new Deal { Title = title, ContactId = contactid };
-			deal.AddOtherProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4",null,data,null);									          // Data: DateTimeValue, format yyyy-MM-dd
+			deal.AddOtherDateTimeProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4",data);									          // Data: DateTimeValue, format yyyy-MM-dd
 			if ( periodo == "tarde")
-				deal.AddOtherProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", null, null, 7710080);								  // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
+				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710080);										  // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
 			else
-				deal.AddOtherProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", null, null, 7710081);
-			deal.AddOtherProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", null, horario, null);		  // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710081);
+			deal.AddOtherDateTimeProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", horario);	                                     // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+
+			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
+			if (opcaodeinstalacaoCode > 0)
+				deal.AddOtherIntegerProperty("deal_80E104C6-6594-4783-8A90-F158ED5490C8", opcaodeinstalacaoCode);
+
+			deal.AddOtherBoolProperty("deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010", ehcondominio);
 
 			HttpClient httpClient = new HttpClient();
 			try
@@ -198,6 +204,25 @@ namespace PloomesApi
 			}
 
 		}
+		static int GetOpcaodeInstalacaoCode( string opcaodeinstalacao)
+		{
+			// Part 1: create a List of KeyValuePairs.
+			var list = new List<KeyValuePair<string, int>>();
+			list.Add(new KeyValuePair<string, int>("Instalação de tomada", 8257200));
+			list.Add(new KeyValuePair<string, int>("Pretendo adquirir", 8257201));
+			list.Add(new KeyValuePair<string, int>("Não sei informar", 8257202));
+			list.Add(new KeyValuePair<string, int>("Outros", 8257203));
+			list.Add(new KeyValuePair<string, int>("Schneider", 8257204));
+			list.Add(new KeyValuePair<string, int>("Efacec", 8257202));
+			list.Add(new KeyValuePair<string, int>("Enel X", 8257206));
+
+			// Part 2: loop over list and print pairs.
+			foreach (var element in list)
+				if (opcaodeinstalacao.ToUpperInvariant() == element.Key.ToUpperInvariant())
+					return element.Value;
+
+			return 0;
+		}
 	}
 	internal class Phone
 	{
@@ -222,6 +247,7 @@ namespace PloomesApi
 		public int CountryId { get; set; }
 		public int TypeId { get; set; }
 		public string Note { get; set; }
+		public string Email { get; set; }
 		public List<Phone> Phones { get; } = new List<Phone>();
 
 		internal void AddPhone( string phonenumber, int typeid=0, int coutryid = 0)
@@ -305,10 +331,10 @@ namespace PloomesApi
 	internal class OtherProperty
 	{
 		public string FieldKey { get; set; }
-		public object StringValue { get; set; }
+		public string StringValue { get; set; }
 		public object DateTimeValue { get; set; }
-		public object IntegerValue { get; set; }
-
+		public int IntegerValue { get; set; }
+		public bool BoolValue { get; set; }
 	}
 
 	internal class Deal
@@ -316,9 +342,21 @@ namespace PloomesApi
 		public string Title { get; set; }
 		public int ContactId { get; set; }
 		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
-		internal void AddOtherProperty(string fieldkey, object stringvalue, object datetimevalue, object integervalue)
+		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
 		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, DateTimeValue = datetimevalue, IntegerValue = integervalue });
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue });
+		}
+		internal void AddOtherIntegerProperty(string fieldkey, int integerValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, IntegerValue = integerValue });
+		}
+		internal void AddOtherDateTimeProperty(string fieldkey, object datetimeValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, DateTimeValue = datetimeValue });
+		}
+		internal void AddOtherBoolProperty(string fieldkey, bool boolValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
 	}
 	internal class State

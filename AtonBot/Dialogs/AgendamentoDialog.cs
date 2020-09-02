@@ -19,7 +19,8 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
-
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Antlr4.Runtime.Dfa;
 
 namespace MrBot.Dialogs
 {
@@ -54,6 +55,10 @@ namespace MrBot.Dialogs
 			AddDialog(new TextPrompt("HorarioManhaPrompt", HorarioManhaValidatorAsync));
 			// Adiciona um diálogo de prompt de texto para validar o horario da tarde
 			AddDialog(new TextPrompt("HorarioTardePrompt", HorarioTardeValidatorAsync));
+			// Adiciona um diálogo de texto com validaçao da marca do carregador
+			AddDialog(new TextPrompt("MarcaPrompt", MarcaValidatorAsync));
+			// Adiciona um diálogo de texto com validaçao da pergunta se é só tomada
+			AddDialog(new TextPrompt("TomadaPrompt", TomadaValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao de CEP
 			AddDialog(new TextPrompt("CepPrompt", CEPValidatorAsync));
 			// Adiciona um diálogo de texto sem validação
@@ -76,6 +81,8 @@ namespace MrBot.Dialogs
 				AskDateStepAsync,
 				AskTurnoStepAsync,
 				AskHorarioStepAsync,
+				NomePessoaStepAsync,
+				ConfirmaDadosStepAsync,
 				SaveStepAsync
 			}));
 
@@ -178,10 +185,11 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> AskEmailStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca a opção informada no passo anterior
-			string sobrenome = ((string)stepContext.Result).ToLower();
+			string sobrenome = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Utility.CleanName((string)stepContext.Result)?.Trim().ToLower());
 
 			// Salva em variável persistente o que foi informado no passo anterior
 			stepContext.Values["sobrenome"] = sobrenome;
+			stepContext.Values["nomecompleto"] = stepContext.Values["name"] + " " + stepContext.Values["sobrenome"];
 
 			// Pergunta o Email
 			return await stepContext.PromptAsync("EmailPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar o seu email? 📧"), RetryPrompt = MessageFactory.Text("Acho que não está correto .... por favor, me informe seu email:") }, cancellationToken).ConfigureAwait(false);
@@ -249,7 +257,7 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 				// Aguarda uma resposta
-				return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = null }, cancellationToken).ConfigureAwait(false);
+				return await stepContext.PromptAsync("MarcaPrompt", new PromptOptions { Prompt = null, RetryPrompt=MessageFactory.Text("Por favor, digite uma destas oções: Enel X, Efacec, Schneider, Outros, Não sei informar") }, cancellationToken).ConfigureAwait(false);
 			}
             // Se disse que não 
             else
@@ -261,7 +269,7 @@ namespace MrBot.Dialogs
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Pretendo adquirir", value: "Pretendo adquirir"),
-						new CardAction(ActionTypes.ImBack, title: "So preciso uma tomada", value: "So preciso uma tomada"),
+						new CardAction(ActionTypes.ImBack, title: "Só preciso uma tomada", value: "Só preciso uma tomada"),
 					},
 				};
 
@@ -269,7 +277,7 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 				// Aguarda uma resposta
-				return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = null }, cancellationToken).ConfigureAwait(false);
+				return await stepContext.PromptAsync("TomadaPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: 'pretendo adquirir' ou 'só preciso uma tomada'") }, cancellationToken).ConfigureAwait(false);
 			}
 
 		}
@@ -277,15 +285,33 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> AskEcondominioStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca a opção informada no passo anterior
-			string choice = ((string)stepContext.Result).ToLower();
+			string choice = (string)stepContext.Result;
+
+			stepContext.Values["marcacarregador"] = string.Empty;
+			stepContext.Values["pretendeadquirir"] = string.Empty;
 
 			// Consulta a resposta "Adquiriu Carregador" pra saber o que foi perguntado no passo anterior
-			if ((string)stepContext.Values["adquiriucarregador"]=="sim")
+			if ((string)stepContext.Values["adquiriucarregador"] == "sim")
+            {
 				// Passo anterior perguntou a marca
 				stepContext.Values["marcacarregador"] = choice;
+
+				// Padroniza o que foi digitado
+				string[] validBrands = new string[] { "Enel X", "Efacec", "Schneider", "Outros", "Não sei informar" };
+
+				// Salva o valor padronizado
+				foreach (string row in validBrands)
+					if (row.ToUpperInvariant().Contains(choice))
+						stepContext.Values["marcacarregador"] = row;
+			}
 			else
+            {
 				// Passo anterior perguntou se pretende adquirir
-				stepContext.Values["pretendeadquirir"] = choice;
+				if (choice.Contains("pretendo") | choice.Contains("adquirir"))
+					stepContext.Values["pretendeadquirir"] = "sim";
+				else
+					stepContext.Values["pretendeadquirir"] = "não";
+			}
 
 			// Pergunta se o local é um condominio
 			var card = new HeroCard
@@ -337,7 +363,7 @@ namespace MrBot.Dialogs
 				// Aguarda uma resposta
 				return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
 
-			}
+				}
 			else
 				// pula pro proximo passo
 				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
@@ -525,52 +551,98 @@ namespace MrBot.Dialogs
 			else
 				return await stepContext.PromptAsync("HorarioTardePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 14, 15, 16 ou 17 horas.") }, cancellationToken).ConfigureAwait(false);
 		}
-
-		// Salva os dados no banco, salva o Lead no Ploomes, e confirma o agendamento
-		private async Task<DialogTurnResult> SaveStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		private async Task<DialogTurnResult> NomePessoaStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o horario informado no passo anterior
 			string horario = PadronizaHorario((string)stepContext.Result);
 
-			// Salva o  em variável persitente ao diálogo
+			// Salva em variável persitente ao diálogo
 			stepContext.Values["horario"] = horario;
 
-			// Avisa o cliente para aguardar enquanto salva os dados
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
+			// pergunta o nome da pessoa que vai estar no local
+			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?") }, cancellationToken).ConfigureAwait(false);
 
-			// Verifica se já não estava cadastrado antes
-			int ploomesContactId;
-			if ( string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
-            {
-				// Insere o cliente no Ploomes
-                SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
-				ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["name"], (string)stepContext.Values["phone"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])),(string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2).ConfigureAwait(false);
-			}
-            else
-            {
-				ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesid"]);
-            }
+		}
+		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		{
+			// Busca o nome informado no passo anterior
+			string nomepessoa = (string)stepContext.Result;
 
-			// Insere o Negocio no Ploomes
+			// Salva em variável persitente ao diálogo
+			stepContext.Values["nomepessoa"] = nomepessoa;
+
+			// Mostra mensagem resumindo o agendamento, e pede confirmação
 			DateTime date = (DateTime)stepContext.Values["data"];
-			DateTime dateTime = date.AddHours(Int16.Parse(horario.Replace(":00","")));
-			int ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["name"], date, (string)stepContext.Values["turno"], dateTime).ConfigureAwait(false);
+			string dateStr = date.ToString("dd/MM");
+			var card = new HeroCard
+			{
+				Text = $"As informações do agendamento são essas:\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nNome de quem irá acompanhar a visita técnica: {nomepessoa}\n\nTodas as informações estão corretas?",
+				Buttons = new List<CardAction>
+					{
+						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
+						new CardAction(ActionTypes.ImBack, title: "Não", value: "não"),
+					},
+			};
+			// Send the card(s) to the user as an attachment to the activity
+			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
-			// Confirma se conseguiu inserir corretamente o Lead
-			string msg;
-			if (ploomesContactId != 0 & ploomesDealId != 0)
-            {
-				msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
-				stepContext.Values["ploomesid"] = ploomesContactId.ToString();
+			// Aguarda uma resposta
+			return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
+		}
+		// Salva os dados no banco, salva o Lead no Ploomes, e da mensagem final confirmando o agendamento
+		private async Task<DialogTurnResult> SaveStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		{
+
+			// Busca a opção informada no passo anterior
+			string choice = ((string)stepContext.Result).ToLower();
+			if (choice == "s" | choice == "sim")
+			{
+				// Avisa o cliente para aguardar enquanto salva os dados
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
+
+				// Verifica se já não estava cadastrado antes
+				int ploomesContactId;
+				if (string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
+				{
+					// Insere o cliente no Ploomes
+					SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
+					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2).ConfigureAwait(false);
+				}
+				else
+				{
+					ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesid"], CultureInfo.InvariantCulture);
+				}
+
+				// Obtem data, e data com horario de instalacao
+				DateTime date = (DateTime)stepContext.Values["data"];
+				string horario = (string)stepContext.Values["horario"];
+				DateTime dateTime = date.AddHours(Int16.Parse(horario.Replace(":00", ""), CultureInfo.InvariantCulture));
+
+				// Obtem a string que diz qual é a opção de instalação
+				string opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
+
+				// Insere o Negocio no Ploomes
+				int ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
+
+				// Confirma se conseguiu inserir corretamente o Lead
+				string msg;
+				if (ploomesContactId != 0 & ploomesDealId != 0)
+				{
+					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					stepContext.Values["ploomesid"] = ploomesContactId.ToString(CultureInfo.InvariantCulture);
+				}
+				else
+					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+
+				// Salva os dados do Customer no banco de dados
+				await UpdateCustomer(stepContext).ConfigureAwait(false);
+
+				// Envia resposta para o cliente
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 			}
 			else
-				msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
-
-			// Salva os dados do Customer no banco de dados
-			await UpdateCustomer(stepContext).ConfigureAwait(false);
-
-			// Envia resposta para o cliente
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
+				// Envia resposta para o cliente
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ok, seu agendamento NÃO foi realizado."), cancellationToken).ConfigureAwait(false);
 
 			// Termina este diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);
@@ -671,6 +743,29 @@ namespace MrBot.Dialogs
 			// retorna true ou false como Task
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
 		}
+		// Tarefa de validação da Marca do carregador
+		private async Task<bool> MarcaValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		{
+			string typedBrand = promptContext.Context.Activity.Text.Trim().ToUpperInvariant();
+			string[] validBrands = new string[] { "Enel X", "Efacec", "Schneider", "Outros", "Não sei informar" };
+
+			foreach (string row in validBrands)
+			{
+				if (row.ToUpperInvariant().Contains(typedBrand))
+				{
+					return await Task.FromResult(true).ConfigureAwait(false);
+				}
+			}
+			return await Task.FromResult(false).ConfigureAwait(false);
+		}
+		// Valida a pergunta se pretende adquirir ou se é so tomada
+		private async Task<bool> TomadaValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		{
+			string typed = promptContext.Context.Activity.Text.Trim().ToUpperInvariant();
+
+			return await Task.FromResult(typed.Contains("pretendo")| typed.Contains("adquirir")| typed.Contains("tomada")).ConfigureAwait(false);
+		}
+
 		// Busca as próximas datas disponiveis, com base no CEP informado
 		private static List<DateTime> GetNextAvailableDates(string cep)
 		{
@@ -861,6 +956,16 @@ namespace MrBot.Dialogs
 				horario = "00:00";
 
 			return horario;
+		}
+		// Obtem a opcao de instalacao
+		private static string OpcaoDeInstalacao ( string adquiriucarregador, string marcacarregador, string pretendeaquirir)
+        {
+			if (adquiriucarregador == "sim")
+				return marcacarregador;
+			else if (pretendeaquirir == "sim")
+				return "Pretendo adquirir";
+			else
+				return "Instalação de tomada";
 		}
 	}
 }
