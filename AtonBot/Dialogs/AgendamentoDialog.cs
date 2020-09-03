@@ -101,9 +101,15 @@ namespace MrBot.Dialogs
 			string initialText = "Você gostaria de agendar uma visita técnica para realizar a instalação em sua residência? " + _dialogDictionary.Emoji.Person;
 
 			// Initialize values
-			stepContext.Values["name"] = string.Empty;
 			stepContext.Values["phone"] = string.Empty;
 			stepContext.Values["ploomesid"] = string.Empty;
+			stepContext.Values["nomecompleto"] = string.Empty;
+			stepContext.Values["cep"] = string.Empty;
+			stepContext.Values["data"] = null;
+			stepContext.Values["turno"] = string.Empty;
+			stepContext.Values["cidade"] = string.Empty;
+			stepContext.Values["uf"] = string.Empty;
+			stepContext.Values["bairro"] = string.Empty;
 
 			// Procura pelo registro do usuario
 			Customer customer = _botDbContext.Customers
@@ -113,7 +119,7 @@ namespace MrBot.Dialogs
 			// Valida que achou o registro
 			if (customer != null)
             {
-				stepContext.Values["name"] = customer.Name;
+				stepContext.Values["nomecompleto"] = customer.FullName;
 				stepContext.Values["phone"] = customer.MobilePhone;
 				stepContext.Values["ploomesid"] = customer.Tag3 != null ? customer.Tag3.ToString() : string.Empty;
 
@@ -161,7 +167,7 @@ namespace MrBot.Dialogs
 			if (choice == "sim" | choice == "s")
             {
 				// se não tem sobrenome
-				if (!((string)stepContext.Result).Contains(" "))
+				if (!((string)stepContext.Values["nomecompleto"]).Contains(" "))
 					// pergunta o sobrenome
 					return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Qual é o seu sobrenome?") }, cancellationToken).ConfigureAwait(false);
 				else
@@ -185,9 +191,18 @@ namespace MrBot.Dialogs
 			// Busca a opção informada no passo anterior
 			string sobrenome = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Utility.CleanName((string)stepContext.Result)?.Trim().ToLower());
 
-			// Salva em variável persistente o que foi informado no passo anterior
-			stepContext.Values["sobrenome"] = sobrenome;
-			stepContext.Values["nomecompleto"] = stepContext.Values["name"] + " " + stepContext.Values["sobrenome"];
+			// Se informou sobrenome
+			if (!string.IsNullOrEmpty(sobrenome))
+				// Se o sobrenome contem o nome ( digitou tudo de novo )
+				if (sobrenome.Contains((string)stepContext.Values["nomecompleto"]))
+					// Salva o que digitou no nome completo
+					stepContext.Values["nomecompleto"] = sobrenome;
+				else
+					// Soma o sobrenome ao nome
+					stepContext.Values["nomecompleto"] = stepContext.Values["nomecompleto"] + " " + sobrenome;
+
+			// Atualiza os dados do cliente no banco
+			await UpdateCustomer(stepContext).ConfigureAwait(false);
 
 			// Pergunta o Email
 			return await stepContext.PromptAsync("EmailPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar o seu email? 📧"), RetryPrompt = MessageFactory.Text("Acho que não está correto .... por favor, me informe seu email:") }, cancellationToken).ConfigureAwait(false);
@@ -800,9 +815,11 @@ namespace MrBot.Dialogs
 			if (customer != null)
 			{
 				// Atualiza o cliente
+				if (!string.IsNullOrEmpty((string)stepContext.Values["nomecompleto"]))
+					customer.FullName = (string)stepContext.Values["nomecompleto"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
 					customer.Zip = (string)stepContext.Values["cep"];
-				if ((DateTime)stepContext.Values["data"] != null)
+				if (stepContext.Values["data"] != null)
 					customer.Tag1 = ((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture);
 				if (!string.IsNullOrEmpty((string)stepContext.Values["turno"]))
 					customer.Tag2 = (string)stepContext.Values["turno"];

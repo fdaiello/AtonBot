@@ -79,7 +79,7 @@ namespace MrBot.Dialogs
 			if (Utility.IsValidName(name))
 			{
 				// Guarda o email, informado no passo anterior
-				stepContext.Values["name"] = name;
+				stepContext.Values["nomecompleto"] = name;
 
 				// Inicializa valor salvo no waterfall para o telefone;
 				stepContext.Values["mobilephone"] = string.Empty;
@@ -90,7 +90,7 @@ namespace MrBot.Dialogs
 			}
 			else
 				// Deixa o nome em branco
-				stepContext.Values["name"] = string.Empty;
+				stepContext.Values["nomecompleto"] = string.Empty;
 
 			// Confere se a conexão e whatsapp, entao o Id é o telefone 
 			if (stepContext.Context.Activity.ChannelId == "whatsapp" )
@@ -108,7 +108,7 @@ namespace MrBot.Dialogs
 			else
 			{
 				// Responde para o usuário
-				var msg = $"É um prazer lhe atender, {Utility.FirstName((string)stepContext.Values["name"])}. " + _dialogDictionary.Emoji.ThumbsUp;
+				var msg = $"É um prazer lhe atender, {Utility.FirstName((string)stepContext.Values["nomecompleto"])}. " + _dialogDictionary.Emoji.ThumbsUp;
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 
 				// Pergunta o celular do cliente
@@ -128,7 +128,7 @@ namespace MrBot.Dialogs
 				if (stepContext.Context.Activity.ChannelId == "whatsapp" )
 				{
 					// Responde para o usuário
-					var msg = $"Obrigado pelo seu contato, {Utility.FirstName((string)stepContext.Values["name"])}." + _dialogDictionary.Emoji.ThumbsUp;
+					var msg = $"Obrigado pelo seu contato, {Utility.FirstName((string)stepContext.Values["nomecompleto"])}." + _dialogDictionary.Emoji.ThumbsUp;
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 				}
 				else
@@ -164,10 +164,10 @@ namespace MrBot.Dialogs
 			if (customer != null)
 			{
 				// Atualiza o cliente
-				if (!string.IsNullOrEmpty((string)stepContext.Values["name"]))
+				if (!string.IsNullOrEmpty((string)stepContext.Values["nomecompleto"]))
                 {
-					customer.Name = Utility.FirstName((string)stepContext.Values["name"]);
-					customer.FullName = (string)stepContext.Values["name"];
+					customer.Name = Utility.FirstName((string)stepContext.Values["nomecompleto"]);
+					customer.FullName = (string)stepContext.Values["nomecompleto"];
 				}
 				if (!string.IsNullOrEmpty((string)stepContext.Values["mobilephone"]))
 					customer.MobilePhone = Utility.ClearStringNumber((string)stepContext.Values["mobilephone"]);
