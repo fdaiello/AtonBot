@@ -30,11 +30,12 @@ namespace PloomesApi
 			serverUri = settings.Value.ServerUri;
 		}
 
-		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2)
+		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
 		{
 
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
 			contact.AddPhone(phonenumber);
+			contact.AddOtherStringProperty("contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9", quemacompanha);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
 			if (stateId > 0)
@@ -83,7 +84,7 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio )
+		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio)
 		{
 
 			Deal deal = new Deal { Title = title, ContactId = contactid };
@@ -249,10 +250,28 @@ namespace PloomesApi
 		public string Note { get; set; }
 		public string Email { get; set; }
 		public List<Phone> Phones { get; } = new List<Phone>();
-
-		internal void AddPhone( string phonenumber, int typeid=0, int coutryid = 0)
+		internal void AddPhone(string phonenumber, int typeid = 0, int coutryid = 0)
 		{
 			this.Phones.Add(new Phone { PhoneNumber = phonenumber, TypeId = typeid, CountryId = coutryid });
+		}
+
+		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
+
+		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue });
+		}
+		internal void AddOtherIntegerProperty(string fieldkey, int integerValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, IntegerValue = integerValue });
+		}
+		internal void AddOtherDateTimeProperty(string fieldkey, object datetimeValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, DateTimeValue = datetimeValue });
+		}
+		internal void AddOtherBoolProperty(string fieldkey, bool boolValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
 
 	}

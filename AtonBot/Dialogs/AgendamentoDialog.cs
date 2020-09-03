@@ -79,7 +79,7 @@ namespace MrBot.Dialogs
 				AskDateStepAsync,
 				AskTurnoStepAsync,
 				AskHorarioStepAsync,
-				NomePessoaStepAsync,
+				QuemAcopmanhaStepAsync,
 				ConfirmaDadosStepAsync,
 				SaveStepAsync
 			}));
@@ -122,6 +122,7 @@ namespace MrBot.Dialogs
 				stepContext.Values["nomecompleto"] = customer.FullName;
 				stepContext.Values["phone"] = customer.MobilePhone;
 				stepContext.Values["ploomesid"] = customer.Tag3 != null ? customer.Tag3.ToString() : string.Empty;
+				stepContext.Values["email"] = customer.Email;
 
 				// Verifica se já tem agendamento salvo
 				if ( !string.IsNullOrEmpty(customer.Tag1))
@@ -204,8 +205,12 @@ namespace MrBot.Dialogs
 			// Atualiza os dados do cliente no banco
 			await UpdateCustomer(stepContext).ConfigureAwait(false);
 
-			// Pergunta o Email
-			return await stepContext.PromptAsync("EmailPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar o seu email? 📧"), RetryPrompt = MessageFactory.Text("Acho que não está correto .... por favor, me informe seu email:") }, cancellationToken).ConfigureAwait(false);
+			if ( string.IsNullOrEmpty((string)stepContext.Values["email"]))
+				// Pergunta o Email
+				return await stepContext.PromptAsync("EmailPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar o seu email? 📧"), RetryPrompt = MessageFactory.Text("Acho que não está correto .... por favor, me informe seu email:") }, cancellationToken).ConfigureAwait(false);
+			else
+				// pula pro proximo passo
+				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
 
 		}
 		// Ja adquiriu o carregador
@@ -214,8 +219,14 @@ namespace MrBot.Dialogs
 			// Busca a opção informada no passo anterior
 			string email = ((string)stepContext.Result).ToLower();
 
-			// Salva em variável persistente o que foi informado no passo anterior
-			stepContext.Values["email"] = email;
+			// Se informou o email no passo anterior
+			if (!string.IsNullOrEmpty(email))
+            {
+				// Salva em variável persistente
+				stepContext.Values["email"] = email;
+				// Atualiza os dados do cliente no banco
+				await UpdateCustomer(stepContext).ConfigureAwait(false);
+			}
 
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
@@ -564,7 +575,7 @@ namespace MrBot.Dialogs
 			else
 				return await stepContext.PromptAsync("HorarioTardePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 14, 15, 16 ou 17 horas.") }, cancellationToken).ConfigureAwait(false);
 		}
-		private async Task<DialogTurnResult> NomePessoaStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		private async Task<DialogTurnResult> QuemAcopmanhaStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o horario informado no passo anterior
 			string horario = PadronizaHorario((string)stepContext.Result);
@@ -579,17 +590,17 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o nome informado no passo anterior
-			string nomepessoa = (string)stepContext.Result;
+			string quemacompanha = (string)stepContext.Result;
 
 			// Salva em variável persitente ao diálogo
-			stepContext.Values["nomepessoa"] = nomepessoa;
+			stepContext.Values["quemacompanha"] = quemacompanha;
 
 			// Mostra mensagem resumindo o agendamento, e pede confirmação
 			DateTime date = (DateTime)stepContext.Values["data"];
 			string dateStr = date.ToString("dd/MM");
 			var card = new HeroCard
 			{
-				Text = $"As informações do agendamento são essas:\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nNome de quem irá acompanhar a visita técnica: {nomepessoa}\n\nTodas as informações estão corretas?",
+				Text = $"As informações do agendamento são essas:\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nNome de quem irá acompanhar a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
 				Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -619,7 +630,7 @@ namespace MrBot.Dialogs
 				{
 					// Insere o cliente no Ploomes
 					SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
-					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2).ConfigureAwait(false);
+					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2, (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
 				}
 				else
 				{
@@ -831,6 +842,8 @@ namespace MrBot.Dialogs
 					customer.State = (string)stepContext.Values["uf"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["bairro"]))
 					customer.Neighborhood = (string)stepContext.Values["bairro"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["email"]))
+					customer.Email = (string)stepContext.Values["email"];
 
 				// Salva o cliente no banco
 				_botDbContext.Customers.Update(customer);
