@@ -19,8 +19,6 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Antlr4.Runtime.Dfa;
 
 namespace MrBot.Dialogs
 {

@@ -57,16 +57,16 @@ namespace MrBot.Dialogs
 			// Se apresenta
 			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Oi. Eu sou um Bot {_dialogDictionary.Emoji.InformationDeskPerson}.\nEstou aqui para fazer o agendamento da instalação do seu carregador Volvo.{_dialogDictionary.Emoji.Automobile}. Caso queira reiniciar a conversa em algum momento, digite “Cancelar”."), cancellationToken).ConfigureAwait(false);
 
-			// Se tem nome vindo do canal
-			if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name.Trim()) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))
-			{
-				// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
-				return await stepContext.NextAsync(stepContext.Context.Activity.From.Name, cancellationToken).ConfigureAwait(false);
+			//// Se tem nome vindo do canal
+			//if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name.Trim()) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))
+			//{
+			//	// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
+			//	return await stepContext.NextAsync(stepContext.Context.Activity.From.Name, cancellationToken).ConfigureAwait(false);
 
-			}
-			else
+			//}
+			//else
 				// pergunta o nome do cliente
-				return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Por favor, qual é o seu nome?"), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
+				return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para iniciarmos, por favor digite seu nome completo."), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
 		}
 
 		// Pergunta o Telefone
