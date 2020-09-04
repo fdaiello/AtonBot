@@ -234,7 +234,7 @@ namespace MrBot.Dialogs
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
 			{
-				Text = "Você já adquiriu seu carregador?",
+				Text = "Você já adquiriu seu carregador? ⚡",
 				Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -269,7 +269,7 @@ namespace MrBot.Dialogs
 				// Create a HeroCard with options for the user to interact with the bot.
 				var card = new HeroCard
 				{
-					Text = "Qual a marca?",
+					Text = "Qual a marca? 🌐",
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Enel X", value: "Enel X"),
@@ -292,7 +292,7 @@ namespace MrBot.Dialogs
 				// Create a HeroCard with options for the user to interact with the bot.
 				var card = new HeroCard
 				{
-					Text = "Pretende aquirir, ou quer instalar apenas uma tomada?",
+					Text = "Pretende aquirir, ou quer instalar apenas uma tomada? 🔌",
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Pretendo adquirir", value: "Pretendo adquirir"),
@@ -343,7 +343,7 @@ namespace MrBot.Dialogs
 			// Pergunta se o local é um condominio
 			var card = new HeroCard
 			{
-				Text = "O local é um condomínio?",
+				Text = "O local é um condomínio? 🏘",
 				Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -377,7 +377,7 @@ namespace MrBot.Dialogs
 				{
 					var card = new HeroCard
 					{
-						Text = "Você já tem a autorização do condomínio?",
+						Text = "Você já tem a autorização do condomínio? 📄",
 						Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -441,7 +441,7 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync($"Certo, {(string)stepContext.Values["end"]}, {(string)stepContext.Values["bairro"]}, {(string)stepContext.Values["cidade"]}").ConfigureAwait(false);
 
 			// Pergunta o numero e o complemento
-			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Me informe por favor o número, e se tiver, o complemento também.") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Me informe por favor o número, e se tiver, o complemento também. 📩") }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
