@@ -55,7 +55,7 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> NameStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Se apresenta
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Oi. Eu sou um Bot {_dialogDictionary.Emoji.InformationDeskPerson}.\nEstou aqui para fazer o agendamento da instalação do seu carregador Volvo.{_dialogDictionary.Emoji.Automobile}. Caso queira reiniciar a conversa em algum momento, digite “Cancelar”."), cancellationToken).ConfigureAwait(false);
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Oi. Eu sou um Bot {_dialogDictionary.Emoji.InformationDeskPerson}.\nEstou aqui para fazer o agendamento da instalação do seu carregador Volvo.{_dialogDictionary.Emoji.Automobile}.\nCaso queira reiniciar a conversa em algum momento, digite “Cancelar”."), cancellationToken).ConfigureAwait(false);
 
 			//// Se tem nome vindo do canal
 			//if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name.Trim()) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using AdaptiveExpressions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace PloomesApi
 {
@@ -19,15 +20,18 @@ namespace PloomesApi
 		// Variaveis de configuração para usar a API
 		private readonly string userKey;
 		private readonly Uri serverUri;
+		private readonly ILogger _logger;
+
 
 		// Constructor
-		public PloomesClient(IOptions<PloomesSettings> settings)
+		public PloomesClient(IOptions<PloomesSettings> settings, ILogger<PloomesClient> logger)
 		{
 			if (settings == null)
 				throw new ArgumentException("Argument missing:", nameof(settings));
 
 			userKey = settings.Value.UserKey;
 			serverUri = settings.Value.ServerUri;
+			_logger = logger;
 		}
 
 		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
@@ -36,6 +40,7 @@ namespace PloomesApi
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
 			contact.AddPhone(phonenumber);
 			contact.AddOtherStringProperty("contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9", quemacompanha);
+			contact.AddOtherStringProperty("contact_0DF8BF92-66C8-4B48-9A25-40081337A947", name);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
 			if (stateId > 0)
@@ -74,11 +79,16 @@ namespace PloomesApi
 				if (apiResponse.Value != null && apiResponse.Value.Count>0 && apiResponse.Value[0].Id.IsNumber())
 					return apiResponse.Value[0].Id;
 				else
+                {
+					_logger.LogError("Post Contact: Error");
+					_logger.LogError(resp);
 					return 0;
+				}
 
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
+				_logger.LogError(ex.Message);
 				httpClient.Dispose();
 				return 0;
 			}
@@ -129,11 +139,17 @@ namespace PloomesApi
 				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
 					return apiResponse.Value[0].Id;
 				else
+				{
+					_logger.LogError("Post Contact: Error");
+					_logger.LogError(resp);
 					return 0;
+				}
+
 
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
+				_logger.LogError(ex.Message);
 				httpClient.Dispose();
 				return 0;
 			}
@@ -214,7 +230,7 @@ namespace PloomesApi
 			list.Add(new KeyValuePair<string, int>("Não sei informar", 8257202));
 			list.Add(new KeyValuePair<string, int>("Outros", 8257203));
 			list.Add(new KeyValuePair<string, int>("Schneider", 8257204));
-			list.Add(new KeyValuePair<string, int>("Efacec", 8257202));
+			list.Add(new KeyValuePair<string, int>("Efacec", 8257205));
 			list.Add(new KeyValuePair<string, int>("Enel X", 8257206));
 
 			// Part 2: loop over list and print pairs.

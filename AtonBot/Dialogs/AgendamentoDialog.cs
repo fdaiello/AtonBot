@@ -102,10 +102,12 @@ namespace MrBot.Dialogs
 
 			// Initialize values
 			stepContext.Values["phone"] = string.Empty;
-			stepContext.Values["ploomesid"] = string.Empty;
+			stepContext.Values["ploomesId"] = string.Empty;
+			stepContext.Values["ploomesDealId"] = string.Empty;
 			stepContext.Values["nomecompleto"] = string.Empty;
 			stepContext.Values["cep"] = string.Empty;
 			stepContext.Values["data"] = null;
+			stepContext.Values["horario"] = string.Empty;
 			stepContext.Values["turno"] = string.Empty;
 			stepContext.Values["cidade"] = string.Empty;
 			stepContext.Values["uf"] = string.Empty;
@@ -121,12 +123,13 @@ namespace MrBot.Dialogs
             {
 				stepContext.Values["nomecompleto"] = customer.FullName;
 				stepContext.Values["phone"] = customer.MobilePhone;
-				stepContext.Values["ploomesid"] = customer.Tag3 != null ? customer.Tag3.ToString() : string.Empty;
+				stepContext.Values["ploomesId"] = customer.Tag1 != null ? customer.Tag1.ToString() : string.Empty;
+				stepContext.Values["ploomesDealId"] = customer.Tag2 != null ? customer.Tag2.ToString() : string.Empty;
 				stepContext.Values["email"] = customer.Email;
 
 				// Verifica se já tem agendamento salvo
-				if ( !string.IsNullOrEmpty(customer.Tag1))
-					initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag1} 📝no turno da {customer.Tag2}. Você quer reagendar?";
+				if ( !string.IsNullOrEmpty(customer.Tag2))
+					initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag3} 📝. Você quer reagendar?";
 			}
             else
             {
@@ -325,7 +328,7 @@ namespace MrBot.Dialogs
 
 				// Salva o valor padronizado
 				foreach (string row in validBrands)
-					if (row.ToUpperInvariant().Contains(choice))
+					if (row.ToUpperInvariant().Contains(choice.ToUpperInvariant()))
 						stepContext.Values["marcacarregador"] = row;
 			}
 			else
@@ -626,7 +629,7 @@ namespace MrBot.Dialogs
 
 				// Verifica se já não estava cadastrado antes
 				int ploomesContactId;
-				if (string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
+				if (string.IsNullOrEmpty((string)stepContext.Values["ploomesId"]))
 				{
 					// Insere o cliente no Ploomes
 					SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
@@ -634,7 +637,9 @@ namespace MrBot.Dialogs
 				}
 				else
 				{
-					ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesid"], CultureInfo.InvariantCulture);
+					ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesId"], CultureInfo.InvariantCulture);
+					// Patch cliente
+					// To Do !!!
 				}
 
 				// Obtem data, e data com horario de instalacao
@@ -647,13 +652,14 @@ namespace MrBot.Dialogs
 
 				// Insere o Negocio no Ploomes
 				int ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
+				stepContext.Values["ploomesDealId"] = ploomesDealId.ToString();
 
 				// Confirma se conseguiu inserir corretamente o Lead
 				string msg;
 				if (ploomesContactId != 0 & ploomesDealId != 0)
 				{
 					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
-					stepContext.Values["ploomesid"] = ploomesContactId.ToString(CultureInfo.InvariantCulture);
+					stepContext.Values["ploomesId"] = ploomesContactId.ToString(CultureInfo.InvariantCulture);
 				}
 				else
 					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
@@ -787,7 +793,7 @@ namespace MrBot.Dialogs
 		{
 			string typed = promptContext.Context.Activity.Text.Trim().ToUpperInvariant();
 
-			return await Task.FromResult(typed.Contains("pretendo")| typed.Contains("adquirir")| typed.Contains("tomada")).ConfigureAwait(false);
+			return await Task.FromResult(typed.Contains("PRETENDO")| typed.Contains("ADQUIRIR")| typed.Contains("TOMADA")).ConfigureAwait(false);
 		}
 
 		// Busca as próximas datas disponiveis, com base no CEP informado
@@ -830,12 +836,10 @@ namespace MrBot.Dialogs
 					customer.FullName = (string)stepContext.Values["nomecompleto"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
 					customer.Zip = (string)stepContext.Values["cep"];
-				if (stepContext.Values["data"] != null)
-					customer.Tag1 = ((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture);
-				if (!string.IsNullOrEmpty((string)stepContext.Values["turno"]))
-					customer.Tag2 = (string)stepContext.Values["turno"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["ploomesid"]))
-					customer.Tag3 = (string)stepContext.Values["ploomesid"];
+				if (stepContext.Values["ploomesId"] != null)
+					customer.Tag1 = (string)stepContext.Values["ploomesId"];
+				if (!string.IsNullOrEmpty((string)stepContext.Values["ploomesDealId"]))
+					customer.Tag2 = (string)stepContext.Values["ploomesDealId"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cidade"]))
 					customer.City = (string)stepContext.Values["cidade"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["uf"]))
@@ -844,6 +848,10 @@ namespace MrBot.Dialogs
 					customer.Neighborhood = (string)stepContext.Values["bairro"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["email"]))
 					customer.Email = (string)stepContext.Values["email"];
+				if (stepContext.Values["data"] != null)
+					customer.Tag3 = ((DateTime)stepContext.Values["data"]).ToString("dd/MM",CultureInfo.InvariantCulture);
+				if (stepContext.Values["data"] != null && !string.IsNullOrEmpty((string)stepContext.Values["horario"]))
+					customer.Tag3 += " às " + (string)stepContext.Values["horario"];
 
 				// Salva o cliente no banco
 				_botDbContext.Customers.Update(customer);
