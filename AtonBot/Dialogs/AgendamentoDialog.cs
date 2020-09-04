@@ -603,7 +603,7 @@ namespace MrBot.Dialogs
 			string dateStr = date.ToString("dd/MM");
 			var card = new HeroCard
 			{
-				Text = $"As informações do agendamento são essas:\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nNome de quem irá acompanhar a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
+				Text = $"As informações do agendamento são essas: 📝\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
 				Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),

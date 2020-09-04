@@ -36,6 +36,8 @@ namespace PloomesApi
 
 		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
 		{
+			string content = string.Empty;
+			string resp = string.Empty;
 
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
 			contact.AddPhone(phonenumber);
@@ -59,7 +61,7 @@ namespace PloomesApi
 				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
 				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
-				string content = JsonConvert.SerializeObject(contact);
+				content = JsonConvert.SerializeObject(contact);
 
 				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
 
@@ -67,10 +69,9 @@ namespace PloomesApi
 
 				Uri postContactUri = new Uri(serverUri.ToString() + "/Contacts");
 				var httpResponseMessage = await httpClient.PostAsync(postContactUri, httpContent).ConfigureAwait(false);
-				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
 				httpContent.Dispose();
-				httpClient.Dispose();
 
 				// Desserializa o objeto mensagem
 				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
@@ -88,9 +89,15 @@ namespace PloomesApi
 			}
 			catch (Exception ex)
 			{
+				_logger.LogError("Post Contact: Error");
 				_logger.LogError(ex.Message);
-				httpClient.Dispose();
+				_logger.LogError(content);
+				_logger.LogError(resp);
 				return 0;
+			}
+            finally
+            {
+				httpClient.Dispose();
 			}
 
 		}
@@ -112,6 +119,10 @@ namespace PloomesApi
 			deal.AddOtherBoolProperty("deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010", ehcondominio);
 
 			HttpClient httpClient = new HttpClient();
+			HttpContent httpContent;
+			ApiResponse apiResponse;
+			string content = string.Empty;
+			string resp = string.Empty;
 			try
 			{
 				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
@@ -119,21 +130,21 @@ namespace PloomesApi
 				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
 				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
-				string content = JsonConvert.SerializeObject(deal);
+				content = JsonConvert.SerializeObject(deal);
 
-				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
+				httpContent = new StringContent(content, Encoding.UTF8);
 
 				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
 				Uri postDealUri = new Uri(serverUri.ToString() + "/Deals");
 				var httpResponseMessage = await httpClient.PostAsync(postDealUri, httpContent).ConfigureAwait(false);
-				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-				httpContent.Dispose();
-				httpClient.Dispose();
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
 				// Desserializa o objeto mensagem
-				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+				apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+
+				// Libera objeto
+				httpContent.Dispose();
 
 				// Devolve o Id gerado
 				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
@@ -145,15 +156,20 @@ namespace PloomesApi
 					return 0;
 				}
 
-
 			}
 			catch (Exception ex)
 			{
+				_logger.LogError("PostDeal: Error");
 				_logger.LogError(ex.Message);
+				_logger.LogError(content);
+				_logger.LogError(resp);
 				httpClient.Dispose();
 				return 0;
 			}
-
+            finally
+            {
+				httpClient.Dispose();
+			}
 		}
 		public async Task<int> GetStateId(string uf)
 		{
