@@ -101,7 +101,7 @@ namespace MrBot.Dialogs
 
 				innerDc.Context.Activity.Text = userinput;
 
-				if (userinput == "cancelar" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa")
+				if (userinput == "cancelar" | userinput == "cancela" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa")
 				{
 					// Envia mensagem
 					string text;
