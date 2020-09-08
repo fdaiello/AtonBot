@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AssemblyName>Mister-Bot</AssemblyName>
+    <UserSecretsId>055dff7d-6e4d-4ddc-8f51-34804e22c1e6</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
