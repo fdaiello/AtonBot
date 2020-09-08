@@ -76,6 +76,7 @@ namespace MrBot.Dialogs
 				AskTemAutorizacaoCondominioStepAsync,
 				AskCepStepAsync,
 				AskAddressNumberAsync,
+				AskAddressComplementAsync,
 				AskDateStepAsync,
 				AskTurnoStepAsync,
 				AskHorarioStepAsync,
@@ -112,6 +113,9 @@ namespace MrBot.Dialogs
 			stepContext.Values["cidade"] = string.Empty;
 			stepContext.Values["uf"] = string.Empty;
 			stepContext.Values["bairro"] = string.Empty;
+			stepContext.Values["end"] = string.Empty;
+			stepContext.Values["numero"] = string.Empty;
+			stepContext.Values["complemento"] = string.Empty;
 
 			// Procura pelo registro do usuario
 			Customer customer = _botDbContext.Customers
@@ -426,7 +430,7 @@ namespace MrBot.Dialogs
 				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Ótimo. Poderia nos informar por favor o cep {_dialogDictionary.Emoji.OpenMailBox} da sua residência para checarmos a disponibilidae do técnico na sua região?"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
 
 		}
-		// Pergunta o numero e complemento do endereço
+		// Pergunta o numero do endereço
 		private async Task<DialogTurnResult> AskAddressNumberAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
 			// Busca o cep informado no passo anterior
@@ -444,17 +448,32 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync($"Certo, {(string)stepContext.Values["end"]}, {(string)stepContext.Values["bairro"]}, {(string)stepContext.Values["cidade"]}").ConfigureAwait(false);
 
 			// Pergunta o numero e o complemento
-			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Me informe por favor o número, e se tiver, o complemento também. 📩") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Me informe por favor o número. 📩") }, cancellationToken).ConfigureAwait(false);
 
 		}
-		// Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
-		private async Task<DialogTurnResult> AskDateStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		// Pergunta o complemento do endereço
+		private async Task<DialogTurnResult> AskAddressComplementAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o número e complemento informado no passo anterior
 			string numero = (string)stepContext.Result;
 
-			// Salva o número e complemento em variável persitente ao diálogo
+			// Salva o número em variável persitente ao diálogo
 			stepContext.Values["numero"] = numero;
+
+			// Pergunta o complemento
+			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Possui algum complemento? Caso não tenha digite “não”. 📩") }, cancellationToken).ConfigureAwait(false);
+
+		}
+
+		// Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
+		private async Task<DialogTurnResult> AskDateStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		{
+
+			// Busca o complemento informado no passo anterior
+			string complemento = (string)stepContext.Result;
+
+			// Salva o número e complemento em variável persitente ao diálogo
+			stepContext.Values["complemento"] = complemento;
 
 			// Procura as opções de data com base no CEP informado
 			List<DateTime> nextAvailableDates= GetNextAvailableDates((string)stepContext.Values["cep"]);
@@ -635,8 +654,7 @@ namespace MrBot.Dialogs
 				if (string.IsNullOrEmpty((string)stepContext.Values["ploomesId"]))
 				{
 					// Insere o cliente no Ploomes
-					SplitAddressNumberAndLine2((string)stepContext.Values["numero"], out string streetAddressNumber, out string stretAddressLine2);
-					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], streetAddressNumber, stretAddressLine2, (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
 				}
 				else
 				{
