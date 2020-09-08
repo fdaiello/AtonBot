@@ -132,9 +132,6 @@ namespace PloomesApi
 
 				content = JsonConvert.SerializeObject(deal);
 
-				// Retira informação de TimeZone das datas
-				content = content.Replace("+00:00\"", "\"");
-
 				httpContent = new StringContent(content, Encoding.UTF8);
 
 				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
