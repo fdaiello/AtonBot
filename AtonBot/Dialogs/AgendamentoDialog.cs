@@ -439,6 +439,9 @@ namespace MrBot.Dialogs
 			// Salva o cep em variavel persistente do diálogo
 			stepContext.Values["cep"] = cep;
 
+			// Mensagem que vai consultar o CEP
+			await stepContext.Context.SendActivityAsync($"Deixe-me consultar seu CEP, um instante por favor ...").ConfigureAwait(false);
+
 			// Chama api dos Correios e salva cidade, bairro, estado
 			GetAddressFromZip(stepContext, cep);
 
