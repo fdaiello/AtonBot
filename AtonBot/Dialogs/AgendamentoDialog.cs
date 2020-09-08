@@ -121,7 +121,7 @@ namespace MrBot.Dialogs
 			// Valida que achou o registro
 			if (customer != null)
             {
-				stepContext.Values["nomecompleto"] = customer.FullName;
+				stepContext.Values["nomecompleto"] = customer.FullName != null ? customer.FullName : string.Empty;
 				stepContext.Values["phone"] = customer.MobilePhone;
 				stepContext.Values["ploomesId"] = customer.Tag1 != null ? customer.Tag1.ToString() : string.Empty;
 				stepContext.Values["ploomesDealId"] = customer.Tag2 != null ? customer.Tag2.ToString() : string.Empty;
@@ -171,7 +171,10 @@ namespace MrBot.Dialogs
 			if (choice == "sim" | choice == "s")
             {
 				// se não tem sobrenome
-				if (!((string)stepContext.Values["nomecompleto"]).Contains(" "))
+				if (string.IsNullOrEmpty((string)stepContext.Values["nomecompleto"]))
+					// pergunta o nome
+					return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para começar, por favor, me informe seu nome completo:") }, cancellationToken).ConfigureAwait(false);
+				else if (!((string)stepContext.Values["nomecompleto"]).Contains(" "))
 					// pergunta o sobrenome
 					return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Qual é o seu sobrenome?") }, cancellationToken).ConfigureAwait(false);
 				else
