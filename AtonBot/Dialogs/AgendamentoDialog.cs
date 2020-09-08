@@ -596,7 +596,7 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o nome informado no passo anterior
-			string quemacompanha = (string)stepContext.Result;
+			string quemacompanha = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Utility.CleanName((string)stepContext.Result)?.Trim().ToLower());
 
 			// Salva em variável persitente ao diálogo
 			stepContext.Values["quemacompanha"] = quemacompanha;
@@ -606,7 +606,7 @@ namespace MrBot.Dialogs
 			string dateStr = date.ToString("dd/MM");
 			var card = new HeroCard
 			{
-				Text = $"As informações do agendamento são essas: 📝\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} as {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
+				Text = $"As informações do agendamento são essas: 📝\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} às {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
 				Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -661,7 +661,7 @@ namespace MrBot.Dialogs
 				string msg;
 				if (ploomesContactId != 0 & ploomesDealId != 0)
 				{
-					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} no período da {stepContext.Values["turno"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
 					stepContext.Values["ploomesId"] = ploomesContactId.ToString(CultureInfo.InvariantCulture);
 				}
 				else
@@ -956,13 +956,19 @@ namespace MrBot.Dialogs
             {
 				string[] splitNumber = numberAndLine2.Split("/");
 				number = splitNumber[0].Trim() ;
-				line2 = "/" + string.Join("/", splitNumber, 1, splitNumber.Length - 1);
+				line2 = string.Join("/", splitNumber, 1, splitNumber.Length - 1);
 			}
 			else if (numberAndLine2.Contains("ap"))
 			{
 				string[] splitNumber = numberAndLine2.Split("ap");
 				number = splitNumber[0].Trim();
 				line2 = "ap" + string.Join(" ", splitNumber, 1, splitNumber.Length - 1);
+			}
+			else if (numberAndLine2.Contains(","))
+			{
+				string[] splitNumber = numberAndLine2.Split(",");
+				number = splitNumber[0].Trim();
+				line2 = string.Join(" ", splitNumber, 1, splitNumber.Length - 1);
 			}
 			else if (numberAndLine2.Contains("apto"))
 			{
