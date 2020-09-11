@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using AdaptiveExpressions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using RestSharp;
 
 namespace PloomesApi
 {
@@ -74,11 +75,11 @@ namespace PloomesApi
 				httpContent.Dispose();
 
 				// Desserializa o objeto mensagem
-				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id da mensagem
-				if (apiResponse.Value != null && apiResponse.Value.Count>0 && apiResponse.Value[0].Id.IsNumber())
-					return apiResponse.Value[0].Id;
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Count>0 && apiContactResponse.Contacts[0].Id.IsNumber())
+					return apiContactResponse.Contacts[0].Id;
 				else
                 {
 					_logger.LogError("Post Contact: Error");
@@ -101,6 +102,60 @@ namespace PloomesApi
 			}
 
 		}
+		public async Task<int> PatchContact(int id, string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
+		{
+			string content = string.Empty;
+			string resp = string.Empty;
+
+			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			contact.AddPhone(phonenumber);
+			contact.AddOtherStringProperty("contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9", quemacompanha);
+			contact.AddOtherStringProperty("contact_0DF8BF92-66C8-4B48-9A25-40081337A947", name);
+
+			int stateId = await GetStateId(state).ConfigureAwait(false);
+			if (stateId > 0)
+			{
+				contact.StateId = stateId;
+				int cityId = await GetCityId(city.ToUpperInvariant(), stateId).ConfigureAwait(false);
+				if (cityId > 0)
+					contact.CityId = cityId;
+			}
+
+            try
+			{
+				content = JsonConvert.SerializeObject(contact);
+
+				var client = new RestClient(serverUri.ToString() + $"/Contacts({id})");
+				client.Timeout = -1;
+				var request = new RestRequest(Method.PATCH);
+				request.AddHeader("User-Key", userKey);
+				request.AddHeader("Content-Type", "application/json");
+				request.AddParameter("application/json", content, ParameterType.RequestBody);
+				IRestResponse response = await client.ExecuteAsync(request).ConfigureAwait(false);
+
+				// Desserializa o objeto mensagem
+				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(response.Content);
+
+				// Devolve o Id da mensagem
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Count > 0 && apiContactResponse.Contacts[0].Id.IsNumber())
+					return apiContactResponse.Contacts[0].Id;
+				else
+				{
+					_logger.LogError("Patch Contact: Error");
+					_logger.LogError(resp);
+					return 0;
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Patch Contact: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(content);
+				_logger.LogError(resp);
+				return 0;
+			}
+
+		}
 		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio)
 		{
 
@@ -120,7 +175,7 @@ namespace PloomesApi
 
 			HttpClient httpClient = new HttpClient();
 			HttpContent httpContent;
-			ApiResponse apiResponse;
+			ApiContactResponse apiResponse;
 			string content = string.Empty;
 			string resp = string.Empty;
 			try
@@ -144,14 +199,14 @@ namespace PloomesApi
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
 				// Desserializa o objeto mensagem
-				apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+				apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Libera objeto
 				httpContent.Dispose();
 
 				// Devolve o Id gerado
-				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
-					return apiResponse.Value[0].Id;
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+					return apiResponse.Contacts[0].Id;
 				else
 				{
 					_logger.LogError("Post Contact: Error");
@@ -174,6 +229,68 @@ namespace PloomesApi
 				httpClient.Dispose();
 			}
 		}
+		public async Task<int> PatchDeal(int DealId, int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio)
+		{
+
+			Deal deal = new Deal { Id = DealId, Title = title, ContactId = contactid };
+			deal.AddOtherDateTimeProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4", data);                                             // Data: DateTimeValue, format yyyy-MM-dd
+			if (periodo == "tarde")
+				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710080);                                       // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
+			else
+				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710081);
+			deal.AddOtherDateTimeProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", horario);                                         // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+
+			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
+			if (opcaodeinstalacaoCode > 0)
+				deal.AddOtherIntegerProperty("deal_80E104C6-6594-4783-8A90-F158ED5490C8", opcaodeinstalacaoCode);
+
+			deal.AddOtherBoolProperty("deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010", ehcondominio);
+
+			ApiContactResponse apiResponse;
+			string content = string.Empty;
+			string resp = string.Empty;
+			try
+			{
+				// Serializa em Json o objeto deal
+				content = JsonConvert.SerializeObject(deal);
+
+				// Retira informação de TimeZone das datas
+				content = content.Replace("+00:00\"", "\"");
+				content = content.Replace("-03:00\"", "\"");
+
+				// Chama a API para dar Patch no Deal
+
+				var client = new RestClient(serverUri.ToString() + $"/Deals({DealId})");
+				client.Timeout = -1;
+				var request = new RestRequest(Method.PATCH);
+				request.AddHeader("User-Key", userKey);
+				request.AddHeader("Content-Type", "application/json");
+				request.AddParameter("application/json", content, ParameterType.RequestBody);
+				IRestResponse response = await client.ExecuteAsync(request).ConfigureAwait(false);
+
+				// Desserializa o objeto mensagem
+				apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(response.Content);
+
+				// Devolve o Id gerado
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+					return apiResponse.Contacts[0].Id;
+				else
+				{
+					_logger.LogError("Patch Deal: Error");
+					_logger.LogError(resp);
+					return 0;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Patch Deal: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(content);
+				_logger.LogError(resp);
+				return 0;
+			}
+		}
 		public async Task<int> GetStateId(string uf)
 		{
 			HttpClient httpClient = new HttpClient();
@@ -191,11 +308,11 @@ namespace PloomesApi
 				httpClient.Dispose();
 
 				// Desserializa o objeto mensagem
-				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id gerado
-				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
-					return apiResponse.Value[0].Id;
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+					return apiResponse.Contacts[0].Id;
 				else
 					return 0;
 
@@ -224,11 +341,11 @@ namespace PloomesApi
 				httpClient.Dispose();
 
 				// Desserializa o objeto mensagem
-				ApiResponse apiResponse = JsonConvert.DeserializeObject<ApiResponse>(resp);
+				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id gerado
-				if (apiResponse.Value != null && apiResponse.Value.Count > 0 && apiResponse.Value[0].Id.IsNumber())
-					return apiResponse.Value[0].Id;
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+					return apiResponse.Contacts[0].Id;
 				else
 					return 0;
 
@@ -240,6 +357,86 @@ namespace PloomesApi
 			}
 
 		}
+
+		public async Task<Contact> GetContact(int Id)
+		{
+			HttpClient httpClient = new HttpClient();
+			string resp = string.Empty;
+			Contact contact = new Contact();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Contacts?$filter=Id+eq+{Id}");
+				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				// Desserializa o objeto mensagem
+				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
+
+				// Confere se voltou conteudo
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0)
+					contact = apiResponse.Contacts[0];
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Get Contact: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(resp);
+			}
+			finally
+            {
+				httpClient.Dispose();
+			}
+			return contact;
+		}
+
+		public async Task<Deal> GetDeal(int ContactId)
+		{
+			HttpClient httpClient = new HttpClient();
+			string resp = string.Empty;
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Deals?$filter=ContactId+eq+{ContactId}");
+				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp);
+
+				// Confere se voltou conteudo
+				if (apiDealsResponse.Deals != null && apiDealsResponse.Deals.Count > 0)
+					return apiDealsResponse.Deals[0];
+
+				else
+					return null;
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Get Deal: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(resp);
+				return null;
+			}
+			finally
+			{
+				httpClient.Dispose();
+			}
+
+		}
+
 		static int GetOpcaodeInstalacaoCode( string opcaodeinstalacao)
 		{
 			// Part 1: create a List of KeyValuePairs.
@@ -260,7 +457,7 @@ namespace PloomesApi
 			return 0;
 		}
 	}
-	internal class Phone
+	public class Phone
 	{
 		public string PhoneNumber { get; set; }
 		public int TypeId { get; set; }
@@ -268,51 +465,7 @@ namespace PloomesApi
 
 	}
 
-	internal class Contact
-	{
-		public string Name { get; set; }
-		public string Neighborhood { get; set; }
-		public int ZipCode { get; set; }
-		public int OriginId { get; set; }
-		public object CompanyId { get; set; }
-		public string StreetAddress { get; set; }
-		public string StreetAddressNumber { get; set; }
-		public string StreetAddressLine2 { get; set; }
-		public int CityId { get; set; }
-		public int StateId { get; set; }
-		public int CountryId { get; set; }
-		public int TypeId { get; set; }
-		public string Note { get; set; }
-		public string Email { get; set; }
-		public List<Phone> Phones { get; } = new List<Phone>();
-		internal void AddPhone(string phonenumber, int typeid = 0, int coutryid = 0)
-		{
-			this.Phones.Add(new Phone { PhoneNumber = phonenumber, TypeId = typeid, CountryId = coutryid });
-		}
-
-		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
-
-		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
-		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue });
-		}
-		internal void AddOtherIntegerProperty(string fieldkey, int integerValue)
-		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, IntegerValue = integerValue });
-		}
-		internal void AddOtherDateTimeProperty(string fieldkey, object datetimeValue)
-		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, DateTimeValue = datetimeValue });
-		}
-		internal void AddOtherBoolProperty(string fieldkey, bool boolValue)
-		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
-		}
-
-	}
-
-#pragma warning disable CA1812
-	internal class Value
+	public class Contact
 	{
 		public int Id { get; set; }
 		public int TypeId { get; set; }
@@ -372,17 +525,43 @@ namespace PloomesApi
 		public object Key { get; set; }
 		public object LastDocumentId { get; set; }
 		public object AvatarUrl { get; set; }
+		public List<Phone> Phones { get; } = new List<Phone>();
+		internal void AddPhone(string phonenumber, int typeid = 0, int coutryid = 0)
+		{
+			this.Phones.Add(new Phone { PhoneNumber = phonenumber, TypeId = typeid, CountryId = coutryid });
+		}
+
+		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
+
+		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue });
+		}
+		internal void AddOtherIntegerProperty(string fieldkey, int integerValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, IntegerValue = integerValue });
+		}
+		internal void AddOtherDateTimeProperty(string fieldkey, object datetimeValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, DateTimeValue = datetimeValue });
+		}
+		internal void AddOtherBoolProperty(string fieldkey, bool boolValue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
+		}
 
 	}
-	internal class ApiResponse
+
+#pragma warning disable CA1812
+	internal class ApiContactResponse
 	{
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
 		[JsonProperty("value")]
-		public List<Value> Value { get; set; }
+		public List<Contact> Contacts { get; set; }
 
 	}
-	internal class OtherProperty
+	public class OtherProperty
 	{
 		public string FieldKey { get; set; }
 		public string StringValue { get; set; }
@@ -390,11 +569,63 @@ namespace PloomesApi
 		public int IntegerValue { get; set; }
 		public bool BoolValue { get; set; }
 	}
-
-	internal class Deal
+	public class ApiDealsResponse
 	{
+		[JsonProperty("@odata.context")]
+		public string Odata { get; set; }
+		[JsonProperty("value")]
+#pragma warning disable CA2227 // Collection properties should be read only - but we need to keep setter property, otherwise Jason.Desserialize won't work.
+        public List<Deal> Deals { get; set; }
+#pragma warning restore CA2227 // Collection properties should be read only
+    }
+
+	public class Deal
+	{
+		public int Id { get; set; }
 		public string Title { get; set; }
 		public int ContactId { get; set; }
+		public string ContactName { get; set; }
+		public object PersonId { get; set; }
+		public object PersonName { get; set; }
+		public int PipelineId { get; set; }
+		public int StageId { get; set; }
+		public int StatusId { get; set; }
+		public object FirstTaskId { get; set; }
+		public object FirstTaskDate { get; set; }
+		public bool HasScheduledTasks { get; set; }
+		public int TasksOrdination { get; set; }
+		public object ContactProductId { get; set; }
+		public object LastQuoteId { get; set; }
+		public bool IsLastQuoteApproved { get; set; }
+		public object WonQuoteId { get; set; }
+		public object LastStageId { get; set; }
+		public object LossReasonId { get; set; }
+		public object OriginId { get; set; }
+		public object OwnerId { get; set; }
+		public object FinishDate { get; set; }
+		public int CurrencyId { get; set; }
+		public decimal Amount { get; set; }
+		public int StartCurrencyId { get; set; }
+		public decimal StartAmount { get; set; }
+		public bool Read { get; set; }
+		public object LastInteractionRecordId { get; set; }
+		public object LastOrderId { get; set; }
+		public int DaysInStage { get; set; }
+		public int HoursInStage { get; set; }
+		public int Length { get; set; }
+		public object CreateImportId { get; set; }
+		public object UpdateImportId { get; set; }
+		public object LeadId { get; set; }
+		public object OriginDealId { get; set; }
+		public object ReevId { get; set; }
+		public bool Editable { get; set; }
+		public bool Deletable { get; set; }
+		public int CreatorId { get; set; }
+		public int UpdaterId { get; set; }
+		public DateTime CreateDate { get; set; }
+		public DateTime LastUpdateDate { get; set; }
+		public object LastDocumentId { get; set; }
+		public object DealNumber { get; set; }
 		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
 		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
 		{

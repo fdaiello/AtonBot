@@ -652,41 +652,61 @@ namespace MrBot.Dialogs
 				// Avisa o cliente para aguardar enquanto salva os dados
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
 
-				// Verifica se já não estava cadastrado antes
-				int ploomesContactId;
-				if (string.IsNullOrEmpty((string)stepContext.Values["ploomesId"]))
-				{
-					// Insere o cliente no Ploomes
-					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], Int32.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"])), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
-				}
-				else
-				{
-					ploomesContactId = Int32.Parse((string)stepContext.Values["ploomesId"], CultureInfo.InvariantCulture);
-					// Patch cliente
-					// To Do !!!
-				}
-
-				// Obtem data, e data com horario de instalacao
-				DateTime date = (DateTime)stepContext.Values["data"];
-				string horario = (string)stepContext.Values["horario"];
-				DateTime dateTime = date.AddHours(Int16.Parse(horario.Replace(":00", ""), CultureInfo.InvariantCulture));
-
-				// Obtem a string que diz qual é a opção de instalação
-				string opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
-
-				// Insere o Negocio no Ploomes
-				int ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
-				stepContext.Values["ploomesDealId"] = ploomesDealId.ToString();
-
-				// Confirma se conseguiu inserir corretamente o Lead
 				string msg;
-				if (ploomesContactId != 0 & ploomesDealId != 0)
+				// Se o contato não esta cadastrado ainda - nao tem registro do ID
+				if (!Int32.TryParse((string)stepContext.Values["ploomesId"], out int ploomesContactId))
+					// Insere o cliente no Ploomes
+					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+
+				else
 				{
-					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					// Convere se o Id salvo localmente, existe no Ploomes
+					Contact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
+					// Se achou
+					if ( contact.Id > 0 )
+						// Patch client
+						ploomesContactId = await _ploomesclient.PatchContact(ploomesContactId, (string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+					else
+						// Insere o cliente no Ploomes
+						ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+
+				}
+
+				// Confirma se conseguiu inserir ou alterar corretamente o Contact no Ploomes
+				if ( ploomesContactId > 0  )
+                {
+					// Salva o Ploomes ID em variável persistente ao diálogo
 					stepContext.Values["ploomesId"] = ploomesContactId.ToString(CultureInfo.InvariantCulture);
+
+					// Obtem data, e data com horario de instalacao
+					DateTime date = (DateTime)stepContext.Values["data"];
+					string horario = (string)stepContext.Values["horario"];
+					DateTime dateTime = date.AddHours(Int16.Parse(horario.Replace(":00", ""), CultureInfo.InvariantCulture));
+
+					// Obtem a string que diz qual é a opção de instalação
+					string opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
+
+					// Confere se o Negócio já está salvo no Ploomes
+					Deal deal = await _ploomesclient.GetDeal(ploomesContactId).ConfigureAwait(false);
+					int ploomesDealId=0;
+					if ( deal == null || deal.Id == 0 )
+						// Insere o Negocio no Ploomes
+						ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
+					else
+						// Patch Deal
+						ploomesDealId = await _ploomesclient.PatchDeal(deal.Id, ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
+
+					stepContext.Values["ploomesDealId"] = ploomesDealId.ToString();
+
+					// Confirma se conseguiu inserir corretamente o Lead
+					if (ploomesDealId != 0)
+						msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					else
+						msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+
 				}
 				else
-					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu cadastro. {_dialogDictionary.Emoji.DisapointedFace}";
 
 				// Salva os dados do Customer no banco de dados
 				await UpdateCustomer(stepContext).ConfigureAwait(false);
