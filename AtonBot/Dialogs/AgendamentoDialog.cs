@@ -131,14 +131,26 @@ namespace MrBot.Dialogs
 				stepContext.Values["ploomesDealId"] = customer.Tag2 != null ? customer.Tag2.ToString() : string.Empty;
 				stepContext.Values["email"] = customer.Email;
 
-				// Verifica se já tem agendamento salvo
-				if ( !string.IsNullOrEmpty(customer.Tag2))
-					initialText = $"Nós agendamos uma visita técnica para o dia {customer.Tag3} 📝. Você quer reagendar?";
+				// Verifica se tem salvo na base local o ID do cliente salvo no Ploomes
+				if (!string.IsNullOrEmpty(customer.Tag1) && int.TryParse(customer.Tag1, out int ploomesClientId) )
+				{
+					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
+					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
+					if ( deal != null && deal.Id > 0)
+					{
+						// Busca a data
+						DateTime dataAgendamento = (DateTime)deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
+						// Se achou a data de agendamento
+						if ( dataAgendamento != null)
+							// Muda a frase de inicio do diálogo, adequando ao reagendamento
+							initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento.ToString("dd/MM")} 📝. Você quer reagendar?";
+					}
+				}
 			}
             else
             {
 				// Não deveria cair aqui
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ocorreu algum erro e não achei seu registro."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ocorreu algum erro e não achei seu registro. Vamos recomeçar ..."), cancellationToken).ConfigureAwait(false);
 				await stepContext.CancelAllDialogsAsync().ConfigureAwait(false);
             }
 

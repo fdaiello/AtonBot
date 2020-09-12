@@ -13,6 +13,22 @@ using RestSharp;
 
 namespace PloomesApi
 {
+	// Ids dos campos extras do Deal
+	public static class DealPropertyId
+	{
+		public const string DataVisitaTecnica = "deal_154F5521-3AAE-46B2-9491-0973850E42E4";
+		public const string Periodo = "deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB";
+		public const string Horario = "deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235";
+		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
+		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
+	}
+	// Ids dos Periodos
+	public static class PeriodoAgendamentoId
+	{
+		public const int Tarde = 7710080;
+		public const int Manha = 7710081;
+	}
+
 	// Ploomes API
 	// Classe para fazer as chamadas da API Ploomes CRM - Cadastro de Leads
 	public class PloomesClient
@@ -22,7 +38,6 @@ namespace PloomesApi
 		private readonly string userKey;
 		private readonly Uri serverUri;
 		private readonly ILogger _logger;
-
 
 		// Constructor
 		public PloomesClient(IOptions<PloomesSettings> settings, ILogger<PloomesClient> logger)
@@ -160,18 +175,18 @@ namespace PloomesApi
 		{
 
 			Deal deal = new Deal { Title = title, ContactId = contactid };
-			deal.AddOtherDateTimeProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4",data);									          // Data: DateTimeValue, format yyyy-MM-dd
+			deal.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica,data);								// Data: DateTimeValue, format yyyy-MM-dd
 			if ( periodo == "tarde")
-				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710080);										  // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
+				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Tarde);				// Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
 			else
-				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710081);
-			deal.AddOtherDateTimeProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", horario);	                                     // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Manha);
+			deal.AddOtherDateTimeProperty(DealPropertyId.Horario, horario);	                                    // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
 
 			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
 			if (opcaodeinstalacaoCode > 0)
-				deal.AddOtherIntegerProperty("deal_80E104C6-6594-4783-8A90-F158ED5490C8", opcaodeinstalacaoCode);
+				deal.AddOtherIntegerProperty(DealPropertyId.OpcaoDeInstalacao, opcaodeinstalacaoCode);
 
-			deal.AddOtherBoolProperty("deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010", ehcondominio);
+			deal.AddOtherBoolProperty(DealPropertyId.EhCondominio, ehcondominio);
 
 			HttpClient httpClient = new HttpClient();
 			HttpContent httpContent;
@@ -233,19 +248,18 @@ namespace PloomesApi
 		{
 
 			Deal deal = new Deal { Id = DealId, Title = title, ContactId = contactid };
-			deal.AddOtherDateTimeProperty("deal_154F5521-3AAE-46B2-9491-0973850E42E4", data);                                             // Data: DateTimeValue, format yyyy-MM-dd
+			deal.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica, data);                              // Data: DateTimeValue, format yyyy-MM-dd
 			if (periodo == "tarde")
-				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710080);                                       // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
+				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Tarde);               // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
 			else
-				deal.AddOtherIntegerProperty("deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB", 7710081);
-			deal.AddOtherDateTimeProperty("deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235", horario);                                         // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
+				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Manha);
+			deal.AddOtherDateTimeProperty(DealPropertyId.Horario, horario);                                     // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
 
 			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
 			if (opcaodeinstalacaoCode > 0)
-				deal.AddOtherIntegerProperty("deal_80E104C6-6594-4783-8A90-F158ED5490C8", opcaodeinstalacaoCode);
+				deal.AddOtherIntegerProperty(DealPropertyId.OpcaoDeInstalacao, opcaodeinstalacaoCode);
 
-			deal.AddOtherBoolProperty("deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010", ehcondominio);
-
+			deal.AddOtherBoolProperty(DealPropertyId.EhCondominio, ehcondominio);
 			ApiContactResponse apiResponse;
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -259,9 +273,10 @@ namespace PloomesApi
 				content = content.Replace("-03:00\"", "\"");
 
 				// Chama a API para dar Patch no Deal
-
-				var client = new RestClient(serverUri.ToString() + $"/Deals({DealId})");
-				client.Timeout = -1;
+				var client = new RestClient(serverUri.ToString() + $"/Deals({DealId})")
+				{
+					Timeout = -1
+				};
 				var request = new RestRequest(Method.PATCH);
 				request.AddHeader("User-Key", userKey);
 				request.AddHeader("Content-Type", "application/json");
@@ -406,7 +421,7 @@ namespace PloomesApi
 				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
 				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
-				Uri postContactUri = new Uri(serverUri.ToString() + $"/Deals?$filter=ContactId+eq+{ContactId}");
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Deals?$filter=ContactId+eq+{ContactId}&$expand=OtherProperties");
 				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
