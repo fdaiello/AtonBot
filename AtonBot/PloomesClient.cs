@@ -21,6 +21,7 @@ namespace PloomesApi
 		public const string Horario = "deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235";
 		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
 		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
+		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
 	}
 	// Ids dos Periodos
 	public static class PeriodoAgendamentoId
@@ -28,7 +29,18 @@ namespace PloomesApi
 		public const int Tarde = 7710080;
 		public const int Manha = 7710081;
 	}
-
+	// Ids dos estágios da PipeLine
+	public static class AtonStageId
+	{
+		public const int Lead = 151438;
+		public const int VisitaAgendada = 151439;
+		public const int VisitaRealizada = 151440;
+		public const int PropostaRealizada = 1514441;
+	}
+	public static class AtonResultadoValicacao
+	{
+		public const int Validada = 7992541;
+	}
 	// Ploomes API
 	// Classe para fazer as chamadas da API Ploomes CRM - Cadastro de Leads
 	public class PloomesClient
@@ -642,6 +654,7 @@ namespace PloomesApi
 		public object LastDocumentId { get; set; }
 		public object DealNumber { get; set; }
 		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
+		public List<Quote> Quotes { get; } = new List<Quote>();
 		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue });
@@ -659,6 +672,67 @@ namespace PloomesApi
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
 	}
+	public class Quote
+	{
+		public int Id { get; set; }
+		public int ContactId { get; set; }
+		public string ContactName { get; set; }
+		public int DealId { get; set; }
+		public int OwnerId { get; set; }
+		public int TemplateId { get; set; }
+		public bool IsTemplate { get; set; }
+		public DateTime Date { get; set; }
+		public int QuoteNumber { get; set; }
+		public int ReviewNumber { get; set; }
+		public bool LastReview { get; set; }
+		public int LastReviewId { get; set; }
+		public bool Approver { get; set; }
+		public object ApprovalStatusId { get; set; }
+		public object ApprovalLevelId { get; set; }
+		public object PersonId { get; set; }
+		public object PersonName { get; set; }
+		public int CurrencyId { get; set; }
+		public double Amount { get; set; }
+		public double Discount { get; set; }
+		public object ExpirationDate { get; set; }
+		public object InstallmentsNumber { get; set; }
+		public object DeliveryTime { get; set; }
+		public object PaymentMethod { get; set; }
+		public object Title { get; set; }
+		public object Description { get; set; }
+		public object Notes { get; set; }
+		public object FreightModal { get; set; }
+		public object FreightCost { get; set; }
+		public string Key { get; set; }
+		public bool Shared { get; set; }
+		public object EmailSenderTypeId { get; set; }
+		public object EmailSenderUserId { get; set; }
+		public object ExternallyAccepted { get; set; }
+		public bool ExternalNotifications { get; set; }
+		public object ExternalSharingDate { get; set; }
+		public object HeaderSourceCode { get; set; }
+		public object HeaderHeight { get; set; }
+		public object FooterSourceCode { get; set; }
+		public object FooterHeight { get; set; }
+		public object BodySourceCode { get; set; }
+		public object PreviewSourceCode { get; set; }
+		public int TopMargin { get; set; }
+		public int BottomMargin { get; set; }
+		public int SideMargin { get; set; }
+		public bool HasCoverPage { get; set; }
+		public object CoverSourceCode { get; set; }
+		public bool HasPaging { get; set; }
+		public object FileName { get; set; }
+		public object EmailId { get; set; }
+		public string DocumentUrl { get; set; }
+		public int CreatorId { get; set; }
+		public object UpdaterId { get; set; }
+		public DateTime CreateDate { get; set; }
+		public DateTime LastUpdateDate { get; set; }
+		public object LastExternalOpeningDate { get; set; }
+		public bool Editable { get; set; }
+	}
+
 	internal class State
 	{
 		public int Id { get; set; }
