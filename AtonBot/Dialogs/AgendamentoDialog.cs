@@ -29,9 +29,10 @@ namespace MrBot.Dialogs
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private Customer _customer;
+		private readonly Customer _customer;
+		private readonly Deal _deal;
 
-		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer)
+		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal)
 			: base(nameof(AgendamentoDialog))
 		{
 
@@ -41,6 +42,7 @@ namespace MrBot.Dialogs
 			_conversationState = conversationState;
 			_ploomesclient = ploomesClient;
 			_customer = customer;
+			_deal = deal;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -132,11 +134,10 @@ namespace MrBot.Dialogs
 				if (!string.IsNullOrEmpty(_customer.Tag1) && int.TryParse(_customer.Tag1, out int ploomesClientId) )
 				{
 					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
-					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
-					if ( deal != null && deal.Id > 0)
+					if ( _deal != null && _deal.Id > 0 && _deal.OtherProperties != null)
 					{
 						// Busca a data
-						DateTime dataAgendamento = (DateTime)deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
+						DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
 						// Se achou a data de agendamento
 						if ( dataAgendamento != null)
 							// Muda a frase de inicio do diálogo, adequando ao reagendamento

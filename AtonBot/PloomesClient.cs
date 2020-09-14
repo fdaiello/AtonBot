@@ -10,6 +10,8 @@ using AdaptiveExpressions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using RestSharp;
+using System.Reflection;
+using System.Linq;
 
 namespace PloomesApi
 {
@@ -576,16 +578,23 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
+		public void CopyFrom(Contact contact)
+		{
+			foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
+			{
+				property.SetValue(this, property.GetValue(contact, null), null);
+			}
+		}
+
 
 	}
 
-#pragma warning disable CA1812
-	internal class ApiContactResponse
+	public class ApiContactResponse
 	{
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
 		[JsonProperty("value")]
-		public List<Contact> Contacts { get; set; }
+		public List<Contact> Contacts { get; } = new List<Contact>();
 
 	}
 	public class OtherProperty
@@ -669,6 +678,30 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
+        internal void AddOtherProperty(string fieldkey, string stringvalue, int integervalue, object datetimevalue, bool boolvalue)
+        {
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue }); 
+        }
+		internal void AddQuote( Quote quote)
+        {
+			this.Quotes.Add (quote.ShallowCopy());
+        }
+		public void CopyFrom(Deal deal)
+		{
+			foreach (PropertyInfo property in typeof(Deal).GetProperties().Where(p => p.CanWrite))
+			{
+				property.SetValue(this, property.GetValue(deal, null), null);
+			}
+			foreach ( OtherProperty otherProperty in deal.OtherProperties)
+            {
+				this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+            }
+			foreach ( Quote quote in deal.Quotes)
+            {
+				this.AddQuote(quote);
+            }
+		}
+
 	}
 	public class Quote
 	{
@@ -729,8 +762,13 @@ namespace PloomesApi
 		public DateTime LastUpdateDate { get; set; }
 		public object LastExternalOpeningDate { get; set; }
 		public bool Editable { get; set; }
+		public Quote ShallowCopy()
+		{
+			return (Quote)this.MemberwiseClone();
+		}
 	}
 
+#pragma warning disable CA1812
 	internal class State
 	{
 		public int Id { get; set; }
@@ -750,6 +788,6 @@ namespace PloomesApi
 		public bool Editable { get; set; }
 
 	}
-
 #pragma warning restore CA1812
+
 }

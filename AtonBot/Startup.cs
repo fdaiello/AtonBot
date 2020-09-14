@@ -174,6 +174,10 @@ namespace MrBot
 
 			// Cria um Customer pra compartilhar entre os diálogos
 			services.AddScoped<Customer>();
+
+			// Cria um Ploomes Deal para compartilhar entre os diálogos
+			services.AddScoped<Deal>();
+
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PloomesApi;
 
 namespace MrBot.Bots
 {
@@ -50,8 +51,14 @@ namespace MrBot.Bots
 		// Dados do cliente
 		private readonly Customer _customer;
 
+		// Cliente para acessar a api do Ploomes
+		private readonly PloomesClient _ploomesclient;
+
+		// Dados do Ploomes Deal
+		private readonly Deal _deal;
+
 		// Mr Bot Class Constructor
-		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer)
+		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal)
 		{
 			// Injected objects
 			_conversationState = conversationState;
@@ -63,6 +70,8 @@ namespace MrBot.Bots
 			_configuration = configuration;
 			_blobContainerClient = blobContainerClient;
 			_customer = customer;
+			_ploomesclient = ploomesClient;
+			_deal = deal;
 		}
 
 		// Metodo executado a cada mensagem recebida
@@ -86,9 +95,22 @@ namespace MrBot.Bots
 						.Where(s => s.Id == Id)
 						.FirstOrDefault();
 
-			// Se achou, copia os dados para o _customer que será compartilhado com as outras classes
+			// Se ja tem registro na base
 			if (customer != null)
+			{
+				// Copia os dados para o _customer que será compartilhado com as outras classes
 				_customer.CopyFrom(customer);
+
+				// Verifica se tem salvo na base local o ID do cliente salvo no Ploomes
+				if (!string.IsNullOrEmpty(_customer.Tag1) && int.TryParse(_customer.Tag1, out int ploomesClientId))
+				{
+					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
+					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
+
+					// Copia os dados do Deal para a variável injetada, compartilhada entre as classes
+					_deal.CopyFrom(deal);
+				}
+			}
 
 			// Se já está na base, e está falando com um agente
 			if (customer != null && customer.Status == CustomerStatus.TalkingToAgent)

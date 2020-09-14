@@ -59,10 +59,6 @@ namespace MrBot.Models
 		public string Tag2 { get; set; }
 		public string Tag3 { get; set; }
 
-		public Customer ShallowCopy()
-		{
-			return (Customer)this.MemberwiseClone();
-		}
 		public void CopyFrom(Customer customer)
         {
 			foreach (PropertyInfo property in typeof(Customer).GetProperties().Where(p => p.CanWrite))

@@ -20,8 +20,9 @@ namespace MrBot.Dialogs
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly MisterBotRecognizer _recognizer;
+		private readonly Customer _customer;
 
-		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient)
+		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Customer customer)
 			: base(nameof(ProfileDialog))
 		{
 			// Injected Objects
@@ -29,6 +30,7 @@ namespace MrBot.Dialogs
 			_dialogDictionary = dialogDictionary;
 			_conversationState = conversationState;
 			_recognizer = recognizer;
+			_customer = customer;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -177,7 +179,8 @@ namespace MrBot.Dialogs
 				_botDbContext.Customers.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
-
+				// Copia pra variavel injetada compartilhada entre as classes
+				_customer.CopyFrom(customer);
 			}
 		}
 

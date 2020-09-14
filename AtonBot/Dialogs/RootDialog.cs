@@ -182,6 +182,9 @@ namespace MrBot.Dialogs
 				_botDbContext.Customers.Add(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
+				// Copia pra variavel injetada compartilhada entre as classes
+				_customer.CopyFrom(customer);
+
 			}
 			catch ( Exception ex)
 			{
