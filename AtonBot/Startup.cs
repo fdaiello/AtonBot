@@ -31,6 +31,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using Azure.Storage.Blobs;
 using PloomesApi;
+using MrBot.Models;
 
 namespace MrBot
 {
@@ -171,6 +172,8 @@ namespace MrBot
 			// Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
 			services.AddTransient<IBot, MisterBot>();
 
+			// Cria um Customer pra compartilhar entre os diálogos
+			services.AddScoped<Customer>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -29,8 +29,9 @@ namespace MrBot.Dialogs
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
+		private Customer _customer;
 
-		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog)
+		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer)
 			: base(nameof(AgendamentoDialog))
 		{
 
@@ -39,6 +40,7 @@ namespace MrBot.Dialogs
 			_botDbContext = botContext;
 			_conversationState = conversationState;
 			_ploomesclient = ploomesClient;
+			_customer = customer;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -117,22 +119,17 @@ namespace MrBot.Dialogs
 			stepContext.Values["numero"] = string.Empty;
 			stepContext.Values["complemento"] = string.Empty;
 
-			// Procura pelo registro do usuario
-			Customer customer = _botDbContext.Customers
-								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
-								.FirstOrDefault();
-
 			// Valida que achou o registro
-			if (customer != null)
+			if (_customer != null)
             {
-				stepContext.Values["nomecompleto"] = customer.FullName != null ? customer.FullName : string.Empty;
-				stepContext.Values["phone"] = customer.MobilePhone;
-				stepContext.Values["ploomesId"] = customer.Tag1 != null ? customer.Tag1.ToString() : string.Empty;
-				stepContext.Values["ploomesDealId"] = customer.Tag2 != null ? customer.Tag2.ToString() : string.Empty;
-				stepContext.Values["email"] = customer.Email;
+				stepContext.Values["nomecompleto"] = _customer.FullName ?? string.Empty;
+				stepContext.Values["phone"] = _customer.MobilePhone;
+				stepContext.Values["ploomesId"] = _customer.Tag1 ?? string.Empty;
+				stepContext.Values["ploomesDealId"] = _customer.Tag2 ?? string.Empty;
+				stepContext.Values["email"] = _customer.Email;
 
 				// Verifica se tem salvo na base local o ID do cliente salvo no Ploomes
-				if (!string.IsNullOrEmpty(customer.Tag1) && int.TryParse(customer.Tag1, out int ploomesClientId) )
+				if (!string.IsNullOrEmpty(_customer.Tag1) && int.TryParse(_customer.Tag1, out int ploomesClientId) )
 				{
 					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
 					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
@@ -476,7 +473,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["numero"] = numero;
 
 			// Pergunta o complemento
-			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Possui algum complemento? Caso não tenha digite “não”. 📩") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Digite o complemento. Caso não tenha digite “não”. 📩") }, cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -913,12 +910,6 @@ namespace MrBot.Dialogs
 				_botDbContext.Customers.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
-				// Ponteiro para os dados persistentes da conversa
-				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-				// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionar não comporta recursão dos filhos
-				conversationData.Customer = customer.ShallowCopy();
 			}
 		}
 		// Busca detalhes do endereço com base no CEP

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Reflection;
 
 namespace MrBot.Models
 {
@@ -60,6 +62,13 @@ namespace MrBot.Models
 		public Customer ShallowCopy()
 		{
 			return (Customer)this.MemberwiseClone();
+		}
+		public void CopyFrom(Customer customer)
+        {
+			foreach (PropertyInfo property in typeof(Customer).GetProperties().Where(p => p.CanWrite))
+			{
+				property.SetValue(this, property.GetValue(customer, null), null);
+			}
 		}
 
 	}

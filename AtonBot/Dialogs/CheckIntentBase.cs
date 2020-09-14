@@ -15,6 +15,7 @@ using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
 using MrBot.CognitiveModels;
 using Azure.Storage.Blobs;
+using MrBot.Models;
 
 namespace MrBot.Dialogs
 {
@@ -42,7 +43,10 @@ namespace MrBot.Dialogs
 		// Logger
 		private readonly ILogger _logger;
 
-		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog)
+		// Customer
+		private Customer _customer;
+
+		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, Customer customer)
 			: base(childDialogId)
 		{
 			// Cognitive injected objects
@@ -51,6 +55,7 @@ namespace MrBot.Dialogs
 			_lgTemplates = lgTemplates;
 			_blobContainerClient = blobContainerClient;
 			_logger = logger;
+			_customer = customer;
 
 			// QnaMaker service
 			_qnaService = services?.QnAMakerService ?? throw new ArgumentNullException(nameof(services));
@@ -146,7 +151,7 @@ namespace MrBot.Dialogs
 					if (luisResult.TopIntent().score > minScoreLuis)
 					{
 						// Obrigado
-						if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & !Utility.DialogIsRunning(innerDc, nameof(ProfileDialog)))
+						if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & !Utility.DialogIsRunning(innerDc, nameof(ProfileDialog)) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
 						{
 							// Language Generation message: De nada!
 							string lgOutput = _lgTemplates.Evaluate("DeNada", null).ToString();
@@ -163,7 +168,7 @@ namespace MrBot.Dialogs
 						else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
 						{
 							// Language Generation message: Como posso Ajudar?
-							string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = conversationData.Customer != null ? Utility.FirstName(conversationData.Customer.Name) : string.Empty }).ToString();
+							string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = _customer != null ? Utility.FirstName(_customer.Name) : string.Empty }).ToString();
 							await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
 
 							// Limpa a primeira frase digitada no dialogo

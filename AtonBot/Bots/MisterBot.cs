@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿
+
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 //
 
@@ -13,7 +15,6 @@ using MrBot.Dialogs;
 using MrBot.Models;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,8 +47,11 @@ namespace MrBot.Bots
 		// Cliente para salvar arquivos na nuvem
 		private readonly BlobContainerClient _blobContainerClient;
 
+		// Dados do cliente
+		private readonly Customer _customer;
+
 		// Mr Bot Class Constructor
-		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient)
+		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer)
 		{
 			// Injected objects
 			_conversationState = conversationState;
@@ -58,6 +62,7 @@ namespace MrBot.Bots
 			_wpushApi = wpushApi;
 			_configuration = configuration;
 			_blobContainerClient = blobContainerClient;
+			_customer = customer;
 		}
 
 		// Metodo executado a cada mensagem recebida
@@ -80,6 +85,10 @@ namespace MrBot.Bots
 			Customer customer = _botDbContext.Customers
 						.Where(s => s.Id == Id)
 						.FirstOrDefault();
+
+			// Se achou, copia os dados para o _customer que será compartilhado com as outras classes
+			if (customer != null)
+				_customer.CopyFrom(customer);
 
 			// Se já está na base, e está falando com um agente
 			if (customer != null && customer.Status == CustomerStatus.TalkingToAgent)

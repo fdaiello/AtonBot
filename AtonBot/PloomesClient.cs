@@ -601,9 +601,7 @@ namespace PloomesApi
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
 		[JsonProperty("value")]
-#pragma warning disable CA2227 // Collection properties should be read only - but we need to keep setter property, otherwise Jason.Desserialize won't work.
-        public List<Deal> Deals { get; set; }
-#pragma warning restore CA2227 // Collection properties should be read only
+		public List<Deal> Deals { get; } = new List<Deal>();
     }
 
 	public class Deal

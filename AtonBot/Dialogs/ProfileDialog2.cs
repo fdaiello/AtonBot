@@ -181,13 +181,6 @@ namespace MrBot.Dialogs
 			_botDbContext.Customers.Update(customer);
 			await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
-			// Ponteiro para os dados persistentes da conversa
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-			// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionar não comporta recursão dos filhos
-			conversationData.Customer = customer.ShallowCopy();
-
 			return;
 		}
 

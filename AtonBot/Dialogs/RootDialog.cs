@@ -26,10 +26,11 @@ namespace MrBot.Dialogs
 		private readonly ConversationState _conversationState;
 		private readonly ILogger _logger;
 		private readonly QnAMaker _qnaService;
-		private readonly double minScoreQna = 0.5;                                  // Score minimo pra aceitar QnA
+		private readonly double minScoreQna = 0.5;
+		private readonly Customer _customer;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog)
-			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog, Customer customer)
+			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
 			_botDbContext = botContext;
@@ -37,6 +38,7 @@ namespace MrBot.Dialogs
 			_conversationState = conversationState;
 			_logger = logger;
 			_qnaService = services?.QnAMakerService ?? throw new ArgumentNullException(nameof(services));
+			_customer = customer;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -70,13 +72,8 @@ namespace MrBot.Dialogs
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
 
-			// Consulta se o usuário já está cadastrado na base do Bot
-			Customer customer = _botDbContext.Customers
-						.Where(s => s.Id == stepContext.Context.Activity.From.Id)
-						.FirstOrDefault();
-
 			// Se o usuario ainda não esta na base do Bot ( ou se está mas deu algum problema, e não completou Profile Dialog, e nao tem nome )
-			if (customer == null)
+			if (_customer == null)
 			{
 
 				// Cria um registro para este novo usuario
@@ -89,8 +86,6 @@ namespace MrBot.Dialogs
 			// Se o usuario já esta no banco do Bot
 			else
 			{
-				// Salva os dados do usuário no objeto persistente da conversa - sem os External Accounts - Dicionario não comporta recursão dos filhos
-				conversationData.Customer = customer.ShallowCopy();
 
 				// Confere se tem inteção digitada - e processa
 				var result = await base.CheckIntentAsync(stepContext, cancellationToken).ConfigureAwait(false);
@@ -105,7 +100,7 @@ namespace MrBot.Dialogs
 				else
 				{
 					// Language Generation message: Como posso Ajudar?
-					string text = conversationData.Customer != null ? "Oi " + Utility.FirstName(conversationData.Customer.Name) : "Oi.";
+					string text = _customer != null ? "Oi " + Utility.FirstName(_customer.Name) : "Oi.";
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text(text), cancellationToken).ConfigureAwait(false);
 
 					// Vai para o proximo passo, que chama o menu Principal - passa como null a resposta deste passo
@@ -143,7 +138,7 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> CallAgendamentoDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 
-			// Call MainMenuDialog
+			// Chama o diálogo do primeiro agendamento
 			return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 		}
 
