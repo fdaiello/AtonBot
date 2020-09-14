@@ -670,7 +670,7 @@ namespace MrBot.Dialogs
 
 				else
 				{
-					// Convere se o Id salvo localmente, existe no Ploomes
+					// Confere se o Id salvo localmente, existe no Ploomes
 					Contact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
 					// Se achou
 					if ( contact.Id > 0 )
