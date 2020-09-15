@@ -193,23 +193,8 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PostDeal(int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio)
+		public async Task<int> PostDeal(Deal deal)
 		{
-
-			Deal deal = new Deal { Title = title, ContactId = contactid };
-			deal.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica,data);								// Data: DateTimeValue, format yyyy-MM-dd
-			if ( periodo == "tarde")
-				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Tarde);				// Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
-			else
-				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Manha);
-			deal.AddOtherDateTimeProperty(DealPropertyId.Horario, horario);	                                    // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
-
-			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
-			if (opcaodeinstalacaoCode > 0)
-				deal.AddOtherIntegerProperty(DealPropertyId.OpcaoDeInstalacao, opcaodeinstalacaoCode);
-
-			deal.AddOtherBoolProperty(DealPropertyId.EhCondominio, ehcondominio);
-
 			HttpClient httpClient = new HttpClient();
 			HttpContent httpContent;
 			ApiContactResponse apiResponse;
@@ -246,7 +231,7 @@ namespace PloomesApi
 					return apiResponse.Contacts[0].Id;
 				else
 				{
-					_logger.LogError("Post Contact: Error");
+					_logger.LogError("Post Deal: Error");
 					_logger.LogError(resp);
 					return 0;
 				}
@@ -266,22 +251,8 @@ namespace PloomesApi
 				httpClient.Dispose();
 			}
 		}
-		public async Task<int> PatchDeal(int DealId, int contactid, string title, DateTime data, string periodo, DateTime horario, string opcaodeinstalacao, bool ehcondominio)
+		public async Task<int> PatchDeal(Deal deal)
 		{
-
-			Deal deal = new Deal { Id = DealId, Title = title, ContactId = contactid };
-			deal.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica, data);                              // Data: DateTimeValue, format yyyy-MM-dd
-			if (periodo == "tarde")
-				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Tarde);               // Turno: "TableId": 18233 -> 7710080=tarde, 7710081=manha
-			else
-				deal.AddOtherIntegerProperty(DealPropertyId.Periodo, PeriodoAgendamentoId.Manha);
-			deal.AddOtherDateTimeProperty(DealPropertyId.Horario, horario);                                     // Horario: DateTimeValue, format yyyy-MM-ddTHH:mm
-
-			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
-			if (opcaodeinstalacaoCode > 0)
-				deal.AddOtherIntegerProperty(DealPropertyId.OpcaoDeInstalacao, opcaodeinstalacaoCode);
-
-			deal.AddOtherBoolProperty(DealPropertyId.EhCondominio, ehcondominio);
 			ApiContactResponse apiResponse;
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -295,7 +266,7 @@ namespace PloomesApi
 				content = content.Replace("-03:00\"", "\"");
 
 				// Chama a API para dar Patch no Deal
-				var client = new RestClient(serverUri.ToString() + $"/Deals({DealId})")
+				var client = new RestClient(serverUri.ToString() + $"/Deals({deal.Id})")
 				{
 					Timeout = -1
 				};
@@ -328,6 +299,7 @@ namespace PloomesApi
 				return 0;
 			}
 		}
+
 		public async Task<int> GetStateId(string uf)
 		{
 			HttpClient httpClient = new HttpClient();
@@ -514,7 +486,7 @@ namespace PloomesApi
 			}
 
 		}
-		static int GetOpcaodeInstalacaoCode( string opcaodeinstalacao)
+		static int GetOpcaodeInstalacaoCode(string opcaodeinstalacao)
 		{
 			// Part 1: create a List of KeyValuePairs.
 			var list = new List<KeyValuePair<string, int>>();
@@ -755,12 +727,79 @@ namespace PloomesApi
 		}
 		public void MarcaPropostaAceita(bool aceita)
         {
-			foreach (OtherProperty otherProperty in this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PropostaAceita))
-			{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PropostaAceita).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherBoolProperty(DealPropertyId.PropostaAceita, aceita);
+			else
 				otherProperty.BoolValue = aceita;
-			}
 		}
+		public void MarcaDataVisitaTecnica ( DateTime dataVisita)
+        {
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica, dataVisita);
+			else
+				otherProperty.DateTimeValue = dataVisita;
+		}
+		public void MarcaPeriodoVisitaTecnica(string periodo)
+		{
+			int periodoId;
+			if (periodo == "tarde")
+				periodoId = PeriodoAgendamentoId.Tarde;
+			else
+				periodoId = PeriodoAgendamentoId.Manha;
 
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Periodo).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherIntegerProperty(DealPropertyId.Periodo, periodoId);
+			else
+				otherProperty.IntegerValue = periodoId;
+		}
+		public void MarcaHorarioVisitaTecnica(DateTime horarioVisita)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Horario).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica, horarioVisita);
+			else
+				otherProperty.DateTimeValue = horarioVisita;
+		}
+		public void MarcaOpcaoInstalacao(string opcaodeinstalacao)
+		{
+			int opcaodeinstalacaoCode = GetOpcaodeInstalacaoCode(opcaodeinstalacao);
+
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OpcaoDeInstalacao).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherIntegerProperty(DealPropertyId.OpcaoDeInstalacao, opcaodeinstalacaoCode);
+			else
+				otherProperty.IntegerValue = opcaodeinstalacaoCode;
+		}
+		public void MarcaEhCondominio(bool ehCondominio)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.EhCondominio).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherBoolProperty(DealPropertyId.PropostaAceita, ehCondominio);
+			else
+				otherProperty.BoolValue = ehCondominio;
+		}
+		static int GetOpcaodeInstalacaoCode(string opcaodeinstalacao)
+		{
+			// Part 1: create a List of KeyValuePairs.
+			var list = new List<KeyValuePair<string, int>>();
+			list.Add(new KeyValuePair<string, int>("Instalação de tomada", 8257200));
+			list.Add(new KeyValuePair<string, int>("Pretendo adquirir", 8257201));
+			list.Add(new KeyValuePair<string, int>("Não sei informar", 8257202));
+			list.Add(new KeyValuePair<string, int>("Outros", 8257203));
+			list.Add(new KeyValuePair<string, int>("Schneider", 8257204));
+			list.Add(new KeyValuePair<string, int>("Efacec", 8257205));
+			list.Add(new KeyValuePair<string, int>("Enel X", 8257206));
+
+			// Part 2: loop over list and print pairs.
+			foreach (var element in list)
+				if (opcaodeinstalacao.ToUpperInvariant() == element.Key.ToUpperInvariant())
+					return element.Value;
+
+			return 0;
+		}
 	}
 	public class Quote
 	{

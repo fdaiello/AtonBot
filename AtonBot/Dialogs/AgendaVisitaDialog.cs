@@ -113,7 +113,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["cep"] = string.Empty;
 			stepContext.Values["data"] = null;
 			stepContext.Values["horario"] = string.Empty;
-			stepContext.Values["turno"] = string.Empty;
+			stepContext.Values["periodo"] = string.Empty;
 			stepContext.Values["cidade"] = string.Empty;
 			stepContext.Values["uf"] = string.Empty;
 			stepContext.Values["bairro"] = string.Empty;
@@ -598,7 +598,7 @@ namespace MrBot.Dialogs
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
 			// Salva o turno em varivel persitente ao diálogo
-			stepContext.Values["turno"] = turno;
+			stepContext.Values["periodo"] = turno;
 
 			// Pergunta o Horário
 			var card = new HeroCard
@@ -659,7 +659,7 @@ namespace MrBot.Dialogs
 			string dateStr = date.ToString("dd/MM");
 			var card = new HeroCard
 			{
-				Text = $"As informações do agendamento são essas: 📝\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]}\nData: {dateStr} às {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
+				Text = $"As informações do agendamento são essas: 📝\n\nNome: {(string)stepContext.Values["nomecompleto"]}\nCEP: {(string)stepContext.Values["cep"]}\nEndereço: {(string)stepContext.Values["end"]} {(string)stepContext.Values["numero"]} {(string)stepContext.Values["complemento"]}\nData: {dateStr} às {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nTodas as informações estão corretas?",
 				Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -711,23 +711,32 @@ namespace MrBot.Dialogs
 
 					// Obtem data, e data com horario de instalacao
 					DateTime date = (DateTime)stepContext.Values["data"];
-					string horario = (string)stepContext.Values["horario"];
-					DateTime dateTime = date.AddHours(Int16.Parse(horario.Replace(":00", ""), CultureInfo.InvariantCulture));
+					string strHorario = (string)stepContext.Values["horario"];
+					DateTime horario = date.AddHours(Int16.Parse(strHorario.Replace(":00", ""), CultureInfo.InvariantCulture));
 
 					// Obtem a string que diz qual é a opção de instalação
 					string opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
 
-					// Confere se o Negócio já está salvo no Ploomes
-					Deal deal = await _ploomesclient.GetDeal(ploomesContactId).ConfigureAwait(false);
-					int ploomesDealId=0;
-					if ( deal == null || deal.Id == 0 )
-						// Insere o Negocio no Ploomes
-						ploomesDealId = await _ploomesclient.PostDeal(ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
-					else
-						// Patch Deal
-						ploomesDealId = await _ploomesclient.PatchDeal(deal.Id, ploomesContactId, (string)stepContext.Values["nomecompleto"], date, (string)stepContext.Values["turno"], dateTime, opcaodeInstalacao, (string)stepContext.Values["ehcondominio"] == "sim").ConfigureAwait(false);
+					// Salva os dados das variáveis do diálogo no objeto Deal injetado e compartilhado
+					_deal.Title = (string)stepContext.Values["nomecompleto"];
+					_deal.MarcaDataVisitaTecnica((DateTime)stepContext.Values["data"]);
+					_deal.MarcaPeriodoVisitaTecnica((string)stepContext.Values["periodo"]);
+					_deal.MarcaHorarioVisitaTecnica(horario);
+					_deal.MarcaOpcaoInstalacao(opcaodeInstalacao);
+					_deal.MarcaEhCondominio((string)stepContext.Values["ehcondominio"] == "sim");
+					_deal.ContactId = ploomesContactId;
 
-					stepContext.Values["ploomesDealId"] = ploomesDealId.ToString();
+					// Confere se o Negócio já está salvo no Ploomes
+					int ploomesDealId;
+                    if ( _deal == null || _deal.Id == 0)
+						// Insere o Negocio no Ploomes - Post Deal
+						ploomesDealId = await _ploomesclient.PostDeal(_deal).ConfigureAwait(false);
+
+                    else
+						// Altera o Negocio no Ploomoes - Patch Deal
+						ploomesDealId = await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
+
+					stepContext.Values["ploomesDealId"] = ploomesDealId.ToString(CultureInfo.InvariantCulture);
 
 					// Confirma se conseguiu inserir corretamente o Lead
 					if (ploomesDealId != 0)
@@ -1049,7 +1058,7 @@ namespace MrBot.Dialogs
         {
 			if (horario.Contains("8"))
 				horario = "08:00";
-			else if (horario.Contains("09"))
+			else if (horario.Contains("9"))
 				horario = "09:00";
 			else if (horario.Contains("10"))
 				horario = "10:00";
