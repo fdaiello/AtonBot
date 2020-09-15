@@ -138,10 +138,21 @@ namespace MrBot.Dialogs
 					{
 						// Busca a data
 						DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
+						String tecnicoResponsavel;
+						String documentoDoTecnico;
 						// Se achou a data de agendamento
-						if ( dataAgendamento != null)
-							// Muda a frase de inicio do diálogo, adequando ao reagendamento
-							initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento.ToString("dd/MM")} 📝. Você quer reagendar?";
+						if (dataAgendamento != null)
+							// Se a Visita já esta agendada
+							if (_deal.StageId == AtonStageId.VisitaAgendada)
+                            {
+								tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).FirstOrDefault().StringValue;
+								documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocumentoDoTecnico).FirstOrDefault().StringValue;
+								// Muda a frase de inicio do diálogo, adequando ao reagendamento
+								initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM}\nO técnico resonsável é {tecnicoResponsavel}, documento {documentoDoTecnico}.\n 📝. Você quer reagendar?";
+							}
+							else
+								// Muda a frase de inicio do diálogo, adequando ao reagendamento
+								initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM} 📝. Você quer reagendar?";
 					}
 				}
 			}
@@ -608,7 +619,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			if (turno == "manhã")
+			if (turno == "manhã" || turno == "manha" )
 				return await stepContext.PromptAsync("HorarioManhaPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 8, 9, 10 ou 11 horas.") }, cancellationToken).ConfigureAwait(false);
 			else
 				return await stepContext.PromptAsync("HorarioTardePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 14, 15, 16 ou 17 horas.") }, cancellationToken).ConfigureAwait(false);

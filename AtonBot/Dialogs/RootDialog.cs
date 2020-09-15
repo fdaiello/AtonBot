@@ -16,6 +16,7 @@ using Azure.Storage.Blobs;
 using MrBot.Data;
 using MrBot.Models;
 using MrBot.CognitiveModels;
+using PloomesApi;
 
 namespace MrBot.Dialogs
 {
@@ -28,8 +29,9 @@ namespace MrBot.Dialogs
 		private readonly QnAMaker _qnaService;
 		private readonly double minScoreQna = 0.5;
 		private readonly Customer _customer;
+		private readonly Deal _deal;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog, Customer customer)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog, Customer customer, Deal deal)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -39,6 +41,7 @@ namespace MrBot.Dialogs
 			_logger = logger;
 			_qnaService = services?.QnAMakerService ?? throw new ArgumentNullException(nameof(services));
 			_customer = customer;
+			_deal = deal;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -50,9 +53,9 @@ namespace MrBot.Dialogs
 			// Array com a lista de métodos que este WaterFall Dialog vai executar.
 			var waterfallSteps = new WaterfallStep[]
 			{
-				CheckAndCallProfileDialogStepAsync,
+				CheckCustomerAndCallProfileDialogStepAsync,
 				//CheckNCallQnAStepAsync,
-				CallAgendamentoDialogStepAsync
+				CheckStageAndCallNextDialogStepAsync
 			};
 
 			// Adiciona um diálogo do tipo WaterFall a este conjunto de diálogos, com os passos listados acima
@@ -65,7 +68,7 @@ namespace MrBot.Dialogs
 		// Verifica se este cliente já esta cadastrado na nossa base
 		// Se ainda não tem cadastro, chama o ProfileDialog
 		// Se já tem cadastro, pula para o proximo passo, que chama o Menu Principal
-		private async Task<DialogTurnResult> CheckAndCallProfileDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		private async Task<DialogTurnResult> CheckCustomerAndCallProfileDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 
 			// Ponteiro para os dados persistentes da conversa
@@ -73,7 +76,7 @@ namespace MrBot.Dialogs
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
 
 			// Se o usuario ainda não esta na base do Bot ( ou se está mas deu algum problema, e não completou Profile Dialog, e nao tem nome )
-			if (_customer == null)
+			if (_customer == null || _customer.Id == null)
 			{
 
 				// Cria um registro para este novo usuario
@@ -134,12 +137,37 @@ namespace MrBot.Dialogs
 				return await stepContext.NextAsync(null, cancellationToken).ConfigureAwait(false);
 
 		}
-		// Chama o Diálogo do Agendamento
-		private async Task<DialogTurnResult> CallAgendamentoDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		// Confere o estágio do Deal no Ploomes, e chama o proximo diálogo conforme o estágio;
+		// Se o Deal ainda é nulo, ou se o estágio for Lead ou VisitaAgendada
+		//    -> Chama o Diálogo do Agendamento
+		// Se o estágio for Visita realizada
+		//    -> Mensagem para Aguardar a Proposta
+		// Se o estágio for Proposta Realizada
+		//    -> Envia a Proposta, Pede aprovação, Pede Comprovante do primeiro pagamento, Agenda a Instalação
+		
+		private async Task<DialogTurnResult> CheckStageAndCallNextDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+			// Confere o estágio do Lead no Ploomes
+			if (_deal == null || _deal.StageId == AtonStageId.Nulo || _deal.StageId == AtonStageId.Lead || _deal.StageId == AtonStageId.VisitaAgendada)
+				// Chama o diálogo do primeiro agendamento
+				return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
 
-			// Chama o diálogo do primeiro agendamento
-			return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
+			else if ( _deal.StageId == AtonStageId.VisitaRealizada )
+
+            {
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("No meu sistema consta que sua visita técnica já foi realizada, mas ainda não tenho sua proposta. Por favor, aguarde."), cancellationToken).ConfigureAwait(false);
+				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			}
+			else if ( _deal.StageId == AtonStageId.PropostaRealizada)
+            {
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Sua proposta já foi realizada, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
+				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			}
+			else
+            {
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Aguarde orientações para agendarmos sua instalação."), cancellationToken).ConfigureAwait(false);
+				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			}
 		}
 
 		// Insere um novo registro para este usuario

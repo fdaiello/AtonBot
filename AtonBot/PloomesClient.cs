@@ -24,6 +24,8 @@ namespace PloomesApi
 		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
 		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
 		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
+		public const string TecnicoResponsavel = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
+		public const string DocumentoDoTecnico = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
 	}
 	// Ids dos Periodos
 	public static class PeriodoAgendamentoId
@@ -34,6 +36,7 @@ namespace PloomesApi
 	// Ids dos estágios da PipeLine
 	public static class AtonStageId
 	{
+		public const int Nulo = 0;
 		public const int Lead = 151438;
 		public const int VisitaAgendada = 151439;
 		public const int VisitaRealizada = 151440;
@@ -578,15 +581,24 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
+		internal void AddOtherProperty(string fieldkey, string stringvalue, object  integervalue, object datetimevalue, object boolvalue)
+		{
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue });
+		}
 		public void CopyFrom(Contact contact)
 		{
-			foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
-			{
-				property.SetValue(this, property.GetValue(contact, null), null);
+			if ( contact != null)
+            {
+				foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
+				{
+					property.SetValue(this, property.GetValue(contact, null), null);
+				}
+				foreach (OtherProperty otherProperty in contact.OtherProperties)
+				{
+					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+				}
 			}
 		}
-
-
 	}
 
 	public class ApiContactResponse
@@ -602,8 +614,8 @@ namespace PloomesApi
 		public string FieldKey { get; set; }
 		public string StringValue { get; set; }
 		public object DateTimeValue { get; set; }
-		public int IntegerValue { get; set; }
-		public bool BoolValue { get; set; }
+		public object IntegerValue { get; set; }
+		public object BoolValue { get; set; }
 	}
 	public class ApiDealsResponse
 	{
@@ -678,7 +690,7 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
-        internal void AddOtherProperty(string fieldkey, string stringvalue, int integervalue, object datetimevalue, bool boolvalue)
+        internal void AddOtherProperty(string fieldkey, string stringvalue, object integervalue, object datetimevalue, object boolvalue)
         {
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue }); 
         }
@@ -688,18 +700,21 @@ namespace PloomesApi
         }
 		public void CopyFrom(Deal deal)
 		{
-			foreach (PropertyInfo property in typeof(Deal).GetProperties().Where(p => p.CanWrite))
-			{
-				property.SetValue(this, property.GetValue(deal, null), null);
+			if ( deal != null)
+            {
+				foreach (PropertyInfo property in typeof(Deal).GetProperties().Where(p => p.CanWrite))
+				{
+					property.SetValue(this, property.GetValue(deal, null), null);
+				}
+				foreach (OtherProperty otherProperty in deal.OtherProperties)
+				{
+					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+				}
+				foreach (Quote quote in deal.Quotes)
+				{
+					this.AddQuote(quote);
+				}
 			}
-			foreach ( OtherProperty otherProperty in deal.OtherProperties)
-            {
-				this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
-            }
-			foreach ( Quote quote in deal.Quotes)
-            {
-				this.AddQuote(quote);
-            }
 		}
 
 	}

@@ -52,7 +52,7 @@ namespace MrBot.Bots
 		// Cliente para acessar a api do Ploomes
 		private readonly PloomesClient _ploomesclient;
 
-		// Dados do Ploomes Deal
+		// Ploomes Deal
 		private readonly Deal _deal;
 
 		// Mr Bot Class Constructor
@@ -105,7 +105,7 @@ namespace MrBot.Bots
 					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
 					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
 
-					// Copia os dados do Deal para a variável injetada, compartilhada entre as classes
+					// Copia os dados do Deal para o Deal injetada, compartilhada entre as classes
 					_deal.CopyFrom(deal);
 				}
 			}
