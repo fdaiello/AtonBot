@@ -26,6 +26,8 @@ namespace PloomesApi
 		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
 		public const string TecnicoResponsavel = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
 		public const string DocumentoDoTecnico = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
+		public const string PropostaRevisada = "deal_A7409213-F8DE-43B6-9A6E-A5B9606C045C";
+		public const string PropostaAceita = "deal_D0F8DBEA-C425-4B66-BC51-9429A601DC1E";
 	}
 	// Ids dos Periodos
 	public static class PeriodoAgendamentoId
@@ -40,7 +42,10 @@ namespace PloomesApi
 		public const int Lead = 151438;
 		public const int VisitaAgendada = 151439;
 		public const int VisitaRealizada = 151440;
-		public const int PropostaRealizada = 1514441;
+		public const int PropostaRealizada = 151441;
+		public const int ValidacaoDaVisitaeProposta = 154439;
+		public const int PropostaApresentada = 151442;
+		public const int PropostaAceita = 152889;
 	}
 	public static class AtonResultadoValicacao
 	{
@@ -110,7 +115,7 @@ namespace PloomesApi
 				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id da mensagem
-				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Count>0 && apiContactResponse.Contacts[0].Id.IsNumber())
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Any() && apiContactResponse.Contacts[0].Id.IsNumber())
 					return apiContactResponse.Contacts[0].Id;
 				else
                 {
@@ -169,7 +174,7 @@ namespace PloomesApi
 				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(response.Content);
 
 				// Devolve o Id da mensagem
-				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Count > 0 && apiContactResponse.Contacts[0].Id.IsNumber())
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Any() && apiContactResponse.Contacts[0].Id.IsNumber())
 					return apiContactResponse.Contacts[0].Id;
 				else
 				{
@@ -237,7 +242,7 @@ namespace PloomesApi
 				httpContent.Dispose();
 
 				// Devolve o Id gerado
-				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Any() && apiResponse.Contacts[0].Id.IsNumber())
 					return apiResponse.Contacts[0].Id;
 				else
 				{
@@ -304,7 +309,7 @@ namespace PloomesApi
 				apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(response.Content);
 
 				// Devolve o Id gerado
-				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Any() && apiResponse.Contacts[0].Id.IsNumber())
 					return apiResponse.Contacts[0].Id;
 				else
 				{
@@ -343,7 +348,7 @@ namespace PloomesApi
 				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id gerado
-				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Any() && apiResponse.Contacts[0].Id.IsNumber())
 					return apiResponse.Contacts[0].Id;
 				else
 					return 0;
@@ -376,7 +381,7 @@ namespace PloomesApi
 				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Devolve o Id gerado
-				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0 && apiResponse.Contacts[0].Id.IsNumber())
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Any() && apiResponse.Contacts[0].Id.IsNumber())
 					return apiResponse.Contacts[0].Id;
 				else
 					return 0;
@@ -410,7 +415,7 @@ namespace PloomesApi
 				ApiContactResponse apiResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
 
 				// Confere se voltou conteudo
-				if (apiResponse.Contacts != null && apiResponse.Contacts.Count > 0)
+				if (apiResponse.Contacts != null && apiResponse.Contacts.Any())
 					contact = apiResponse.Contacts[0];
 
 			}
@@ -448,7 +453,7 @@ namespace PloomesApi
 				ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp);
 
 				// Confere se voltou conteudo
-				if (apiDealsResponse.Deals != null && apiDealsResponse.Deals.Count > 0)
+				if (apiDealsResponse.Deals != null && apiDealsResponse.Deals.Any())
 					return apiDealsResponse.Deals[0];
 
 				else
@@ -468,7 +473,47 @@ namespace PloomesApi
 			}
 
 		}
+		public async Task<Quote> GetQuote(int DealId)
+		{
+			HttpClient httpClient = new HttpClient();
+			string resp = string.Empty;
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Quotes?$filter=DealId+eq+{DealId}");
+				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiQuoteResponse apiQuoteResponse = JsonConvert.DeserializeObject<ApiQuoteResponse>(resp);
+
+				// Confere se voltou conteudo
+				if (apiQuoteResponse.Quotes != null && apiQuoteResponse.Quotes.Any())
+					return apiQuoteResponse.Quotes[^1];
+
+				else
+					return null;
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Get Quote: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(resp);
+				return null;
+			}
+			finally
+			{
+				httpClient.Dispose();
+			}
+
+		}
 		static int GetOpcaodeInstalacaoCode( string opcaodeinstalacao)
 		{
 			// Part 1: create a List of KeyValuePairs.
@@ -694,10 +739,6 @@ namespace PloomesApi
         {
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue }); 
         }
-		internal void AddQuote( Quote quote)
-        {
-			this.Quotes.Add (quote.ShallowCopy());
-        }
 		public void CopyFrom(Deal deal)
 		{
 			if ( deal != null)
@@ -710,10 +751,13 @@ namespace PloomesApi
 				{
 					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
 				}
-				foreach (Quote quote in deal.Quotes)
-				{
-					this.AddQuote(quote);
-				}
+			}
+		}
+		public void MarcaPropostaAceita(bool aceita)
+        {
+			foreach (OtherProperty otherProperty in this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PropostaAceita))
+			{
+				otherProperty.BoolValue = aceita;
 			}
 		}
 
@@ -777,12 +821,14 @@ namespace PloomesApi
 		public DateTime LastUpdateDate { get; set; }
 		public object LastExternalOpeningDate { get; set; }
 		public bool Editable { get; set; }
-		public Quote ShallowCopy()
-		{
-			return (Quote)this.MemberwiseClone();
-		}
 	}
-
+	public class ApiQuoteResponse
+	{
+		[JsonProperty("@odata.context")]
+		public string Odata { get; set; }
+		[JsonProperty("value")]
+		public List<Quote> Quotes { get; } = new List<Quote>();
+	}
 #pragma warning disable CA1812
 	internal class State
 	{

@@ -468,6 +468,8 @@ namespace MrBot
 		// Confere se o contexto atual é pai do diálogo indicado
 		public static bool DialogIsRunning(DialogContext innerDc, string subdialogname)
 		{
+			if (innerDc.ActiveDialog == null)
+				return false;
 
 			if (innerDc.ActiveDialog.Id == subdialogname)
 				return true;

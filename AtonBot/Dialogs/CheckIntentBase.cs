@@ -127,8 +127,8 @@ namespace MrBot.Dialogs
 					// Limpa o que foi digitado
 					innerDc.Context.Activity.Text = string.Empty;
 
-					// E volta pro Menu Principal
-					return await innerDc.ReplaceDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
+					// E finaliza o turno
+					return new DialogTurnResult(DialogTurnStatus.Complete);
 				}
 
                 // Call LUIS and gather intent and any potential details
@@ -151,7 +151,7 @@ namespace MrBot.Dialogs
 					if (luisResult.TopIntent().score > minScoreLuis)
 					{
 						// Obrigado
-						if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & !Utility.DialogIsRunning(innerDc, nameof(ProfileDialog)) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
+						if (luisResult.TopIntent().intent == MisterBotLuis.Intent.obrigado & !Utility.DialogIsRunning(innerDc, nameof(ProfileDialog)) & !Utility.DialogIsRunning(innerDc, nameof(AgendaVisitaDialog)))
 						{
 							// Language Generation message: De nada!
 							string lgOutput = _lgTemplates.Evaluate("DeNada", null).ToString();
@@ -160,23 +160,23 @@ namespace MrBot.Dialogs
 							// Limpa a primeira frase digitada no dialogo
 							conversationData.FirstQuestion = string.Empty;
 
-							// E continua o turno
-							return new DialogTurnResult(DialogTurnStatus.Waiting);
+							// E finaliza o turno
+							return new DialogTurnResult(DialogTurnStatus.Complete);
 						}
 
-						// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
-						else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendamentoDialog)))
-						{
-							// Language Generation message: Como posso Ajudar?
-							string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = _customer != null ? Utility.FirstName(_customer.Name) : string.Empty }).ToString();
-							await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
+						//// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
+						//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendaVisitaDialog)))
+						//{
+						//	// Language Generation message: Como posso Ajudar?
+						//	string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = _customer != null ? Utility.FirstName(_customer.Name) : string.Empty }).ToString();
+						//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
 
-							// Limpa a primeira frase digitada no dialogo
-							conversationData.FirstQuestion = string.Empty;
+						//	// Limpa a primeira frase digitada no dialogo
+						//	conversationData.FirstQuestion = string.Empty;
 
-							// E continua o turno
-							return new DialogTurnResult(DialogTurnStatus.Waiting);
-						}
+						//	// E continua o turno
+						//	return new DialogTurnResult(DialogTurnStatus.Waiting);
+						//}
 
 						//// Falar com atendente
 						//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
@@ -242,8 +242,8 @@ namespace MrBot.Dialogs
 						// Limpa a primeira frase digitada no dialogo
 						conversationData.FirstQuestion = string.Empty;
 
-						// E continua o turno
-						return new DialogTurnResult(DialogTurnStatus.Waiting);
+						// E finaliza o turno
+						return new DialogTurnResult(DialogTurnStatus.Complete) ;
 					}
 
 				}
@@ -259,8 +259,8 @@ namespace MrBot.Dialogs
 				// Salva o anexo
 				await Utility.SaveAttachmentAsync(innerDc.Context, _blobContainerClient).ConfigureAwait(false);
 
-				// E continua o turno
-				return new DialogTurnResult(DialogTurnStatus.Waiting);
+				// E finaliza o turno
+				return new DialogTurnResult(DialogTurnStatus.Complete);
 			}
 
 			// Se chegou até aqui, devolve null

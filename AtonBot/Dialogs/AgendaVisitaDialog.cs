@@ -22,7 +22,7 @@ using PloomesApi;
 
 namespace MrBot.Dialogs
 {
-	public class AgendamentoDialog: ComponentDialog
+	public class AgendaVisitaDialog: ComponentDialog
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
@@ -32,8 +32,8 @@ namespace MrBot.Dialogs
 		private readonly Customer _customer;
 		private readonly Deal _deal;
 
-		public AgendamentoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal)
-			: base(nameof(AgendamentoDialog))
+		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal)
+			: base(nameof(AgendaVisitaDialog))
 		{
 
 			// Injected objects
@@ -138,21 +138,31 @@ namespace MrBot.Dialogs
 					{
 						// Busca a data
 						DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
+
+						// Muda a frase de inicio do diálogo, adequando ao reagendamento
+						initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM} 📝.";
+
 						String tecnicoResponsavel;
 						String documentoDoTecnico;
 						// Se achou a data de agendamento
 						if (dataAgendamento != null)
-							// Se a Visita já esta agendada
-							if (_deal.StageId == AtonStageId.VisitaAgendada)
+							// Se tem dados do tecnico
+							if (_deal.StageId == AtonStageId.VisitaAgendada && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).Any())
                             {
+								// Adiciona o nome do tecnico a frase inicial
 								tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).FirstOrDefault().StringValue;
+								if (!string.IsNullOrEmpty(tecnicoResponsavel))
+								initialText += $"\nO técnico resonsável é {tecnicoResponsavel}";
+								// Adiciona o documento do tecnico a frase inicial
 								documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocumentoDoTecnico).FirstOrDefault().StringValue;
-								// Muda a frase de inicio do diálogo, adequando ao reagendamento
-								initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM}\nO técnico resonsável é {tecnicoResponsavel}, documento {documentoDoTecnico}.\n 📝. Você quer reagendar?";
+								if (!string.IsNullOrEmpty(documentoDoTecnico))
+									initialText += $", documento {documentoDoTecnico}.";
+								else
+									initialText += ".";
 							}
-							else
-								// Muda a frase de inicio do diálogo, adequando ao reagendamento
-								initialText = $"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM} 📝. Você quer reagendar?";
+
+						// Finaliza a frase inicial
+						initialText += "\n Você quer reagendar ? ";
 					}
 				}
 			}
@@ -597,7 +607,7 @@ namespace MrBot.Dialogs
 				Text = "Por favor, escolha o horário:",
 			};
 
-			if ( turno == "manhã")
+			if ( turno == "manhã" || turno == "manha")
 				card.Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: $"08:00", value: "08:00"),

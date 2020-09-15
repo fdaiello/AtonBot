@@ -142,7 +142,8 @@ namespace MrBot
 			services.AddTransient<QnAMakerMultiturnDialog>();
 			services.AddTransient<QuerAtendimentoDialog>();
 			services.AddTransient<MainMenuDialog>();
-			services.AddTransient<AgendamentoDialog>();
+			services.AddTransient<AgendaVisitaDialog>();
+			services.AddTransient<EnviaPropostaDialog>();
 
 
 			// Langage Generation

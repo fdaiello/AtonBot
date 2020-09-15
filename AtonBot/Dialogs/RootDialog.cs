@@ -17,6 +17,7 @@ using MrBot.Data;
 using MrBot.Models;
 using MrBot.CognitiveModels;
 using PloomesApi;
+using System.Globalization;
 
 namespace MrBot.Dialogs
 {
@@ -31,7 +32,7 @@ namespace MrBot.Dialogs
 		private readonly Customer _customer;
 		private readonly Deal _deal;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendamentoDialog agendamentoDialog, Customer customer, Deal deal)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendamento1Dialog, EnviaPropostaDialog agendamento2Dialog, Customer customer, Deal deal)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -48,7 +49,8 @@ namespace MrBot.Dialogs
 
 			// Adiciona os subdialogos
 			AddDialog(profileDialog);
-			AddDialog(agendamentoDialog);
+			AddDialog(agendamento1Dialog);
+			AddDialog(agendamento2Dialog);
 
 			// Array com a lista de métodos que este WaterFall Dialog vai executar.
 			var waterfallSteps = new WaterfallStep[]
@@ -98,8 +100,10 @@ namespace MrBot.Dialogs
 
 				// Se fez algo baseado em inteção digitada
 				if (result != null)
+                {
 					// Retorna com o resultado do que foi feito - encerra por aqui
 					return result;
+				}
 				else
 				{
 					// Language Generation message: Como posso Ajudar?
@@ -150,24 +154,32 @@ namespace MrBot.Dialogs
 			// Confere o estágio do Lead no Ploomes
 			if (_deal == null || _deal.StageId == AtonStageId.Nulo || _deal.StageId == AtonStageId.Lead || _deal.StageId == AtonStageId.VisitaAgendada)
 				// Chama o diálogo do primeiro agendamento
-				return await stepContext.BeginDialogAsync(nameof(AgendamentoDialog), null, cancellationToken).ConfigureAwait(false);
+				return await stepContext.BeginDialogAsync(nameof(AgendaVisitaDialog), null, cancellationToken).ConfigureAwait(false);
 
 			else if ( _deal.StageId == AtonStageId.VisitaRealizada )
-
             {
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("No meu sistema consta que sua visita técnica já foi realizada, mas ainda não tenho sua proposta. Por favor, aguarde."), cancellationToken).ConfigureAwait(false);
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
 			}
 			else if ( _deal.StageId == AtonStageId.PropostaRealizada)
             {
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Sua proposta já foi realizada, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estamos trabalhando na sua proposta, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
+			}
+			else if (_deal.StageId == AtonStageId.ValidacaoDaVisitaeProposta || _deal.StageId == AtonStageId.PropostaApresentada)
+			{
+				// Confere se ja tem o resultado da validacão, e se o resultado é Validada
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.ResultadoValidacao).Any() && Int32.TryParse(Convert.ToString(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.ResultadoValidacao).FirstOrDefault().IntegerValue,CultureInfo.InvariantCulture), out int resultadoValicao) && resultadoValicao == AtonResultadoValicacao.Validada)
+					// Chama o diálogo do segundo
+					return await stepContext.BeginDialogAsync(nameof(EnviaPropostaDialog), null, cancellationToken).ConfigureAwait(false);
+				else
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text("Sua proposta está pronta, só falta nossa equipe validar. Por favor, aguarde!"), cancellationToken).ConfigureAwait(false);
 			}
 			else
-            {
+			{
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Aguarde orientações para agendarmos sua instalação."), cancellationToken).ConfigureAwait(false);
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
 			}
+
+			// Se chegou aqui, finaliza o diálogo
+			return await stepContext.EndDialogAsync().ConfigureAwait(false);
 		}
 
 		// Insere um novo registro para este usuario
