@@ -18,15 +18,16 @@ namespace PloomesApi
 	// Ids dos campos extras do Contact
 	public static class ContactPropertyId
     {
-		public const string QuemAcompanha = "contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9";
+		public const string QuemAcompanhaVisita = "contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9";
 		public const string Name = "contact_0DF8BF92-66C8-4B48-9A25-40081337A947";
+		public const string QuemAcompanhaInstalacao = "contact_B5B5C5C5-25D6-494B-854E-E60ABE6AFA74";
 	}
 	// Ids dos campos extras do Deal
 	public static class DealPropertyId
 	{
 		public const string DataVisitaTecnica = "deal_154F5521-3AAE-46B2-9491-0973850E42E4";
-		public const string Periodo = "deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB";
-		public const string Horario = "deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235";
+		public const string PeriodoVisita = "deal_BA7D7C3B-F0E6-481F-9EF5-B3B9487869EB";
+		public const string HorarioVisita = "deal_6B5F432C-2438-4D2A-907C-50D6DA9C6235";
 		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
 		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
 		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
@@ -34,6 +35,16 @@ namespace PloomesApi
 		public const string DocumentoDoTecnico = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
 		public const string PropostaRevisada = "deal_A7409213-F8DE-43B6-9A6E-A5B9606C045C";
 		public const string PropostaAceita = "deal_D0F8DBEA-C425-4B66-BC51-9429A601DC1E";
+		public const string Comprovante1aParcelaIdentificado = "deal_B37F48D5-A16D-423B-8553-872F8626E811";
+		public const string DataInstalacao = "deal_C31EF5DB-21F3-453D-AEC2-09961D2D183B";
+		public const string HorarioInstalacao = "deal_DB83C020-BB92-4EB6-A01B-0D80A7BD1847";
+		public const string NomeTecnico1 = "deal_2657388F-8F9D-4C4C-BDE8-233EC455C604";
+		public const string DocTecnico1 = "deal_07980D96-E24E-4FE8-99DD-DDA0974015E3";
+		public const string NomeTecnico2 = "deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E";
+		public const string DocTecnico2 = "deal_9C48007E-B4AB-47D8-918A-D90436056253";
+		public const string NomeTecnico3 = "deal_34F45D74-54D7-4541-8E72-4828D7FF09A5";
+		public const string DocTecnico3 = "deal_70B6D1A9-9F14-47C8-BF42-698866E6B248";
+		public const string BoletoAttachmentId = "deal_37E5E69F-5708-42DE-8356-6D3BAC437A6C";
 	}
 	// Ids dos Periodos
 	public static class PeriodoAgendamentoId
@@ -52,6 +63,7 @@ namespace PloomesApi
 		public const int ValidacaoDaVisitaeProposta = 154439;
 		public const int PropostaApresentada = 151442;
 		public const int PropostaAceita = 152889;
+		public const int InstalacaoAgendada = 152890;
 	}
 	public static class AtonResultadoValicacao
 	{
@@ -138,7 +150,7 @@ namespace PloomesApi
 
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
-			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemacompanha);
+			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
@@ -205,7 +217,7 @@ namespace PloomesApi
 
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
-			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemacompanha);
+			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
@@ -585,6 +597,47 @@ namespace PloomesApi
 			}
 
 		}
+		public async Task<PloomesAttachment> GetAttachment(long AttachmentId)
+		{
+			HttpClient httpClient = new HttpClient();
+			string resp = string.Empty;
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				Uri postContactUri = new Uri(serverUri.ToString() + $"Attachments?$filter=Id+eq+{AttachmentId}");
+				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiAttachmentResponse apiAttachemntResponse = JsonConvert.DeserializeObject<ApiAttachmentResponse>(resp);
+
+				// Confere se voltou conteudo
+				if (apiAttachemntResponse.Attachments != null && apiAttachemntResponse.Attachments.Any())
+					return apiAttachemntResponse.Attachments[0];
+
+				else
+					return null;
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Get Attachment: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(resp);
+				return null;
+			}
+			finally
+			{
+				httpClient.Dispose();
+			}
+
+		}
 		static int GetOpcaodeInstalacaoCode(string opcaodeinstalacao)
 		{
 			// Part 1: create a List of KeyValuePairs.
@@ -701,13 +754,21 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue });
 		}
-		public void MarcaQuemAcompanha(string quemAcompanha)
+		public void MarcaQuemAcompanhaVisita(string quemAcompanhaVisita)
 		{
-			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanha).FirstOrDefault();
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaVisita).FirstOrDefault();
 			if (otherProperty == null)
-				this.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemAcompanha);
+				this.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemAcompanhaVisita);
 			else
-				otherProperty.StringValue = quemAcompanha;
+				otherProperty.StringValue = quemAcompanhaVisita;
+		}
+		public void MarcaQuemAcompanhaInstalacao(string quemAcompanhaInstalacao)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaInstalacao).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaInstalacao, quemAcompanhaInstalacao);
+			else
+				otherProperty.StringValue = quemAcompanhaInstalacao;
 		}
 		public void MarcaName(string name)
 		{
@@ -864,17 +925,17 @@ namespace PloomesApi
 			else
 				periodoId = PeriodoAgendamentoId.Manha;
 
-			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Periodo).FirstOrDefault();
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PeriodoVisita).FirstOrDefault();
 			if (otherProperty == null)
-				this.AddOtherIntegerProperty(DealPropertyId.Periodo, periodoId);
+				this.AddOtherIntegerProperty(DealPropertyId.PeriodoVisita, periodoId);
 			else
 				otherProperty.IntegerValue = periodoId;
 		}
 		public void MarcaHorarioVisitaTecnica(DateTime horarioVisita)
 		{
-			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Horario).FirstOrDefault();
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioVisita).FirstOrDefault();
 			if (otherProperty == null)
-				this.AddOtherDateTimeProperty(DealPropertyId.Horario, horarioVisita);
+				this.AddOtherDateTimeProperty(DealPropertyId.HorarioVisita, horarioVisita);
 			else
 				otherProperty.DateTimeValue = horarioVisita;
 		}
@@ -896,6 +957,23 @@ namespace PloomesApi
 			else
 				otherProperty.BoolValue = ehCondominio;
 		}
+		public void MarcaDataInstalacao(DateTime dataInstalacao)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataInstalacao).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherDateTimeProperty(DealPropertyId.DataInstalacao, dataInstalacao);
+			else
+				otherProperty.DateTimeValue = dataInstalacao;
+		}
+		public void MarcaHorarioInstalacao(DateTime horarioInstalacao)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioInstalacao).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherDateTimeProperty(DealPropertyId.HorarioInstalacao, horarioInstalacao);
+			else
+				otherProperty.DateTimeValue = horarioInstalacao;
+		}
+
 		static int GetOpcaodeInstalacaoCode(string opcaodeinstalacao)
 		{
 			// Part 1: create a List of KeyValuePairs.
@@ -982,6 +1060,40 @@ namespace PloomesApi
 		public string Odata { get; set; }
 		[JsonProperty("value")]
 		public List<Quote> Quotes { get; } = new List<Quote>();
+	}
+	public class PloomesAttachment
+	{
+		public int Id { get; set; }
+		public object ContactId { get; set; }
+		public int DealId { get; set; }
+		public object OrderId { get; set; }
+		public object NoteId { get; set; }
+		public object InteractionRecordId { get; set; }
+		public object EmailId { get; set; }
+		public object EmailTemplateId { get; set; }
+		public object LeadId { get; set; }
+		public object TaskId { get; set; }
+		public object DocumentId { get; set; }
+		public object QuoteId { get; set; }
+		public object ProductId { get; set; }
+		public object ProductGroupId { get; set; }
+		public object ProductFamilyId { get; set; }
+		public object AccountId { get; set; }
+		public object UserId { get; set; }
+		public object ChatId { get; set; }
+		public object MessageId { get; set; }
+		public string FileName { get; set; }
+		public string ContentType { get; set; }
+		public int ContentLength { get; set; }
+		public string Url { get; set; }
+		public bool Listable { get; set; }
+	}
+	public class ApiAttachmentResponse
+	{
+		[JsonProperty("@odata.context")]
+		public string Odata { get; set; }
+		[JsonProperty("value")]
+		public List<PloomesAttachment> Attachments { get; } = new List<PloomesAttachment>();
 	}
 #pragma warning disable CA1812
 	internal class State

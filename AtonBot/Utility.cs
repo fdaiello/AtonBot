@@ -554,6 +554,74 @@ namespace MrBot
 			} while (IsHoliday(date) || IsWeekend(date));
 			return date;
 		}
+		// Confere se um CEP é de capital
+		public static bool CepIsCapital(int cep)
+		{
+			int[][] cepscapitais = new int[][] {
+				new int[] {1000000 , 5999999 },
+				new int [] {8000000 , 8499999 },
+				new int [] {20000000 , 23799999 },
+				new int [] {29000000 , 29099999 },
+				new int [] {30000000 , 31999999 },
+				new int [] {40000000 , 41999999 },
+				new int [] {49000000 , 49099999 },
+				new int [] {50000000 , 52999999 },
+				new int [] {57000000 , 57099999 },
+				new int [] {58000000 , 58099999 },
+				new int [] {59000000 , 59099999 },
+				new int [] {60000000 , 60999999 },
+				new int [] {64000000 , 64099999 },
+				new int [] {65000000 , 65099999 },
+				new int [] {66000000 , 66999999 },
+				new int [] {68900000 , 68914999 },
+				new int [] {69000000 , 69099999 },
+				new int [] {69300000 , 69339999 },
+				new int [] {69900000 , 69920999 },
+				new int [] {70000000 , 70999999 },
+				new int [] {72800000 , 73999999 },
+				new int [] {74000000 , 74894999},
+				new int [] {77000000 , 77270999 },
+				new int [] {78000000 , 78109999 },
+				new int [] {78900000 , 78930999 },
+				new int [] {79000000 , 79129999 },
+				new int [] {80000000 , 82999999 },
+				new int [] {88000000 , 82999999 },
+				new int [] {90000000 , 91999999 }
+			};
+
+			for (int x = 0; x < cepscapitais.Length; x++)
+			{
+				if (cepscapitais[x][0] <= cep & cep <= cepscapitais[x][1])
+					return true;
+			}
+			return false;
+		}
+		// Padroniza o horario
+		public static string PadronizaHorario(string horario)
+		{
+			if (horario.Contains("8"))
+				horario = "08:00";
+			else if (horario.Contains("9"))
+				horario = "09:00";
+			else if (horario.Contains("10"))
+				horario = "10:00";
+			else if (horario.Contains("11"))
+				horario = "11:00";
+			else if (horario.Contains("14"))
+				horario = "14:00";
+			else if (horario.Contains("15"))
+				horario = "15:00";
+			else if (horario.Contains("16"))
+				horario = "16:00";
+			else if (horario.Contains("17"))
+				horario = "17:00";
+			else
+				horario = "00:00";
+
+			return horario;
+		}
+
+
 	}
 }
 

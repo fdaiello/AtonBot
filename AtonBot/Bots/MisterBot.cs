@@ -52,11 +52,14 @@ namespace MrBot.Bots
 		// Cliente para acessar a api do Ploomes
 		private readonly PloomesClient _ploomesclient;
 
+		// Ploomes Contact
+		private readonly Contact _contact;
+
 		// Ploomes Deal
 		private readonly Deal _deal;
 
 		// Mr Bot Class Constructor
-		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal)
+		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal, Contact contact)
 		{
 			// Injected objects
 			_conversationState = conversationState;
@@ -69,6 +72,7 @@ namespace MrBot.Bots
 			_blobContainerClient = blobContainerClient;
 			_customer = customer;
 			_ploomesclient = ploomesClient;
+			_contact = contact;
 			_deal = deal;
 		}
 
@@ -102,6 +106,12 @@ namespace MrBot.Bots
 				// Verifica se tem salvo na base local o ID do cliente salvo no Ploomes
 				if (!string.IsNullOrEmpty(_customer.Tag1) && int.TryParse(_customer.Tag1, out int ploomesClientId))
 				{
+					// Verifica se ja tem um Contact ( contato ) salvo para este Cliente
+					Contact contact = await _ploomesclient.GetContact(ploomesClientId).ConfigureAwait(false);
+
+					// Copia os dados do Contact para o objeto injetado, compartilhado entre as classes
+					_contact.CopyFrom(contact);
+
 					// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
 					Deal deal = await _ploomesclient.GetDeal(ploomesClientId).ConfigureAwait(false);
 

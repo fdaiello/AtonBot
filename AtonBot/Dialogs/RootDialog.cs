@@ -32,7 +32,7 @@ namespace MrBot.Dialogs
 		private readonly Customer _customer;
 		private readonly Deal _deal;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendamento1Dialog, EnviaPropostaDialog agendamento2Dialog, Customer customer, Deal deal)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -49,8 +49,9 @@ namespace MrBot.Dialogs
 
 			// Adiciona os subdialogos
 			AddDialog(profileDialog);
-			AddDialog(agendamento1Dialog);
-			AddDialog(agendamento2Dialog);
+			AddDialog(agendaVisitaDialog);
+			AddDialog(enviaPropostaDialog);
+			AddDialog(agendaInstalacaoDialog);
 
 			// Array com a lista de métodos que este WaterFall Dialog vai executar.
 			var waterfallSteps = new WaterfallStep[]
@@ -173,9 +174,26 @@ namespace MrBot.Dialogs
 				else
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text("Sua proposta está pronta, só falta nossa equipe validar. Por favor, aguarde!"), cancellationToken).ConfigureAwait(false);
 			}
+			else if (_deal.StageId == AtonStageId.PropostaAceita)
+            {
+				// Confere se já enviou o comprovante
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Comprovante1aParcelaIdentificado).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Comprovante1aParcelaIdentificado).FirstOrDefault().BoolValue != null && (bool)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Comprovante1aParcelaIdentificado).FirstOrDefault().BoolValue )
+					// chama diálogo de agendamento da instalação
+					return await stepContext.BeginDialogAsync(nameof(AgendaInstalacaoDialog), null, cancellationToken).ConfigureAwait(false);
+
+				else
+					// Pede para enviar comprovante por email
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, envie o comprovante de pagamento da primeira parcela por email para comprovante@atonservices.com.br. Os dados para pagamentos estão indicados na proposta. Assim que recebermos o comprovante, poderemos agendar a instalação."), cancellationToken).ConfigureAwait(false);
+
+			}
+			else if ( _deal.StageId == AtonStageId.InstalacaoAgendada)
+            {
+				// chama diálogo de agendamento da instalação
+				return await stepContext.BeginDialogAsync(nameof(AgendaInstalacaoDialog), null, cancellationToken).ConfigureAwait(false);
+			}
 			else
 			{
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Aguarde orientações para agendarmos sua instalação."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor aguarde orientações para concluirmos sua instalação."), cancellationToken).ConfigureAwait(false);
 			}
 
 			// Se chegou aqui, finaliza o diálogo

@@ -118,10 +118,11 @@ namespace MrBot.Dialogs
 				// Marca o campo Proposta Aceita
 				_deal.MarcaPropostaAceita(true);
 
+				// Patch Deal
+				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
+
 				// Muda o estágio do Lead para Proposta Aceita
 				_deal.StageId = AtonStageId.PropostaAceita;
-
-
 			}
             else
             {
@@ -131,14 +132,15 @@ namespace MrBot.Dialogs
 				// Marca o campo Proposta Aceita com False
 				_deal.MarcaPropostaAceita(false);
 
+				// Patch Deal
+				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
+
 				// Muda o estágio do Lead para Proposta Apresentada
 				_deal.StageId = AtonStageId.PropostaApresentada;
-
 			}
 
-			// Patch o Deal - salva no Ploomes os valores alterados
-
-
+			// Patch Deal --- tem que fazer novamente, porque não permite mudar o estágio sem antes marcar o aceite da proposta.
+			await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
 			// Finaliza o diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);

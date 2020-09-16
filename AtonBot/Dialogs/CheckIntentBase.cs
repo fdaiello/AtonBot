@@ -164,40 +164,41 @@ namespace MrBot.Dialogs
 							return new DialogTurnResult(DialogTurnStatus.Complete);
 						}
 
-						//// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
-						//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendaVisitaDialog)))
-						//{
-						//	// Language Generation message: Como posso Ajudar?
-						//	string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = _customer != null ? Utility.FirstName(_customer.Name) : string.Empty }).ToString();
-						//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
+                        //// Saudação - exceto se for a primeira pergunta da conversa ou já estiver dentro do agendamento
+                        //else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.saudacao & string.IsNullOrEmpty(conversationData.FirstQuestion) & !Utility.DialogIsRunning(innerDc, nameof(AgendaVisitaDialog)))
+                        //{
+                        //	// Language Generation message: Como posso Ajudar?
+                        //	string lgOutput = _lgTemplates.Evaluate("ComoPossoAjudar", new { userName = _customer != null ? Utility.FirstName(_customer.Name) : string.Empty }).ToString();
+                        //	await innerDc.Context.SendActivityAsync(MessageFactory.Text(lgOutput, lgOutput, InputHints.ExpectingInput), cancellationToken).ConfigureAwait(false);
 
-						//	// Limpa a primeira frase digitada no dialogo
-						//	conversationData.FirstQuestion = string.Empty;
+                        //	// Limpa a primeira frase digitada no dialogo
+                        //	conversationData.FirstQuestion = string.Empty;
 
-						//	// E continua o turno
-						//	return new DialogTurnResult(DialogTurnStatus.Waiting);
-						//}
+                        //	// E continua o turno
+                        //	return new DialogTurnResult(DialogTurnStatus.Waiting);
+                        //}
 
-						//// Falar com atendente
-						//else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
-						//{
-						//	if (intentDetails.Atendente != null)
-						//		mensagem = "Certo, falar com " + intentDetails.Atendente;
-						//	else
-						//		mensagem = "Tudo bem, falar com um atendente ...";
-						//	await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
+                        // Falar com atendente
+                        else if (luisResult.TopIntent().intent == MisterBotLuis.Intent.falar_com_atendente)
+                        {
+							string mensagem;
+                            if (intentDetails.Atendente != null)
+                                mensagem = "Certo, falar com " + intentDetails.Atendente;
+                            else
+                                mensagem = "Tudo bem, falar com um atendente ...";
+                            await innerDc.Context.SendActivityAsync(MessageFactory.Text(mensagem), cancellationToken).ConfigureAwait(false);
 
-						//	// Limpa a primeira frase digitada no dialogo
-						//	conversationData.FirstQuestion = string.Empty;
+                            // Limpa a primeira frase digitada no dialogo
+                            conversationData.FirstQuestion = string.Empty;
 
-						//	// Cancela os dialogos atuais
-						//	await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
+                            // Cancela os dialogos atuais
+                            await innerDc.CancelAllDialogsAsync().ConfigureAwait(false);
 
-						//	// Dispara o diálogo pra falar com atendente
-						//	return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
-						//}
+                            // Dispara o diálogo pra falar com atendente
+                            return await innerDc.BeginDialogAsync(nameof(CallHumanDialog), intentDetails, cancellationToken).ConfigureAwait(false);
+                        }
 
-					}
+                    }
 
 					//// QNA
 					//// Confere se o que foi digitado tem pelo menos 3 palavras, e se não está dentro do diálogo "QnADialog"
