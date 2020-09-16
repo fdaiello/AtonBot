@@ -687,7 +687,7 @@ namespace MrBot.Dialogs
 				// Se o contato não esta cadastrado ainda - nao tem registro do ID
 				if (!Int32.TryParse((string)stepContext.Values["ploomesId"], out int ploomesContactId))
 					// Insere o cliente no Ploomes
-					ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+					ploomesContactId = await _ploomesclient.PostContactByParam((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
 
 				else
 				{
@@ -696,10 +696,10 @@ namespace MrBot.Dialogs
 					// Se achou
 					if ( contact.Id > 0 )
 						// Patch client
-						ploomesContactId = await _ploomesclient.PatchContact(ploomesContactId, (string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+						ploomesContactId = await _ploomesclient.PatchContactByParam(ploomesContactId, (string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
 					else
 						// Insere o cliente no Ploomes
-						ploomesContactId = await _ploomesclient.PostContact((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
+						ploomesContactId = await _ploomesclient.PostContactByParam((string)stepContext.Values["nomecompleto"], (string)stepContext.Values["phone"], (string)stepContext.Values["email"], int.Parse(Utility.ClearStringNumber((string)stepContext.Values["cep"]), CultureInfo.InvariantCulture), (string)stepContext.Values["cidade"], (string)stepContext.Values["uf"], (string)stepContext.Values["bairro"], (string)stepContext.Values["end"], (string)stepContext.Values["numero"], (string)stepContext.Values["complemento"], (string)stepContext.Values["quemacompanha"]).ConfigureAwait(false);
 
 				}
 

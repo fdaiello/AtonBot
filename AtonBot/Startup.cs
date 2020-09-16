@@ -176,6 +176,9 @@ namespace MrBot
 			// Cria um Customer pra compartilhar entre os diálogos
 			services.AddScoped<Customer>();
 
+			// Cria um Ploomes Contact para compartilhar entre os diálogos
+			services.AddScoped<Contact>();
+
 			// Cria um Ploomes Deal para compartilhar entre os diálogos
 			services.AddScoped<Deal>();
 		}

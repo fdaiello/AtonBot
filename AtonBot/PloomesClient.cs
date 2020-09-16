@@ -15,6 +15,12 @@ using System.Linq;
 
 namespace PloomesApi
 {
+	// Ids dos campos extras do Contact
+	public static class ContactPropertyId
+    {
+		public const string QuemAcompanha = "contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9";
+		public const string Name = "contact_0DF8BF92-66C8-4B48-9A25-40081337A947";
+	}
 	// Ids dos campos extras do Deal
 	public static class DealPropertyId
 	{
@@ -72,24 +78,10 @@ namespace PloomesApi
 			_logger = logger;
 		}
 
-		public async Task<int> PostContact(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
+		public async Task<int> PostContact(Contact contact)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
-
-			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId=2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2  };
-			contact.AddPhone(phonenumber);
-			contact.AddOtherStringProperty("contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9", quemacompanha);
-			contact.AddOtherStringProperty("contact_0DF8BF92-66C8-4B48-9A25-40081337A947", name);
-
-			int stateId = await GetStateId(state).ConfigureAwait(false);
-			if (stateId > 0)
-            {
-				contact.StateId = stateId;
-				int cityId = await GetCityId(city.ToUpperInvariant(), stateId).ConfigureAwait(false);
-				if (cityId > 0)
-					contact.CityId = cityId;
-			}
 
 			HttpClient httpClient = new HttpClient();
 			try
@@ -139,15 +131,15 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PatchContact(int id, string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
+		public async Task<int> PostContactByParam(string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
 
 			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
-			contact.AddOtherStringProperty("contact_B9A6BCA7-89BB-4691-8B34-E061AD7DBDE9", quemacompanha);
-			contact.AddOtherStringProperty("contact_0DF8BF92-66C8-4B48-9A25-40081337A947", name);
+			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemacompanha);
+			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
 
 			int stateId = await GetStateId(state).ConfigureAwait(false);
 			if (stateId > 0)
@@ -158,11 +150,118 @@ namespace PloomesApi
 					contact.CityId = cityId;
 			}
 
-            try
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				content = JsonConvert.SerializeObject(contact);
+
+				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
+
+				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+				Uri postContactUri = new Uri(serverUri.ToString() + "/Contacts");
+				var httpResponseMessage = await httpClient.PostAsync(postContactUri, httpContent).ConfigureAwait(false);
+				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpContent.Dispose();
+
+				// Desserializa o objeto mensagem
+				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(resp);
+
+				// Devolve o Id da mensagem
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Any() && apiContactResponse.Contacts[0].Id.IsNumber())
+					return apiContactResponse.Contacts[0].Id;
+				else
+				{
+					_logger.LogError("Post Contact: Error");
+					_logger.LogError(resp);
+					return 0;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Post Contact: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(content);
+				_logger.LogError(resp);
+				return 0;
+			}
+			finally
+			{
+				httpClient.Dispose();
+			}
+
+		}
+		public async Task<int> PatchContactByParam(int id, string name, string phonenumber, string email, int zipcode, string city, string state, string neighborhood, string streetaddress, string streetaddressnumber, string streetaddressline2, string quemacompanha)
+		{
+			string content = string.Empty;
+			string resp = string.Empty;
+
+			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			contact.AddPhone(phonenumber);
+			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemacompanha);
+			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
+
+			int stateId = await GetStateId(state).ConfigureAwait(false);
+			if (stateId > 0)
+			{
+				contact.StateId = stateId;
+				int cityId = await GetCityId(city.ToUpperInvariant(), stateId).ConfigureAwait(false);
+				if (cityId > 0)
+					contact.CityId = cityId;
+			}
+
+			try
 			{
 				content = JsonConvert.SerializeObject(contact);
 
 				var client = new RestClient(serverUri.ToString() + $"/Contacts({id})");
+				client.Timeout = -1;
+				var request = new RestRequest(Method.PATCH);
+				request.AddHeader("User-Key", userKey);
+				request.AddHeader("Content-Type", "application/json");
+				request.AddParameter("application/json", content, ParameterType.RequestBody);
+				IRestResponse response = await client.ExecuteAsync(request).ConfigureAwait(false);
+
+				// Desserializa o objeto mensagem
+				ApiContactResponse apiContactResponse = JsonConvert.DeserializeObject<ApiContactResponse>(response.Content);
+
+				// Devolve o Id da mensagem
+				if (apiContactResponse.Contacts != null && apiContactResponse.Contacts.Any() && apiContactResponse.Contacts[0].Id.IsNumber())
+					return apiContactResponse.Contacts[0].Id;
+				else
+				{
+					_logger.LogError("Patch Contact: Error");
+					_logger.LogError(resp);
+					return 0;
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Patch Contact: Error");
+				_logger.LogError(ex.Message);
+				_logger.LogError(content);
+				_logger.LogError(resp);
+				return 0;
+			}
+
+		}
+		public async Task<int> PatchContact( Contact contact)
+		{
+			string content = string.Empty;
+			string resp = string.Empty;
+
+            try
+			{
+				content = JsonConvert.SerializeObject(contact);
+
+				var client = new RestClient(serverUri.ToString() + $"/Contacts({contact.Id})");
 				client.Timeout = -1;
 				var request = new RestRequest(Method.PATCH);
 				request.AddHeader("User-Key", userKey);
@@ -577,9 +676,9 @@ namespace PloomesApi
 		public List<Phone> Phones { get; } = new List<Phone>();
 		internal void AddPhone(string phonenumber, int typeid = 0, int coutryid = 0)
 		{
-			this.Phones.Add(new Phone { PhoneNumber = phonenumber, TypeId = typeid, CountryId = coutryid });
+			if ( !this.Phones.Where(p=>p.PhoneNumber == phonenumber & p.CountryId==coutryid).Any())
+				this.Phones.Add(new Phone { PhoneNumber = phonenumber, TypeId = typeid, CountryId = coutryid });
 		}
-
 		public List<OtherProperty> OtherProperties { get; } = new List<OtherProperty>();
 
 		internal void AddOtherStringProperty(string fieldkey, string stringvalue)
@@ -601,6 +700,22 @@ namespace PloomesApi
 		internal void AddOtherProperty(string fieldkey, string stringvalue, object  integervalue, object datetimevalue, object boolvalue)
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue });
+		}
+		public void MarcaQuemAcompanha(string quemAcompanha)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanha).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherStringProperty(ContactPropertyId.QuemAcompanha, quemAcompanha);
+			else
+				otherProperty.StringValue = quemAcompanha;
+		}
+		public void MarcaName(string name)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.Name).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherStringProperty(ContactPropertyId.Name, name);
+			else
+				otherProperty.StringValue = name;
 		}
 		public void CopyFrom(Contact contact)
 		{
@@ -759,7 +874,7 @@ namespace PloomesApi
 		{
 			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.Horario).FirstOrDefault();
 			if (otherProperty == null)
-				this.AddOtherDateTimeProperty(DealPropertyId.DataVisitaTecnica, horarioVisita);
+				this.AddOtherDateTimeProperty(DealPropertyId.Horario, horarioVisita);
 			else
 				otherProperty.DateTimeValue = horarioVisita;
 		}
@@ -777,7 +892,7 @@ namespace PloomesApi
 		{
 			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.EhCondominio).FirstOrDefault();
 			if (otherProperty == null)
-				this.AddOtherBoolProperty(DealPropertyId.PropostaAceita, ehCondominio);
+				this.AddOtherBoolProperty(DealPropertyId.EhCondominio, ehCondominio);
 			else
 				otherProperty.BoolValue = ehCondominio;
 		}
