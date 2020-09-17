@@ -32,7 +32,7 @@ namespace MrBot.Dialogs
 		private readonly Customer _customer;
 		private readonly Deal _deal;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -53,6 +53,7 @@ namespace MrBot.Dialogs
 			AddDialog(reagendaVisitaDialog);
 			AddDialog(enviaPropostaDialog);
 			AddDialog(agendaInstalacaoDialog);
+			AddDialog(querAtendimentoDialog);
 
 			// Array com a lista de métodos que este WaterFall Dialog vai executar.
 			var waterfallSteps = new WaterfallStep[]
@@ -191,13 +192,21 @@ namespace MrBot.Dialogs
 				// chama diálogo de agendamento da instalação
 				return await stepContext.BeginDialogAsync(nameof(AgendaInstalacaoDialog), null, cancellationToken).ConfigureAwait(false);
 			}
-			else
+			else if(_deal.StageId == AtonStageId.InstalacaoEmExecucao)
 			{
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor aguarde orientações para concluirmos sua instalação."), cancellationToken).ConfigureAwait(false);
 			}
+            else
+            {
+				// Informa que a instalaçao foi finalizada
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("No meu sistema, consta que sua instalação já foi finalizada."), cancellationToken).ConfigureAwait(false);
 
-			// Se chegou aqui, finaliza o diálogo
+				// chama diálogo se quer falar com um humano
+				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
+			}
+
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+
 		}
 
 		// Insere um novo registro para este usuario

@@ -92,6 +92,12 @@ namespace MrBot.Dialogs
 				// Send the card(s) to the user as an attachment to the activity
 				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
+				// Muda o estágio do Lead para Proposta Apresentada
+				_deal.StageId = AtonStageId.PropostaApresentada;
+
+				// Patch Deal
+				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
+
 				// Aguarda uma resposta
 				return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
 			}
@@ -123,8 +129,11 @@ namespace MrBot.Dialogs
 
 				// Muda o estágio do Lead para Proposta Aceita
 				_deal.StageId = AtonStageId.PropostaAceita;
+
+				// Patch Deal --- tem que fazer novamente, porque não permite mudar o estágio sem antes marcar o aceite da proposta.
+				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 			}
-            else
+			else
             {
 				// Pede para resolver dúvidas por email
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);
@@ -134,13 +143,7 @@ namespace MrBot.Dialogs
 
 				// Patch Deal
 				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
-
-				// Muda o estágio do Lead para Proposta Apresentada
-				_deal.StageId = AtonStageId.PropostaApresentada;
 			}
-
-			// Patch Deal --- tem que fazer novamente, porque não permite mudar o estágio sem antes marcar o aceite da proposta.
-			await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
 			// Finaliza o diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);

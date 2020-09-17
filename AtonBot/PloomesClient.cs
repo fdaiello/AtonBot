@@ -64,6 +64,10 @@ namespace PloomesApi
 		public const int PropostaApresentada = 151442;
 		public const int PropostaAceita = 152889;
 		public const int InstalacaoAgendada = 152890;
+		public const int InstalacaoEmExecucao = 152891;
+		public const int InstalacaoRealizada = 152892;
+		public const int ValidacaoDaInstalacao = 154455;
+
 	}
 	public static class AtonResultadoValicacao
 	{

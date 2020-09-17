@@ -168,20 +168,20 @@ namespace MrBot.Dialogs
 			// Busca a opção informada no passo anterior
 			string choice = ((string)stepContext.Result).ToLower();
 
-			// Se dise que sim
-			if (choice == "sim" | choice == "s")
-			{
-				// pula pro proximo passo
-				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
-			}
-			// Se disse que não
-			else
+			// Se dise que não
+			if (choice == "n" | choice == "nao" | choice == "não")
 			{
 				// Finaliza o diálogo atual
 				await stepContext.EndDialogAsync().ConfigureAwait(false);
 
 				// Chama o diálogo que pergunta se quer atendimento humano
 				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
+			}
+			// Se disse que sim ( ou se chegou vazio, por ter pulado a pergunta no passo anterior )
+			else
+			{
+				// pula pro proximo passo
+				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
 			}
 		}
 		// Se ainda não tem CPF
@@ -352,7 +352,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["horario"] = horario;
 
 			// pergunta o nome da pessoa que vai estar no local
-			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a instalação?") }, cancellationToken).ConfigureAwait(false);
 
 		}
 		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
@@ -405,6 +405,9 @@ namespace MrBot.Dialogs
 				// Salva quem acompanha a instlação
 				_contact.MarcaQuemAcompanhaInstalacao((string)stepContext.Values["quemacompanha"]);
 
+				// Muda o estagio do Deal
+				_deal.StageId = AtonStageId.InstalacaoAgendada;
+
 				// Altera o Negocio no Ploomoes - Patch Deal
 				int ploomesDealId = await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
@@ -422,7 +425,7 @@ namespace MrBot.Dialogs
 			}
 			else
 				// Envia resposta para o cliente
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ok, seu agendamento NÃO foi realizado."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ok, NÃO fizemos alterações, e mantemos a data original."), cancellationToken).ConfigureAwait(false);
 
 			// Termina este diálogo
 			return await stepContext.EndDialogAsync().ConfigureAwait(false);
