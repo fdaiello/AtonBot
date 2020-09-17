@@ -32,7 +32,7 @@ namespace MrBot.Dialogs
 		private readonly Customer _customer;
 		private readonly Deal _deal;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -50,6 +50,7 @@ namespace MrBot.Dialogs
 			// Adiciona os subdialogos
 			AddDialog(profileDialog);
 			AddDialog(agendaVisitaDialog);
+			AddDialog(reagendaVisitaDialog);
 			AddDialog(enviaPropostaDialog);
 			AddDialog(agendaInstalacaoDialog);
 
@@ -143,20 +144,19 @@ namespace MrBot.Dialogs
 
 		}
 		// Confere o estágio do Deal no Ploomes, e chama o proximo diálogo conforme o estágio;
-		// Se o Deal ainda é nulo, ou se o estágio for Lead ou VisitaAgendada
-		//    -> Chama o Diálogo do Agendamento
-		// Se o estágio for Visita realizada
-		//    -> Mensagem para Aguardar a Proposta
-		// Se o estágio for Proposta Realizada
-		//    -> Envia a Proposta, Pede aprovação, Pede Comprovante do primeiro pagamento, Agenda a Instalação
-		
 		private async Task<DialogTurnResult> CheckStageAndCallNextDialogStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Confere o estágio do Lead no Ploomes
-			if (_deal == null || _deal.StageId == AtonStageId.Nulo || _deal.StageId == AtonStageId.Lead || _deal.StageId == AtonStageId.VisitaAgendada)
-				// Chama o diálogo do primeiro agendamento
+
+			// Se ainda nao tem Deal salvo
+			if (_deal.ContactId==0)
+				// Chama o diálogo do agendamento da Visita
 				return await stepContext.BeginDialogAsync(nameof(AgendaVisitaDialog), null, cancellationToken).ConfigureAwait(false);
 
+			// Se esta nos estagios Nulo, Lead ( o lead já é slavo com a visita agendada ) ou Visita Agendada
+			else if(_deal.StageId == AtonStageId.Nulo || _deal.StageId == AtonStageId.Lead || _deal.StageId == AtonStageId.VisitaAgendada){
+				// Chama o diálogo do reagendamento da Visita
+				return await stepContext.BeginDialogAsync(nameof(ReAgendaVisitaDialog), null, cancellationToken).ConfigureAwait(false);
+			}
 			else if ( _deal.StageId == AtonStageId.VisitaRealizada )
             {
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("No meu sistema consta que sua visita técnica já foi realizada, mas ainda não tenho sua proposta. Por favor, aguarde."), cancellationToken).ConfigureAwait(false);

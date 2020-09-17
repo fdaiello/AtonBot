@@ -143,6 +143,7 @@ namespace MrBot
 			services.AddTransient<QuerAtendimentoDialog>();
 			services.AddTransient<MainMenuDialog>();
 			services.AddTransient<AgendaVisitaDialog>();
+			services.AddTransient<ReAgendaVisitaDialog>();
 			services.AddTransient<EnviaPropostaDialog>();
 			services.AddTransient<AgendaInstalacaoDialog>();
 
