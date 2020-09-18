@@ -620,7 +620,22 @@ namespace MrBot
 
 			return horario;
 		}
+		// Envia um Anexo
+		public static async Task EnviaAnexo(WaterfallStepContext stepContext, string filename, string messagetext, string pdfurl, string contentType, CancellationToken cancellationToken)
+		{
+			// Cria um anexo
+			Attachment attachment = new Attachment
+			{
+				Name = filename,
+				ContentType = contentType,
+				ContentUrl = pdfurl,
+			};
+			IMessageActivity reply = MessageFactory.Text(messagetext);
+			reply.Attachments = new List<Attachment>() { attachment };
 
+			// Envia o anexo para o cliente
+			await stepContext.Context.SendActivityAsync(reply, cancellationToken).ConfigureAwait(false);
+		}
 
 	}
 }

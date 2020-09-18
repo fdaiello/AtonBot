@@ -99,17 +99,27 @@ namespace MrBot.Dialogs
 		//       Pula pro proximo passo
 		private async Task<DialogTurnResult> AskQuerReagendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Confere se tem boleto
-			if (_deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
+
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+			// Confere se tem boleto, e ainda não enviou
+			if (!conversationData.BoletoEnviado && _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
             {
 				// pega o Id do Attachmento do Boleto
 				long boletoAttId = (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue;
 				// busca o Attachment do Boleto
 				PloomesAttachment attachment = await _ploomesclient.GetAttachment(boletoAttId).ConfigureAwait(false);
 				// confere se achou
-				if ( attachment != null && ! string.IsNullOrEmpty(attachment.Url))
+				if ( attachment != null && !string.IsNullOrEmpty(attachment.Url))
+                {
 					// Envia o anexo
-					await EnviaAnexo(stepContext, "Boleto", "Aqui está o boleto de pagamento", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+					await Utility.EnviaAnexo(stepContext, "Boleto", "Aqui está o boleto de pagamento", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+
+					// Marca no ojeto persistente da conversa, que já enviou o boleto
+					conversationData.BoletoEnviado = true;
+				}
 			}
 
 			string infoTecnicos;
@@ -581,22 +591,5 @@ namespace MrBot.Dialogs
 			// retorna
 			return await Task.FromResult(Utility.IsCpf(input)).ConfigureAwait(false);
 		}
-		// Envia um Anexo
-		private static async Task EnviaAnexo(WaterfallStepContext stepContext, string filename, string messagetext, string pdfurl, string contentType, CancellationToken cancellationToken)
-		{
-			// Cria um anexo
-			Attachment attachment = new Attachment
-			{
-				Name = filename,
-				ContentType = contentType,
-				ContentUrl = pdfurl,
-			};
-			IMessageActivity reply = MessageFactory.Text(messagetext);
-			reply.Attachments = new List<Attachment>() { attachment };
-
-			// Envia o anexo para o cliente
-			await stepContext.Context.SendActivityAsync(reply, cancellationToken).ConfigureAwait(false);
-		}
-
 	}
 }

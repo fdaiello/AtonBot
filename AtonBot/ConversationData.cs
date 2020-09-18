@@ -28,5 +28,9 @@ namespace MrBot
 		{
 			this.NextAvailableDates.Add(availabledate);
 		}
+		// Mark if proposal was sent
+		public bool PropostaEnviada { get; set; }
+		// Mark if bill was sent
+		public bool BoletoEnviado { get; set; }
 	}
 }

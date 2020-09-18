@@ -31,8 +31,9 @@ namespace MrBot.Dialogs
 		private readonly double minScoreQna = 0.5;
 		private readonly Customer _customer;
 		private readonly Deal _deal;
+		private readonly PloomesClient _ploomesClient;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -43,6 +44,7 @@ namespace MrBot.Dialogs
 			_qnaService = services?.QnAMakerService ?? throw new ArgumentNullException(nameof(services));
 			_customer = customer;
 			_deal = deal;
+			_ploomesClient = ploomesClient;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -194,7 +196,30 @@ namespace MrBot.Dialogs
 			}
 			else if(_deal.StageId == AtonStageId.InstalacaoEmExecucao)
 			{
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor aguarde orientações para concluirmos sua instalação."), cancellationToken).ConfigureAwait(false);
+
+				// Ponteiro para os dados persistentes da conversa
+				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
+				// Confere se tem boleto, e ainda não enviou
+				if (!conversationData.BoletoEnviado && _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
+				{
+					// pega o Id do Attachmento do Boleto
+					long boletoAttId = (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue;
+					// busca o Attachment do Boleto
+					PloomesAttachment attachment = await _ploomesClient.GetAttachment(boletoAttId).ConfigureAwait(false);
+					// confere se achou
+					if (attachment != null && !string.IsNullOrEmpty(attachment.Url))
+					{
+						// Envia o anexo
+						await Utility.EnviaAnexo(stepContext, "Boleto", "Aqui está o boleto de pagamento", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+
+						// Marca no ojeto persistente da conversa, que já enviou o boleto
+						conversationData.BoletoEnviado = true;
+					}
+				}
+
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("No meu sistema, consta que sua instalação está em andamento. Por favor, aguarde."), cancellationToken).ConfigureAwait(false);
 			}
             else
             {

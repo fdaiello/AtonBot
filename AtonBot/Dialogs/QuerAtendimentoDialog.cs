@@ -84,7 +84,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["choice"] = choice;
 
 			// Se dise que sim
-			if ( choice == "sim")
+			if (choice == "sim" | choice == "s")
 				// Chama diálogo pra ver se tem conta, ou criar uma
 				return await stepContext.BeginDialogAsync(nameof(CallHumanDialog), null, cancellationToken).ConfigureAwait(false);
 
@@ -108,7 +108,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou uma escolha de 1 a 2
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "sim" || choice == "não" || choice == "nao";
+			IsValid = choice == "sim" || choice == "não" || choice == "nao" || choice == "s" || choice == "n";
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);

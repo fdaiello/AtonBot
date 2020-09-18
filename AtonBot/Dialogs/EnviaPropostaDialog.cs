@@ -70,19 +70,20 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> ApresentaPropostaStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 
-			// Busca a Quote
-			Quote quote = await _ploomesclient.GetQuote(_deal.Id).ConfigureAwait(false);
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
 
-			// Se localizou
-			if ( quote != null && !string.IsNullOrEmpty(quote.DocumentUrl))
+			// Se já apresentou a proposta antes
+			if ( conversationData.PropostaEnviada)
             {
-				// Envia o PDF com a proposta
-				await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Aqui está o PDF com a mesma:", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+				// Avisa que a proposta está pronta, mas deu erro e não conseguiu obter no sistema.
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Você conseguiu avalia a proposta?"), cancellationToken).ConfigureAwait(false);
 
 				// Pergunta se podemos prosseguir com a proposta? Sim / Não
 				var card = new HeroCard
 				{
-					Text = $"Podemos prosseguir com a proposta?",
+					Text = $"Podemos prosseguir?",
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -103,11 +104,49 @@ namespace MrBot.Dialogs
 			}
 			else
             {
-				// Avisa que a proposta está pronta, mas deu erro e não conseguiu obter no sistema.
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Sua proposta está pronta e validada. Contudo, eu não estou conseguindo buscar sua proposta no sistema. {_dialogDictionary.Emoji.DisapointedFace}"), cancellationToken).ConfigureAwait(false);
+				// Busca a Quote
+				Quote quote = await _ploomesclient.GetQuote(_deal.Id).ConfigureAwait(false);
 
-				// Finaliza o diálogo
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				// Se localizou
+				if (quote != null && !string.IsNullOrEmpty(quote.DocumentUrl))
+				{
+					// Envia o PDF com a proposta
+					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Aqui está o PDF com a mesma:", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+
+					// Pergunta se podemos prosseguir com a proposta? Sim / Não
+					var card = new HeroCard
+					{
+						Text = $"Podemos prosseguir com a proposta?",
+						Buttons = new List<CardAction>
+					{
+						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
+						new CardAction(ActionTypes.ImBack, title: "Não", value: "não"),
+					},
+					};
+					// Send the card(s) to the user as an attachment to the activity
+					await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
+
+					// Muda o estágio do Lead para Proposta Apresentada
+					_deal.StageId = AtonStageId.PropostaApresentada;
+
+					// Patch Deal
+					await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
+
+					// Marca que apresentou a proposta
+					conversationData.PropostaEnviada = true;
+
+					// Aguarda uma resposta
+					return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
+				}
+				else
+				{
+					// Avisa que a proposta está pronta, mas deu erro e não conseguiu obter no sistema.
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Sua proposta está pronta e validada. Contudo, eu não estou conseguindo buscar sua proposta no sistema. {_dialogDictionary.Emoji.DisapointedFace}"), cancellationToken).ConfigureAwait(false);
+
+					// Finaliza o diálogo
+					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				}
+
 			}
 		}
 
