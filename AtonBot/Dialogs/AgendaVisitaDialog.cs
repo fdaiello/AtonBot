@@ -917,7 +917,10 @@ namespace MrBot.Dialogs
 			{
 				// Atualiza o cliente
 				if (!string.IsNullOrEmpty((string)stepContext.Values["nomecompleto"]))
+                {
+					customer.Name = Utility.FirstName((string)stepContext.Values["nomecompleto"]);
 					customer.FullName = (string)stepContext.Values["nomecompleto"];
+				}
 				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
 					customer.Zip = (string)stepContext.Values["cep"];
 				if (stepContext.Values["ploomesId"] != null)

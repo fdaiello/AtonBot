@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using RestSharp;
 using System.Reflection;
 using System.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace PloomesApi
 {
@@ -864,7 +865,7 @@ namespace PloomesApi
 		public bool Editable { get; set; }
 		public bool Deletable { get; set; }
 		public int CreatorId { get; set; }
-		public int UpdaterId { get; set; }
+		public object UpdaterId { get; set; }
 		public DateTime CreateDate { get; set; }
 		public DateTime LastUpdateDate { get; set; }
 		public object LastDocumentId { get; set; }
@@ -1098,6 +1099,98 @@ namespace PloomesApi
 		public string Odata { get; set; }
 		[JsonProperty("value")]
 		public List<PloomesAttachment> Attachments { get; } = new List<PloomesAttachment>();
+	}
+	public class ApiDealWebhook
+	{
+		public string Action { get; set; }
+		public string Entity { get; set; }
+		public object SecondaryEntityId { get; set; }
+		public int AccountId { get; set; }
+		public int ActionUserId { get; set; }
+		[JsonProperty("Old")]
+		public DealWebHook OldDeal { get; set; }
+		[JsonProperty("New")]
+		public DealWebHook NewDeal { get; set; }
+	}
+	public class DealWebHook
+	{
+		public List<object> Contacts { get; } = new List<object>();
+		public OtherProperties OtherProperties { get; set; }
+		public List<object> Products { get; } = new List<object>();
+		public List<object> Tags { get; } = new List<object>();
+		public int Id { get; set; }
+		public string Title { get; set; }
+		public int ContactId { get; set; }
+		public string ContactName { get; set; }
+		public object PersonId { get; set; }
+		public object PersonName { get; set; }
+		public int PipelineId { get; set; }
+		public int StageId { get; set; }
+		public int StatusId { get; set; }
+		public object FirstTaskId { get; set; }
+		public object FirstTaskDate { get; set; }
+		public bool HasScheduledTasks { get; set; }
+		public int TasksOrdination { get; set; }
+		public object ContactProductId { get; set; }
+		public object LastQuoteId { get; set; }
+		public bool IsLastQuoteApproved { get; set; }
+		public object WonQuoteId { get; set; }
+		public object LastStageId { get; set; }
+		public object LossReasonId { get; set; }
+		public object OriginId { get; set; }
+		public object OwnerId { get; set; }
+		public DateTime StartDate { get; set; }
+		public object FinishDate { get; set; }
+		public int CurrencyId { get; set; }
+		public double Amount { get; set; }
+		public int StartCurrencyId { get; set; }
+		public double StartAmount { get; set; }
+		public bool Read { get; set; }
+		public object LastInteractionRecordId { get; set; }
+		public object LastOrderId { get; set; }
+		public int DaysInStage { get; set; }
+		public int HoursInStage { get; set; }
+		public int Length { get; set; }
+		public object CreateImportId { get; set; }
+		public object UpdateImportId { get; set; }
+		public object LeadId { get; set; }
+		public object OriginDealId { get; set; }
+		public object ReevId { get; set; }
+		public int CreatorId { get; set; }
+		public object UpdaterId { get; set; }
+		public DateTime CreateDate { get; set; }
+		public DateTime LastUpdateDate { get; set; }
+		public object LastDocumentId { get; set; }
+		public object DealNumber { get; set; }
+		public object WonQuote { get; set; }
+		public object LastDocument { get; set; }
+	}
+
+	public class OtherProperties
+	{
+		[JsonProperty("deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9")]
+		public string TecnicoResposavel { get; set; }
+		[JsonProperty("deal_39FB2467-8E59-4B85-A786-910028568BDE")]
+		public string DocumentoDoTecnico { get; set; }
+		[JsonProperty("deal_A52843BA-8989-41B8-B8DB-6401AB645D42")]
+		public int ResultadoValidacao { get; set; }
+		[JsonProperty("deal_B37F48D5-A16D-423B-8553-872F8626E811")]
+		public bool Comprovante1aParcelaIdentificado { get; set;}
+		[JsonProperty("deal_37E5E69F-5708-42DE-8356-6D3BAC437A6C")]
+		public long BoletoAttachmentId { get; set; }
+
+		[JsonProperty("deal_2657388F-8F9D-4C4C-BDE8-233EC455C604")]
+		public string NomeTecnico1 { get; set; } 
+		[JsonProperty("deal_07980D96-E24E-4FE8-99DD-DDA0974015E3")]
+		public string DocTecnico1 { get; set; } 
+		[JsonProperty("deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E")]
+		public string NomeTecnico2 { get; set; }
+		[JsonProperty("deal_9C48007E-B4AB-47D8-918A-D90436056253")]
+		public string DocTecnico2 { get; set; } 
+		[JsonProperty("deal_34F45D74-54D7-4541-8E72-4828D7FF09A5")]
+		public string NomeTecnico3 { get; set; }
+		[JsonProperty("deal_70B6D1A9-9F14-47C8-BF42-698866E6B248")]
+		public string DocTecnico3 { get; set; }
 	}
 #pragma warning disable CA1812
 	internal class State
