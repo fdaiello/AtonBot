@@ -113,18 +113,8 @@ namespace MrBot.Dialogs
 					// Envia o PDF com a proposta
 					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Aqui está o PDF com a mesma:", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
 
-					// Pergunta se podemos prosseguir com a proposta? Sim / Não
-					var card = new HeroCard
-					{
-						Text = $"Podemos prosseguir com a proposta?",
-						Buttons = new List<CardAction>
-					{
-						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
-						new CardAction(ActionTypes.ImBack, title: "Não", value: "não"),
-					},
-					};
-					// Send the card(s) to the user as an attachment to the activity
-					await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
+					// Da mensagem par ler e chamar quando quiser continuar
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, analise, e me chame quando quiser aprovar, e agendar sua instalação. Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);
 
 					// Muda o estágio do Lead para Proposta Apresentada
 					_deal.StageId = AtonStageId.PropostaApresentada;
@@ -135,8 +125,8 @@ namespace MrBot.Dialogs
 					// Marca que apresentou a proposta
 					conversationData.PropostaEnviada = true;
 
-					// Aguarda uma resposta
-					return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
+					// Finaliza o diálogo
+					return await stepContext.EndDialogAsync().ConfigureAwait(false);
 				}
 				else
 				{

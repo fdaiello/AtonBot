@@ -19,7 +19,11 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.IO;
-using System.ServiceModel.Channels;
+using NETCore.MailKit.Core;
+using NETCore.MailKit.Infrastructure.Internal;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+using Microsoft.VisualBasic;
+using System;
 
 namespace MrBot.Controllers
 {
@@ -29,20 +33,26 @@ namespace MrBot.Controllers
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
 		private readonly string _appId;
-		private readonly BotDbContext _context;
+		private readonly BotDbContext _botDbContext;
 		private string proactivetext = "";
+		private string userid;
+		private string token;
+
+		// Pra enviar emails
+		private readonly IEmailService _EmailService;
 
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext context, ConcurrentDictionary<string, ConversationReference> conversationReferences)
+		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService)
 		{
 			_adapter = adapter;
 			_appId = configuration["MicrosoftAppId"];
-			// Database Context
-			_context = context;
-			// Hash onde estão salvos pelo Bot as Conversations References
+			_botDbContext = botDbContext;
 			_conversationReferences = conversationReferences;
+			_EmailService = emailService;
+			userid = configuration["MisterPostmanAPI.userId"];
+			token = configuration["MisterPostmanAPI.token"];
 		}
 
 		public async Task<IActionResult> Post(string key)
@@ -69,7 +79,7 @@ namespace MrBot.Controllers
 					int contactId = apiDealWebhook.NewDeal.ContactId;
 
 					// Procura na base
-					Customer customer = _context.Customers.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
+					Customer customer = _botDbContext.Customers.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
 
 					// Se achou o cliente na nossa base
 					if (customer != null)
@@ -84,8 +94,27 @@ namespace MrBot.Controllers
 
 						// Se foi validada a proposta
 						else if (apiDealWebhook.OldDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada & apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao == AtonResultadoValicacao.Validada)
+                        {
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+							// Marca em Customer a data/hora que envioiu essa notificação - para enviar novamente 24 horas depois
+							customer.Tag3 = DateAndTime.Now.ToString(new CultureInfo("en-US"));
+							// Salva o cliente no banco
+							_botDbContext.Customers.Update(customer);
+							await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+						}
+
+						// 24 Horas depois que enviou a notificação da proposta, se ainda está no mesmo estágio, notifica novamente
+						else if (apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada && apiDealWebhook.NewDeal.StageId == AtonStageId.ValidacaoDaVisitaeProposta && DateTime.TryParse(customer.Tag3, out DateTime dtNotificacaoProposta) && dtNotificacaoProposta.Subtract(DateTime.Now).TotalHours > 24)
+                        {
+							// Monta a mensagem
+							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+							// Limpa tag 3 para não enviar novamente
+							customer.Tag3 = string.Empty;
+							// Salva o cliente no banco
+							_botDbContext.Customers.Update(customer);
+							await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+						}
 
 						// Quando for anexado o comprovante do primeiro pagamento
 						else if (!apiDealWebhook.OldDeal.OtherProperties.Comprovante1aParcelaIdentificado & apiDealWebhook.NewDeal.OtherProperties.Comprovante1aParcelaIdentificado)
@@ -105,8 +134,17 @@ namespace MrBot.Controllers
 
 						// Se montou alguma mensagem
 						if (!string.IsNullOrEmpty(message))
-							/// Envia
+                        {
+							// Envia notificação por WhatsApp
 							await SendProactiveMessage(customer.Id, message).ConfigureAwait(false);
+
+							// Envia por email
+							await _EmailService.SendAsync(customer.Email, "AtonBot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+
+							// Envia por SMS
+							await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAtonBot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+
+						}
 
 						// Devolve resposta Http
 						return new ContentResult()
@@ -143,7 +181,7 @@ namespace MrBot.Controllers
 
 		private async Task<IActionResult> SendProactiveMessage( string customerId, string message )
         {
-			Customer customer = _context.Customers.Where(s => s.Id == customerId).FirstOrDefault();
+			Customer customer = _botDbContext.Customers.Where(s => s.Id == customerId).FirstOrDefault();
 
 			if (customer != null)
 			{
