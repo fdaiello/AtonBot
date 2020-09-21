@@ -115,7 +115,7 @@ namespace MrBot.Dialogs
 				if ( attachment != null && !string.IsNullOrEmpty(attachment.Url))
                 {
 					// Envia o anexo
-					await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Jà vou lhe enviar...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+					await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Já vou lhe enviar...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
 
 					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
 					Task.Delay(3000).Wait();
@@ -136,20 +136,29 @@ namespace MrBot.Dialogs
 			// Verifica já agendou a Instalação
 			if ( _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataInstalacao).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataInstalacao).FirstOrDefault().DateTimeValue != null)
 			{
+
+				// Busca informação ( nome e documento ) dos tecnicos
+				infoTecnicos = GetInfoTecnicos();
+
+				// Se tem informações dos técnicos
+				if (!string.IsNullOrEmpty(infoTecnicos) && !conversationData.TecnicosInstalacaoInformado)
+                {
+					// Informa os dados do(s) técnico(s)
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estes são os técnicos que irão fazer sua instalação:\n" + infoTecnicos), cancellationToken).ConfigureAwait(false);
+
+					// Marca que já informou
+					conversationData.TecnicosInstalacaoInformado = true;
+
+					// Finaliza
+					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				}
+
 				// Busca a data
 				DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataInstalacao).FirstOrDefault().DateTimeValue;
 				DateTime horarioAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioInstalacao).FirstOrDefault().DateTimeValue;
 
 				// Informa que a instalação está agendada, e confirma a data e hora
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Nós agendamos sua instalação para o dia {dataAgendamento:dd/MM} às {horarioAgendamento:HH:mm}. 📝"), cancellationToken).ConfigureAwait(false);
-
-				// Busca informação ( nome e documento ) dos tecnicos
-				infoTecnicos = GetInfoTecnicos();
-
-				// Se tem informações dos técnicos
-				if (!string.IsNullOrEmpty(infoTecnicos))
-                    // Informa os dados do(s) técnico(s)
-                    await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estes são os técnicos responsáveis:\n" + infoTecnicos), cancellationToken).ConfigureAwait(false);
 
 				// Create a HeroCard with options for the user to interact with the bot.
 				var card = new HeroCard

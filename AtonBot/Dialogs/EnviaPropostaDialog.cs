@@ -75,15 +75,12 @@ namespace MrBot.Dialogs
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
 
 			// Se já apresentou a proposta antes
-			if ( conversationData.PropostaEnviada)
+			if (conversationData.PropostaEnviada & _deal.StageId == AtonStageId.PropostaApresentada)
             {
-				// Avisa que a proposta está pronta, mas deu erro e não conseguiu obter no sistema.
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Você conseguiu avalia a proposta?"), cancellationToken).ConfigureAwait(false);
-
 				// Pergunta se podemos prosseguir com a proposta? Sim / Não
 				var card = new HeroCard
 				{
-					Text = $"Podemos prosseguir?",
+					Text = $"Você conseguiu avalia a proposta? Podemos prosseguir?",
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -92,12 +89,6 @@ namespace MrBot.Dialogs
 				};
 				// Send the card(s) to the user as an attachment to the activity
 				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
-
-				// Muda o estágio do Lead para Proposta Apresentada
-				_deal.StageId = AtonStageId.PropostaApresentada;
-
-				// Patch Deal
-				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
 				// Aguarda uma resposta
 				return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
