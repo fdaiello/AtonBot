@@ -32,6 +32,7 @@ using System.IO;
 using Azure.Storage.Blobs;
 using PloomesApi;
 using MrBot.Models;
+using GsWhatsApp;
 
 namespace MrBot
 {
@@ -183,6 +184,11 @@ namespace MrBot
 
 			// Cria um Ploomes Deal para compartilhar entre os diálogos
 			services.AddScoped<Deal>();
+
+			// Get Gs ( GupShupAPI ) Settings & API
+			GsWhatsAppOptions gsWhatsAppOptions = new GsWhatsAppOptions(Configuration["GsSettings:GsApiKey"], new Uri(Configuration["GsSettings:GsApiUri"]), new Uri(Configuration["GsSettings:GsMediaUri"]));
+			GsWhatsAppClient gsWhatsAppClient = new GsWhatsAppClient(gsWhatsAppOptions);
+			services.AddSingleton(gsWhatsAppClient);
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

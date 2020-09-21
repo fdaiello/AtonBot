@@ -8,20 +8,21 @@ using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
 using MrBot.Data;
 using MrBot.Models;
+using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
+using System.IO;
 using PloomesApi;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
-using System.Text;
-using System.IO;
 using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
-using System;
+using GsWhatsApp;
 
 namespace MrBot.Controllers
 {
@@ -30,11 +31,10 @@ namespace MrBot.Controllers
 	public class WebHookController : ControllerBase
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
-		private readonly string _appId;
 		private readonly BotDbContext _botDbContext;
-		private string proactivetext = "";
 		private readonly string userid;
 		private readonly string token;
+		private readonly GsWhatsAppClient _gsWhatsAppClient;
 
 		// Pra enviar emails
 		private readonly IEmailService _EmailService;
@@ -42,13 +42,13 @@ namespace MrBot.Controllers
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService)
+		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient)
 		{
 			_adapter = adapter;
-			_appId = configuration["MicrosoftAppId"];
 			_botDbContext = botDbContext;
 			_conversationReferences = conversationReferences;
 			_EmailService = emailService;
+			_gsWhatsAppClient = gsWhatsAppClient;
 			userid = configuration["MisterPostmanApi:userId"];
 			token = configuration["MisterPostmanApi:token"];
 		}
@@ -82,6 +82,18 @@ namespace MrBot.Controllers
 					// Se achou o cliente na nossa base
 					if (customer != null)
 					{
+						// Busca o whatsAppNumber do grupo do qual este customerid participa
+						string whatsAppNumber = string.Empty ;
+						Group uGroup = _botDbContext.Groups.Where(p => p.Id == customer.GroupId).FirstOrDefault();
+						// Se nao achou
+						if (uGroup != null)
+							whatsAppNumber = uGroup.WhatsAppNumber;
+
+						// Busca o telefone do WhatsApp do cliente - segunda parte do Id, apos o traco
+						string customerWaNumber = string.Empty;
+						if ( customer.Id.Split("-").Length==2)
+							customerWaNumber = customer.Id.Split("-")[1];
+
 						// Mensagem que vamos enviar
 						string message = string.Empty;
 
@@ -92,7 +104,7 @@ namespace MrBot.Controllers
 
 						// Se foi validada a proposta
 						else if (apiDealWebhook.OldDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada & apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao == AtonResultadoValicacao.Validada)
-                        {
+						{
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
 							// Marca em Customer a data/hora que envioiu essa notificação - para enviar novamente 24 horas depois
@@ -104,7 +116,7 @@ namespace MrBot.Controllers
 
 						// 24 Horas depois que enviou a notificação da proposta, se ainda está no mesmo estágio, notifica novamente
 						else if (apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada && apiDealWebhook.NewDeal.StageId == AtonStageId.ValidacaoDaVisitaeProposta && DateTime.TryParse(customer.Tag3, out DateTime dtNotificacaoProposta) && dtNotificacaoProposta.Subtract(DateTime.Now).TotalHours > 24)
-                        {
+						{
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
 							// Limpa tag 3 para não enviar novamente
@@ -129,12 +141,12 @@ namespace MrBot.Controllers
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! O seu boleto de pagamento da segunda parcela já está disponível. Entre em contato para que eu possa lhe enviar.";
 
-
 						// Se montou alguma mensagem
 						if (!string.IsNullOrEmpty(message))
                         {
-							// Envia notificação por WhatsApp
-							await SendProactiveMessage(customer.Id, message).ConfigureAwait(false);
+							// Envia a mensagem direto via API do WhatsApp
+							if ( !string.IsNullOrEmpty(whatsAppNumber) & !string.IsNullOrEmpty(customerWaNumber))
+								await _gsWhatsAppClient.SendText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
 
 							// Envia por email
 							await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
@@ -177,53 +189,6 @@ namespace MrBot.Controllers
 			}
 		}
 
-		private async Task<IActionResult> SendProactiveMessage( string customerId, string message )
-        {
-			Customer customer = _botDbContext.Customers.Where(s => s.Id == customerId).FirstOrDefault();
-
-			if (customer != null)
-			{
-
-				proactivetext = message;
-
-				// Testa se a chave existe no dicionário
-				if (_conversationReferences.ContainsKey(customer.Id))
-				{
-					// Busca o ConversationReference deste usuario
-					ConversationReference conversationReference = _conversationReferences[customer.Id];
-
-					// Envia uma notificação proativa
-					await ((BotAdapter)_adapter).ContinueConversationAsync(_appId, conversationReference, BotCallback, default).ConfigureAwait(false);
-
-					// Let the caller know proactive messages have been sent
-					return new ContentResult()
-					{
-						Content = "<html><body>Proactive message have been sent.</body></html>",
-						ContentType = "text/html",
-						StatusCode = (int)HttpStatusCode.OK,
-					};
-
-				}
-				else
-					// Let the caller know proactive messages have been sent
-					return new ContentResult()
-					{
-						Content = "<html><body>Conversation reference not found for customer: " + customerId.ToString(CultureInfo.InvariantCulture) + ".</body></html>",
-						ContentType = "text/html",
-						StatusCode = (int)HttpStatusCode.OK,
-					};
-
-			}
-			else
-				// Error - customer not found
-				return new ContentResult()
-				{
-					Content = "<html><body>Customer not found: " + customerId.ToString(CultureInfo.InvariantCulture) + ".</body></html>",
-					ContentType = "text/html",
-					StatusCode = (int)HttpStatusCode.OK,
-				};
-
-		}
 		/// <summary>
 		/// Retrieve the raw body as a string from the Request.Body stream
 		/// </summary>
@@ -238,12 +203,5 @@ namespace MrBot.Controllers
 			using (StreamReader reader = new StreamReader(request.Body, encoding))
 				return await reader.ReadToEndAsync().ConfigureAwait(false);
 		}
-		private async Task BotCallback(ITurnContext turnContext, CancellationToken cancellationToken)
-		{
-			// If you encounter permission-related errors when sending this message, see
-			// https://aka.ms/BotTrustServiceUrl
-			await turnContext.SendActivityAsync(proactivetext).ConfigureAwait(false);
-		}
-
 	}
 }
