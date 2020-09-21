@@ -495,7 +495,7 @@ namespace PloomesApi
 				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
 				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
-				Uri postContactUri = new Uri(serverUri.ToString() + $"/Contacts?$filter=Id+eq+{Id}");
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Contacts?$filter=Id+eq+{Id}&$expand=OtherProperties");
 				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 

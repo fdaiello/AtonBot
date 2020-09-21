@@ -388,6 +388,13 @@ namespace MrBot.Dialogs
 					// Altera o Negocio no Ploomoes - Patch Deal
 					ploomesDealId = await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
+				// Se alterou o nome da pessoa que acompanha
+				if (_contact.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaVisita) != null && (string)stepContext.Values["quemacompanha"] != _contact.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaVisita).FirstOrDefault().StringValue)
+                {
+					_contact.MarcaQuemAcompanhaVisita((string)stepContext.Values["quemacompanha"]);
+					await _ploomesclient.PatchContact(_contact).ConfigureAwait(false);
+                }
+
 				// Confirma se conseguiu inserir corretamente o Lead
 				if (ploomesDealId != 0)
 					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
