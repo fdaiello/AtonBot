@@ -111,7 +111,10 @@ namespace MrBot.Dialogs
 				if (quote != null && !string.IsNullOrEmpty(quote.DocumentUrl))
 				{
 					// Envia o PDF com a proposta
-					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Aqui está o PDF com a mesma:", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Já vou lhe enviar ...", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+
+					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
+					Task.Delay(3000).Wait();
 
 					// Da mensagem par ler e chamar quando quiser continuar
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, analise, e me chame quando quiser aprovar, e agendar sua instalação. Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);

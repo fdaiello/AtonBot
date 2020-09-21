@@ -115,7 +115,10 @@ namespace MrBot.Dialogs
 				if ( attachment != null && !string.IsNullOrEmpty(attachment.Url))
                 {
 					// Envia o anexo
-					await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Vou lhe enviar:", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+					await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Jà vou lhe enviar...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+
+					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
+					Task.Delay(3000).Wait();
 
 					// Da mensagem
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Precisando algo mais, é só me chamar."), cancellationToken).ConfigureAwait(false);
