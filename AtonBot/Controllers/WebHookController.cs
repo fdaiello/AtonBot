@@ -20,8 +20,6 @@ using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.IO;
 using NETCore.MailKit.Core;
-using NETCore.MailKit.Infrastructure.Internal;
-using Org.BouncyCastle.Bcpg.OpenPgp;
 using Microsoft.VisualBasic;
 using System;
 
@@ -35,8 +33,8 @@ namespace MrBot.Controllers
 		private readonly string _appId;
 		private readonly BotDbContext _botDbContext;
 		private string proactivetext = "";
-		private string userid;
-		private string token;
+		private readonly string userid;
+		private readonly string token;
 
 		// Pra enviar emails
 		private readonly IEmailService _EmailService;
@@ -51,8 +49,8 @@ namespace MrBot.Controllers
 			_botDbContext = botDbContext;
 			_conversationReferences = conversationReferences;
 			_EmailService = emailService;
-			userid = configuration["MisterPostmanAPI.userId"];
-			token = configuration["MisterPostmanAPI.token"];
+			userid = configuration["MisterPostmanApi:userId"];
+			token = configuration["MisterPostmanApi:token"];
 		}
 
 		public async Task<IActionResult> Post(string key)
@@ -139,10 +137,10 @@ namespace MrBot.Controllers
 							await SendProactiveMessage(customer.Id, message).ConfigureAwait(false);
 
 							// Envia por email
-							await _EmailService.SendAsync(customer.Email, "AtonBot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+							await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
 
 							// Envia por SMS
-							await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAtonBot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+							await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
 
 						}
 
