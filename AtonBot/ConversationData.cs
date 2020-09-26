@@ -28,6 +28,10 @@ namespace MrBot
 		{
 			this.NextAvailableDates.Add(availabledate);
 		}
+		public void ResetAvailableDates()
+        {
+			this.NextAvailableDates.Clear();
+        }
 		// Mark if proposal was sent
 		public bool PropostaEnviada { get; set; }
 		// Mark if bill was sent

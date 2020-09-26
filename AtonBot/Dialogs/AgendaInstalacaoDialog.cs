@@ -385,7 +385,7 @@ namespace MrBot.Dialogs
 			if (choice == "s" | choice == "sim")
 			{
 				// Avisa o cliente para aguardar enquanto salva os dados
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema..."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Por favor, aguarde enquanto salvo seu agendamento no nosso sistema...👨‍💻"), cancellationToken).ConfigureAwait(false);
 
 				string msg;
 

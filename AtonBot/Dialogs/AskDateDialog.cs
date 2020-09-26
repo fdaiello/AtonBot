@@ -88,6 +88,7 @@ namespace MrBot.Dialogs
 			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			conversationData.ResetAvailableDates();
 			foreach ( DateTime availableDate in nextAvailableDates)
 				conversationData.AddAvailableDate(availableDate);
 
@@ -245,7 +246,7 @@ namespace MrBot.Dialogs
 				else
 				{
 					if (DateTime.Compare(firstAvailableDate, dataescolhida) > 0)
-						await promptContext.Context.SendActivityAsync(MessageFactory.Text($"Só temos agenda disponível a partir do dia {firstAvailableDate:dd/MM}. \nPor favor, escolha outra data. 🔜"), cancellationToken).ConfigureAwait(false);
+						await promptContext.Context.SendActivityAsync(MessageFactory.Text($"Só temos agenda disponível a partir do dia {firstAvailableDate:dd/MM}. \nPor favor, escolha outra data. 🔖"), cancellationToken).ConfigureAwait(false);
 					else if (Utility.IsHoliday(dataescolhida))
 						await promptContext.Context.SendActivityAsync(MessageFactory.Text($"Dia {dataescolhida:dd/MM} é feriado! 🎉 \nPor favor, escolha outra data."), cancellationToken).ConfigureAwait(false);
 					else if (Utility.IsWeekend(dataescolhida))
