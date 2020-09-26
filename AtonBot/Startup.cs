@@ -147,6 +147,7 @@ namespace MrBot
 			services.AddTransient<ReAgendaVisitaDialog>();
 			services.AddTransient<EnviaPropostaDialog>();
 			services.AddTransient<AgendaInstalacaoDialog>();
+			services.AddTransient<AskDateDialog>();
 
 
 			// Langage Generation

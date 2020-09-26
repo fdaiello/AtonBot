@@ -34,7 +34,7 @@ namespace MrBot.Dialogs
 		private readonly Contact _contact;
 		private readonly Deal _deal;
 
-		public ReAgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, Contact contact)
+		public ReAgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, Contact contact, AskDateDialog askDateDialog)
 			: base(nameof(ReAgendaVisitaDialog))
 		{
 
@@ -53,7 +53,6 @@ namespace MrBot.Dialogs
 			// Adiciona um diálogo de prompt de texto para continuar
 			AddDialog(new TextPrompt("sim_nao", YesNoValidatorAsync));
 			// Adiciona um diálogo de prompt de texto com validação das datas
-			AddDialog(new TextPrompt("dateprompt", DateValidatorAsync));
 			// Adiciona um diálogo de prompt de texto para validar o turno
 			AddDialog(new TextPrompt("turnoprompt",TurnoValidatorAsync));
 			// Adiciona um diálogo de prompt de texto para validar o horario da manha
@@ -77,6 +76,7 @@ namespace MrBot.Dialogs
 			}));
 
 			AddDialog(querAtendimentoDialog);
+			AddDialog(askDateDialog);
 
 			// Configura para iniciar no WaterFall Dialog
 			InitialDialogId = nameof(WaterfallDialog);
@@ -192,38 +192,8 @@ namespace MrBot.Dialogs
 			// Busca o cep do Contact
 			string cep = _contact.ZipCode.ToString();
 
-			// Procura as opções de data com base no CEP informado
-			List<DateTime> nextAvailableDates= GetNextAvailableDates(cep);
-
-			// Salva as datas disponiveis em variavel persistente
-			stepContext.Values["nextAvailableDates"] = nextAvailableDates;
-
-			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-			foreach ( DateTime availableDate in nextAvailableDates)
-				conversationData.AddAvailableDate(availableDate);
-
-			// Monta HeroCard para perguntar a data desejada, dentro das opções disponíveis
-			var card = new HeroCard
-			{
-				Title = $"Agendamento {_dialogDictionary.Emoji.Calendar}",
-				Text = "Obrigado pela informação. Para seu endereço temos as seguintes datas disponíveis:",
-				Buttons = new List<CardAction> { }
-			};
-
-			// Adiciona botões para as datas disponíveis
-			for ( int x = 0; x <= nextAvailableDates.Count-1; x++)
-				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x].ToString("dd/MM", CultureInfo.InvariantCulture), value: nextAvailableDates[x]));
-			
-			// Send the card(s) to the user as an attachment to the activity
-			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
-
-			// Aguarda uma resposta
-			string retryText = "Por favor, escolha uma destas datas: ";
-			foreach (DateTime nextavailabledate in nextAvailableDates)
-				retryText += " " + nextavailabledate.ToString("dd/MM", CultureInfo.InvariantCulture);
-			return await stepContext.PromptAsync("dateprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text(retryText) }, cancellationToken).ConfigureAwait(false);
+			// Chama o diálogo que pergunta a data desejada, dando opções com base no CEP do cliente
+			return await stepContext.BeginDialogAsync(nameof(AskDateDialog), cep, cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -397,7 +367,7 @@ namespace MrBot.Dialogs
 
 				// Confirma se conseguiu inserir corretamente o Lead
 				if (ploomesDealId != 0)
-					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} foi reagendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
 				else
 					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
 
@@ -460,61 +430,6 @@ namespace MrBot.Dialogs
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
-		}
-
-		// Valida as datas
-		private async Task<bool> DateValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
-		{
-
-			// Busca o que foi digitado
-			string choice = (string)promptContext.Context.Activity.Text;
-			choice = choice.PadLeft(2, '0');
-
-			// Ponteiro para os dados persistentes da conversa
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-			// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
-			choice = choice.Replace("-", "/").Replace("dia ","");
-
-			// Busca novamente as datas disponíveis
-			List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;
-			// Array com as escolhas em format string dd/MM
-			List<string> validchoices= new List<string>();
-
-			// Adiciona as datas e os dia das datas as possibilidaes de validação- pra validar se o cliente digitar somente o dia
-			foreach (DateTime data in nextAvailableDates)
-			{
-				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture));
-				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture).Split("/")[0]);
-			}
-
-			// Devolve true or false se a escolha esta dentro da lista de datas disponíveis
-			return validchoices.Contains(choice);
-		}
-		// Busca as próximas datas disponiveis, com base no CEP informado
-		private static List<DateTime> GetNextAvailableDates(string cep)
-		{
-			List<DateTime> nextAvailableDates = new List<DateTime>();
-
-			//TODO: Lógica para obter as próximas datas disponíveis
-			int choicesQuantity = 3;
-			int nextDateDelay = 7;
-			int icep = int.Parse(Utility.ClearStringNumber(cep));
-			if ( Utility.CepIsCapital(icep) )
-			{
-				nextDateDelay = 5;
-			}
-			DateTime nextDate = DateTime.Today.AddDays(nextDateDelay+1); 
-
-			do
-			{
-				nextDate = Utility.GetNextWorkingDay(nextDate);
-				nextAvailableDates.Add(nextDate);
-
-			} while (nextAvailableDates.Count < choicesQuantity);
-
-			return nextAvailableDates;
 		}
 	}
 }

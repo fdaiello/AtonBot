@@ -46,16 +46,14 @@ namespace MrBot
 				telemetryClient.TrackException(exception);
 
 				// Send a message to the user
-				await turnContext.SendActivityAsync("Me desculpe, mas estou enfrentando um problema no meu servidor.").ConfigureAwait(false);
-				await turnContext.SendActivityAsync("Vamos tentar recomeçar pra ver se da certo. Por favor, tecle: menu").ConfigureAwait(false);
+				await turnContext.SendActivityAsync("Me desculpe, mas estou enfrentando um problema no meu servidor. Vou ter que recomeçar ...").ConfigureAwait(false);
 
 				// Send a trace activity, which will be displayed in the Bot Framework Emulator
 				await turnContext.TraceActivityAsync("OnTurnError Trace", exception.Message, "https://www.botframework.com/schemas/error", "TurnError").ConfigureAwait(false);
 
 				// Registra no banco o erro
 				await LogBotMessageToDatabase(turnContext.Activity.Text, turnContext.Activity.From.Id, MessageSource.Customer).ConfigureAwait(false);
-				await LogBotMessageToDatabase("Foi mal ... estou enfrentando um problema no meu servidor.", turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
-				await LogBotMessageToDatabase("Vamos tentar recomeçar pra ver se da certo. Por favor, tecle: menu", turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
+				await turnContext.SendActivityAsync("Me desculpe, mas estou enfrentando um problema no meu servidor. Vou ter que recomeçar ...").ConfigureAwait(false);
 				await LogBotMessageToDatabase(exception.Message, turnContext.Activity.From.Id, MessageSource.Bot).ConfigureAwait(false);
 
 				// Se tem inner exception

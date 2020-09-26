@@ -37,7 +37,7 @@ namespace MrBot
 				telemetryClient.TrackException(exception);
 
 				// Send a message to the user
-				await turnContext.SendActivityAsync("Foi mal ... ocorreu um problema que não sei resolver. \n\n " + exception.Message).ConfigureAwait(false);
+				await turnContext.SendActivityAsync("Me desculpe, mas ocorreu um erro no meu servidor, e vou ter que recomeçar ... \n\n " + exception.Message).ConfigureAwait(false);
 				await turnContext.SendActivityAsync("Vou ter que recomeçar ... ").ConfigureAwait(false);
 
 				// Send a trace activity, which will be displayed in the Bot Framework Emulator
