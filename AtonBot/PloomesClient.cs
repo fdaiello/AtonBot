@@ -32,8 +32,10 @@ namespace PloomesApi
 		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
 		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
 		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
-		public const string TecnicoResponsavel = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
-		public const string DocumentoDoTecnico = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
+		public const string NomeTecnicoVisita = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
+		public const string DocTecnicoVisita = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
+		public const string OutrosTecnicosVisita = "deal_E32A69AD-0D90-4B88-B641-B4D4153FE211";
+		public const string PlacaTecnicoVisita = "deal_FEEA9A5B-F08F-4C42-A562-32E2051C3FFD";
 		public const string PropostaRevisada = "deal_A7409213-F8DE-43B6-9A6E-A5B9606C045C";
 		public const string PropostaAceita = "deal_D0F8DBEA-C425-4B66-BC51-9429A601DC1E";
 		public const string Comprovante1aParcelaIdentificado = "deal_B37F48D5-A16D-423B-8553-872F8626E811";
@@ -41,10 +43,13 @@ namespace PloomesApi
 		public const string HorarioInstalacao = "deal_DB83C020-BB92-4EB6-A01B-0D80A7BD1847";
 		public const string NomeTecnico1 = "deal_2657388F-8F9D-4C4C-BDE8-233EC455C604";
 		public const string DocTecnico1 = "deal_07980D96-E24E-4FE8-99DD-DDA0974015E3";
+		public const string PlacaTecnico1 = "deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4";
 		public const string NomeTecnico2 = "deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E";
 		public const string DocTecnico2 = "deal_9C48007E-B4AB-47D8-918A-D90436056253";
+		public const string PlacaTecnico2 = "deal_5AB70F3A-D3BB-4214-90E5-12AAE0246FCF";
 		public const string NomeTecnico3 = "deal_34F45D74-54D7-4541-8E72-4828D7FF09A5";
 		public const string DocTecnico3 = "deal_70B6D1A9-9F14-47C8-BF42-698866E6B248";
+		public const string PlacaTecnico3 = "deal_38C90A1B-01D3-4F7F-89F2-0ED90E903DB5";
 		public const string BoletoAttachmentId = "deal_37E5E69F-5708-42DE-8356-6D3BAC437A6C";
 	}
 	// Ids dos Periodos
@@ -1169,9 +1174,13 @@ namespace PloomesApi
 	public class OtherProperties
 	{
 		[JsonProperty("deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9")]
-		public string TecnicoResposavel { get; set; }
+		public string NomeTecnicoVisita { get; set; }
 		[JsonProperty("deal_39FB2467-8E59-4B85-A786-910028568BDE")]
-		public string DocumentoDoTecnico { get; set; }
+		public string DocTecnicoVisita { get; set; }
+		[JsonProperty("deal_E32A69AD-0D90-4B88-B641-B4D4153FE211")]
+		public string OutrosTecnicosVisita { get; set; }
+		[JsonProperty("deal_FEEA9A5B-F08F-4C42-A562-32E2051C3FFD")]
+		public string PlacaTecnicoVisita { get; set; }
 		[JsonProperty("deal_A52843BA-8989-41B8-B8DB-6401AB645D42")]
 		public int ResultadoValidacao { get; set; }
 		[JsonProperty("deal_B37F48D5-A16D-423B-8553-872F8626E811")]
@@ -1182,15 +1191,21 @@ namespace PloomesApi
 		[JsonProperty("deal_2657388F-8F9D-4C4C-BDE8-233EC455C604")]
 		public string NomeTecnico1 { get; set; } 
 		[JsonProperty("deal_07980D96-E24E-4FE8-99DD-DDA0974015E3")]
-		public string DocTecnico1 { get; set; } 
+		public string DocTecnico1 { get; set; }
+		[JsonProperty("deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4")]
+		public string PlacaTecnico1 { get; set; }
 		[JsonProperty("deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E")]
 		public string NomeTecnico2 { get; set; }
 		[JsonProperty("deal_9C48007E-B4AB-47D8-918A-D90436056253")]
 		public string DocTecnico2 { get; set; } 
+		[JsonProperty("deal_5AB70F3A-D3BB-4214-90E5-12AAE0246FCF")]
+		public string PlacaTecnico2 { get; set; }
 		[JsonProperty("deal_34F45D74-54D7-4541-8E72-4828D7FF09A5")]
 		public string NomeTecnico3 { get; set; }
 		[JsonProperty("deal_70B6D1A9-9F14-47C8-BF42-698866E6B248")]
 		public string DocTecnico3 { get; set; }
+		[JsonProperty("deal_38C90A1B-01D3-4F7F-89F2-0ED90E903DB5")]
+		public string PlacaTecnico3 {get; set;}
 	}
 #pragma warning disable CA1812
 	internal class State

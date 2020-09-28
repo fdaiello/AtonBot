@@ -491,6 +491,11 @@ namespace MrBot.Dialogs
 					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
+				// Se tem a placa to tecnico 1
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue).Length > 1)
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+				else
+					infoTecnicos += "\n";
 			}
 			// Se tem dados do tecnico2
 			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue))
@@ -501,6 +506,11 @@ namespace MrBot.Dialogs
 					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
+				// Se tem a placa to tecnico 2
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue).Length > 1)
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+				else
+					infoTecnicos += "\n";
 			}
 			// Se tem dados do tecnico3
 			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue))
@@ -509,6 +519,11 @@ namespace MrBot.Dialogs
 				// Se tem documento do tecnico 3
 				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue))
 					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue;
+				else
+					infoTecnicos += "\n";
+				// Se tem a placa to tecnico 3
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue).Length > 1)
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
 			}

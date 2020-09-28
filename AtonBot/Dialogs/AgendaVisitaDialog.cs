@@ -146,14 +146,14 @@ namespace MrBot.Dialogs
 						// Se achou a data de agendamento
 						if (dataAgendamento != null)
 							// Se tem dados do tecnico
-							if (_deal.StageId == AtonStageId.VisitaAgendada && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).Any())
+							if (_deal.StageId == AtonStageId.VisitaAgendada && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).Any())
                             {
 								// Adiciona o nome do tecnico a frase inicial
-								tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).FirstOrDefault().StringValue;
+								tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue;
 								if (!string.IsNullOrEmpty(tecnicoResponsavel))
 								initialText += $"\nO técnico resonsável é {tecnicoResponsavel}";
 								// Adiciona o documento do tecnico a frase inicial
-								documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocumentoDoTecnico).FirstOrDefault().StringValue;
+								documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue;
 								if (!string.IsNullOrEmpty(documentoDoTecnico))
 									initialText += $", documento {documentoDoTecnico}.";
 								else
