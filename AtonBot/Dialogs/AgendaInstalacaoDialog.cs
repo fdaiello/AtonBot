@@ -137,9 +137,9 @@ namespace MrBot.Dialogs
 			{
 
 				// Busca informação ( nome e documento ) dos tecnicos
-				infoTecnicos = GetInfoTecnicos();
+				infoTecnicos = GetInfoTecnicosInstalacao();
 
-				// Se tem informações dos técnicos
+				// Se tem informações dos técnicos, e ainda não repassou para o cliente
 				if (!string.IsNullOrEmpty(infoTecnicos) && !conversationData.TecnicosInstalacaoInformado)
                 {
 					// Informa os dados do(s) técnico(s)
@@ -478,7 +478,7 @@ namespace MrBot.Dialogs
 		// Procura nos campos personalizados do Deal, os nomes e documentos dos tecnicos reponsáveis pela instalação
 		// Devolve string com uma linha para cada nome + documento se tiver;
 		// Podem ser 3 tecnicos. São 6 campos extras, um para o nome, outro para o documento
-		private string GetInfoTecnicos()
+		private string GetInfoTecnicosInstalacao()
         {
 			string infoTecnicos = string.Empty;
 
@@ -493,7 +493,7 @@ namespace MrBot.Dialogs
 					infoTecnicos += "\n";
 				// Se tem a placa to tecnico 1
 				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
 			}
@@ -508,7 +508,7 @@ namespace MrBot.Dialogs
 					infoTecnicos += "\n";
 				// Se tem a placa to tecnico 2
 				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
 			}
@@ -523,7 +523,7 @@ namespace MrBot.Dialogs
 					infoTecnicos += "\n";
 				// Se tem a placa to tecnico 3
 				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue + "\n";
 				else
 					infoTecnicos += "\n";
 			}

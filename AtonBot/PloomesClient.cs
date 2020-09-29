@@ -816,6 +816,7 @@ namespace PloomesApi
 	{
 		public string FieldKey { get; set; }
 		public string StringValue { get; set; }
+		public string BigStringValue { get; set; }
 		public object DateTimeValue { get; set; }
 		public object IntegerValue { get; set; }
 		public object BoolValue { get; set; }
@@ -893,9 +894,9 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
-        internal void AddOtherProperty(string fieldkey, string stringvalue, object integervalue, object datetimevalue, object boolvalue)
+        internal void AddOtherProperty(string fieldkey, string stringvalue, object integervalue, object datetimevalue, object boolvalue, string bigstringvalue)
         {
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue }); 
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue, BigStringValue = bigstringvalue }); 
         }
 		public void CopyFrom(Deal deal)
 		{
@@ -907,7 +908,7 @@ namespace PloomesApi
 				}
 				foreach (OtherProperty otherProperty in deal.OtherProperties)
 				{
-					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue, otherProperty.BigStringValue);
 				}
 			}
 		}

@@ -36,7 +36,9 @@ namespace MrBot
 		public bool PropostaEnviada { get; set; }
 		// Mark if bill was sent
 		public bool BoletoEnviado { get; set; }
-		// Marca se já informou os técnicos
+		// Marca se já informou os técnicos da visita
+		public bool TecnicosVisitaInformado { get; set; }
+		// Marca se já informou os técnicos da instalação
 		public bool TecnicosInstalacaoInformado { get; set; }
 	}
 }

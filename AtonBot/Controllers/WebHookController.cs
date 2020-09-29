@@ -100,11 +100,7 @@ namespace MrBot.Controllers
 						// Se preencheu nome do tecnico e documento do tecnico, para  visita
 						if ((string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.NomeTecnicoVisita) | string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.DocTecnicoVisita)) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.NomeTecnicoVisita) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.DocTecnicoVisita))
 							// Monta a mensagem
-							message = $"Oi {customer.Name}! O técnico que fará a sua visita é {apiDealWebhook.NewDeal.OtherProperties.NomeTecnicoVisita}, documento: {apiDealWebhook.NewDeal.OtherProperties.DocTecnicoVisita}. ";
-						if (!string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.OutrosTecnicosVisita) && apiDealWebhook.NewDeal.OtherProperties.OutrosTecnicosVisita.Length > 1)
-							message += $"\nTabém está autorizado: {apiDealWebhook.NewDeal.OtherProperties.OutrosTecnicosVisita}.";
-						if (!string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.PlacaTecnicoVisita) && apiDealWebhook.NewDeal.OtherProperties.PlacaTecnicoVisita.Length > 1)
-							message += $"\nA placa do veículo é: {apiDealWebhook.NewDeal.OtherProperties.PlacaTecnicoVisita}";
+							message = $"Oi {customer.Name}! Já temos o nome dos técnicos que farão a sua visita. Quando puder, entre em contato que lhe informo.";
 
 						// Se foi validada a proposta
 						else if (apiDealWebhook.OldDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada & apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao == AtonResultadoValicacao.Validada)

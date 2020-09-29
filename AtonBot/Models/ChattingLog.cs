@@ -45,6 +45,7 @@ namespace MrBot.Models
 		public DateTime StatusTime { get; set; }                // Time when status was last update
 		public int GroupId { get; set; }                        // CustomerID.GroupID - Denormalization for Dashboard
 		public string QuotedActivityId { get; set; }            // When a message is "quoted" ( cited ), this shows the ActivityID of the message beeing quoted
+		public bool IsHsm { get; set; }                         // Tru when sending a HSM ( template ) WhatsApp Message
 
 	}
 }

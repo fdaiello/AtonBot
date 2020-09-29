@@ -89,8 +89,12 @@ namespace MrBot.Dialogs
 		//       Quer fazer um novo reagendamento?
 		private async Task<DialogTurnResult> AskReQuerAgendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
 			// Monta frase com informação do tecnico
-			string tecnicoInfo = string.Empty;
+			string infoTecnicos = string.Empty;
 
 			// Initialize values
 			stepContext.Values["ploomesId"] = string.Empty;
@@ -103,35 +107,29 @@ namespace MrBot.Dialogs
 				// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
 				if ( _deal != null && _deal.Id > 0 && _deal.OtherProperties != null)
 				{
+
+					// Busca informação ( nome e documento ) dos tecnicos
+					infoTecnicos = GetInfoTecnicosVisita();
+
+					// Se tem informações dos técnicos, e ainda não repassou para o cliente
+					if (!string.IsNullOrEmpty(infoTecnicos) && conversationData.TecnicosVisitaInformado)
+					{
+						// Informa os dados do(s) técnico(s)
+						await stepContext.Context.SendActivityAsync(MessageFactory.Text(infoTecnicos), cancellationToken).ConfigureAwait(false);
+
+						// Marca que já informou
+						conversationData.TecnicosVisitaInformado = true;
+
+						// Finaliza
+						return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					}
+
 					// Busca a data e a hora
 					DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
 					DateTime horaAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioVisita).FirstOrDefault().DateTimeValue;
 
 					// Envia frase de reagendamento
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM} às {horaAgendamento:HH:mm} 📝."), cancellationToken).ConfigureAwait(false);
-
-					String tecnicoResponsavel;
-					String documentoDoTecnico;
-					// Se achou a data de agendamento
-					if (dataAgendamento != null)
-						// Se tem dados do tecnico
-						if (_deal.StageId == AtonStageId.VisitaAgendada && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).Any())
-                        {
-							// Adiciona o nome do tecnico a frase inicial
-							tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue;
-							if (!string.IsNullOrEmpty(tecnicoResponsavel))
-							tecnicoInfo += $"\nO técnico responsável é: {tecnicoResponsavel}";
-							// Adiciona o documento do tecnico a frase inicial
-							documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue;
-							if (!string.IsNullOrEmpty(documentoDoTecnico))
-								tecnicoInfo += $", documento {documentoDoTecnico}.";
-							else
-								tecnicoInfo += ".";
-
-							// Informa os dados do tecnico
-							await stepContext.Context.SendActivityAsync(MessageFactory.Text(tecnicoInfo), cancellationToken).ConfigureAwait(false);
-						}
-
 
 					// Create a HeroCard with options for the user to interact with the bot.
 					var card = new HeroCard
@@ -431,5 +429,39 @@ namespace MrBot.Dialogs
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
 		}
+		// Procura nos campos personalizados do Deal, os nomes, documento e placa do tecnico reponsáveis pela visita
+		// Confere se tem dado no campo Outros Tecnicos.
+		// Devolve string com uma linha formatada com as informações encontradas.
+		private string GetInfoTecnicosVisita()
+		{
+			string infoTecnicos = string.Empty;
+
+			// Se tem dados do tecnico que fará a visita
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue))
+			{
+				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue;
+				// Se tem documento do tecnico 
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue))
+					infoTecnicos += ", documento: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue + "\n";
+				else
+					infoTecnicos += "\n";
+				// Se tem a placa do tecnico que fará a visita
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue).Length > 1)
+					infoTecnicos += ", placa: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue + "\n";
+				else
+					infoTecnicos += "\n";
+			}
+			// Se tem dados de outros técnicos
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue))
+			{
+				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue + "\n";
+				infoTecnicos = "Estes são os técnicos que farão a sua visita:\n" + infoTecnicos;
+			}
+			else
+				infoTecnicos = "Este é o técnico que fará a sua visita:\n" + infoTecnicos;
+
+			return infoTecnicos;
+		}
+
 	}
 }
