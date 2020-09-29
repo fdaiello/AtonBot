@@ -112,7 +112,7 @@ namespace MrBot.Dialogs
 					infoTecnicos = GetInfoTecnicosVisita();
 
 					// Se tem informações dos técnicos, e ainda não repassou para o cliente
-					if (!string.IsNullOrEmpty(infoTecnicos) && conversationData.TecnicosVisitaInformado)
+					if (!string.IsNullOrEmpty(infoTecnicos) && !conversationData.TecnicosVisitaInformado)
 					{
 						// Informa os dados do(s) técnico(s)
 						await stepContext.Context.SendActivityAsync(MessageFactory.Text(infoTecnicos), cancellationToken).ConfigureAwait(false);

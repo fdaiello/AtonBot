@@ -487,7 +487,7 @@ namespace MrBot.Dialogs
 		// Pergunta o complemento do endereço
 		private async Task<DialogTurnResult> AskAddressComplementAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
-			// Busca o número e complemento informado no passo anterior
+			// Busca o número informado no passo anterior
 			string numero = (string)stepContext.Result;
 
 			// Salva o número em variável persitente ao diálogo
@@ -501,6 +501,13 @@ namespace MrBot.Dialogs
 		// Pergunta a Data desejada
 		private async Task<DialogTurnResult> AskDateStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+
+			// Busca o complemento informado no passo anterior
+			string complemento = (string)stepContext.Result;
+
+			// Salva o número em variável persitente ao diálogo
+			stepContext.Values["complemento"] = complemento;
+
 			// Chama o diálogo que pergunta a data desejada, dando opções com base no CEP do cliente
 			return await stepContext.BeginDialogAsync(nameof(AskDateDialog), (string)stepContext.Values["cep"], cancellationToken).ConfigureAwait(false);
 		}
