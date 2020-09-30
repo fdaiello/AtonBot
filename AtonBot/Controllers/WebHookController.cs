@@ -160,6 +160,8 @@ namespace MrBot.Controllers
                                 {
 									// Salva registro em ChattingLog
 									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId };
+									_botDbContext.ChattingLogs.Add(chattingLog);
+									await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 								}
 							}
 

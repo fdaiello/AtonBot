@@ -106,7 +106,7 @@ namespace MrBot.Dialogs
 
 				innerDc.Context.Activity.Text = userinput;
 
-				if (userinput == "cancelar" | userinput == "cancela" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa")
+				if (userinput == "cancelar" | userinput == "cancela" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa" | userinput.Contains("errei") | userinput.Contains("errado"))
 				{
 					// Envia mensagem
 					string text;
@@ -116,6 +116,8 @@ namespace MrBot.Dialogs
 						text = "Ok, saindo ...";
 					else if (userinput == "voltar")
 						text = "Ok, voltando ...";
+					else if (userinput == "errado" || userinput == "errei")
+						text = "Tudo bem ... vamos tentar recomeçar então.";
 					else
 						text = "Ok, cancelando...";
 					var message = MessageFactory.Text(text, text, InputHints.IgnoringInput);

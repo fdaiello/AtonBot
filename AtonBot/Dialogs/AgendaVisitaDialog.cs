@@ -65,6 +65,8 @@ namespace MrBot.Dialogs
 			AddDialog(new TextPrompt("TextPrompt"));
 			// Adiciona um diálogo de texto com validaçao de Email
 			AddDialog(new TextPrompt("EmailPrompt", EmailValidatorAsync));
+			// Adiciona um diálogo de texto com validaçao de Nome
+			AddDialog(new TextPrompt("NamePrompt", NameValidatorAsync));
 
 			// Adiciona um dialogo WaterFall com os 2 passos: Mostra as opções, Executa as opções
 			AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
@@ -576,7 +578,7 @@ namespace MrBot.Dialogs
 				Text = "Por favor, escolha o horário:",
 			};
 
-			if ( turno == "manhã" || turno == "manha")
+			if ( turno == "manhã" || turno == "manha" || turno == "m")
 				card.Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: $"08:00", value: "08:00"),
@@ -598,7 +600,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			if (turno == "manhã" || turno == "manha" )
+			if (turno == "manhã" || turno == "manha" || turno == "m")
 				return await stepContext.PromptAsync("HorarioManhaPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 8, 9, 10 ou 11 horas.") }, cancellationToken).ConfigureAwait(false);
 			else
 				return await stepContext.PromptAsync("HorarioTardePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 14, 15, 16 ou 17 horas.") }, cancellationToken).ConfigureAwait(false);
@@ -612,7 +614,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["horario"] = horario;
 
 			// pergunta o nome da pessoa que vai estar no local
-			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?"), RetryPrompt = MessageFactory.Text("Desculpe, não entendi. Por favor, digite o nome de quem acompanhará a visita. Ou digite 'cancelar'." )}, cancellationToken).ConfigureAwait(false);
 
 		}
 		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
@@ -750,7 +752,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou manhã ou tarde
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde";
+			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde" || choice == "t" || choice == "m";
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
@@ -817,6 +819,13 @@ namespace MrBot.Dialogs
 			string typed = promptContext.Context.Activity.Text.Trim().ToUpperInvariant();
 
 			return await Task.FromResult(typed.Contains("PRETENDO")| typed.Contains("ADQUIRIR")| typed.Contains("TOMADA")).ConfigureAwait(false);
+		}
+		// Valida um nome
+		private async Task<bool> NameValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		{
+			string typed = promptContext.Context.Activity.Text.Trim();
+
+			return await Task.FromResult(Utility.IsValidName(typed)).ConfigureAwait(false);
 		}
 
 		// Atualiza o registro do usuario
