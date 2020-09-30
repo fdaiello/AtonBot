@@ -56,17 +56,17 @@ namespace MrBot.Controllers
 		public async Task<IActionResult> Get()
 		{
 
-			string whatsAppNumber = "551146733810";
-			string customerWaNumber = "555191096510";
-			string message = "Oi Felipe! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+			//string whatsAppNumber = "551146733810";
+			//string customerWaNumber = "555191096510";
+			//string message = "Oi Felipe! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
 
-			// Envia teste
-			string messageid = await _gsWhatsAppClient.SendHsmText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+			//// Envia teste
+			//string messageid = await _gsWhatsAppClient.SendHsmText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
 
 			// Devolve resposta Http
 			return new ContentResult()
 			{
-				Content = "<html><body>" + messageid+ "</body></html>",
+				Content = "<html><body>ok</body></html>",
 				ContentType = "text/html",
 				StatusCode = (int)HttpStatusCode.OK,
 			};

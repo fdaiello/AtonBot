@@ -13,7 +13,6 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
@@ -55,6 +54,7 @@ namespace MrBot.Controllers
 
 		public async Task<IActionResult> Post(string key)
 		{
+			string activityId;
 
 			if (string.IsNullOrEmpty(key) || key != "Mp-2020*yui")
 				return new ContentResult()
@@ -144,12 +144,27 @@ namespace MrBot.Controllers
 						// Se montou alguma mensagem
 						if (!string.IsNullOrEmpty(message))
                         {
-							// Envia a mensagem direto via API do WhatsApp
-							if ( !string.IsNullOrEmpty(whatsAppNumber) & !string.IsNullOrEmpty(customerWaNumber))
-								await _gsWhatsAppClient.SendText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+							// Se te os dados para envio pelo Whats
+							if (!string.IsNullOrEmpty(whatsAppNumber) & !string.IsNullOrEmpty(customerWaNumber))
+                            {
+								// Se tem atividade em menos de 24 horas
+								if (Utility.HoraLocal().Subtract(customer.LastActivity).TotalHours < 24)
+									// Envia mensagem normal pelo WhatsApp
+									activityId = await _gsWhatsAppClient.SendText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+								else
+									// Envia HSM pelo WhatsApp
+									activityId = await _gsWhatsAppClient.SendHsmText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+
+								// Se conseguiu enviar, e gerou messageid
+								if (!string.IsNullOrEmpty(activityId))
+                                {
+									// Salva registro em ChattingLog
+									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId };
+								}
+							}
 
 							// Envia por email
-							await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+							// await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
 
 							// Envia por SMS
 							await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
