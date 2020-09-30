@@ -215,7 +215,7 @@ namespace GsWhatsAppAdapter
 				// Se o tipo de mensagem é Evento
 				if (gsCallBack.Type == "message-event")
 					// constroi a Event-Activity com base no que veio na requisição
-					activity = EventActivityBuilder(gsCallBack.Payload.GsId ?? gsCallBack.Payload.Id, gsCallBack.Payload.Type, gsCallBack.Payload.Destination, gsCallBack.App);
+					activity = EventActivityBuilder(gsCallBack.Payload.GsId ?? gsCallBack.Payload.Id, gsCallBack.Payload.Type, gsCallBack.Payload.Destination, gsCallBack.App, gsCallBack.Payload.Payload2.Code, gsCallBack.Payload.Payload2.Reason??string.Empty);
 
 				// Confere se o tipo da mensagem é texto, image ou file
 				else if (gsCallBack.Type == "message" && (gsCallBack.Payload.Type == "text" || gsCallBack.Payload.Type == "image" || gsCallBack.Payload.Type == "file"))
@@ -374,7 +374,7 @@ namespace GsWhatsAppAdapter
 
 		}
 		// Envia um evento para o Bot
-		private static Activity EventActivityBuilder(string messageId, string value, string from, string botname)
+		private static Activity EventActivityBuilder(string messageId, string value, string from, string botname, int code, string reason)
 		{
 			// Instancia uma nova Activity
 			Activity activity = new Activity
@@ -395,7 +395,10 @@ namespace GsWhatsAppAdapter
 				Recipient = new ChannelAccount()
 				{
 					Id = botname,
+
 				},
+				Code = code.ToString(CultureInfo.InvariantCulture),
+				ChannelData = reason
 			};
 
 			return (activity);
@@ -683,6 +686,11 @@ namespace GsWhatsAppAdapter
 		public string Longitude { get; set; }
 		[JsonProperty(PropertyName = "contacts")]
 		public Object Contacts { get; set; }
+		[JsonProperty(PropertyName ="code")]
+		public int Code { get; set; }
+		[JsonProperty(PropertyName = "reason")]
+		public string Reason { get; set; }
+
 	}
 	public class Location
 	{

@@ -166,6 +166,7 @@ namespace MrBot.Middleware
 							break;
 						case "failed":
 							chattingLog.Status = MsgStatus.Failed;
+							chattingLog.FailedReason = activity.AsEventActivity().ChannelData;
 							break;
 					}
 

@@ -140,6 +140,49 @@ namespace GsWhatsApp
 
 		}
 
+		public async Task<string> SendHsmText(string whatsAppNumber, string destination, string text)
+		{
+
+			if (text.Contains("**"))
+				text = text.Replace("**", "*");
+
+			text = WebUtility.UrlEncode(text);
+
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "GsApi/1.0");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("Apikey", gsApiKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				string content = "channel=whatsapp&source=" + whatsAppNumber + "&destination=" + destination + "&message.payload={\"type\":\"text\",\"text\":\"" + text + "\", \"isHSM\":\"true\"}";
+
+				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
+
+				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+				var httpResponseMessage = await httpClient.PostAsync(gsApiUri, httpContent).ConfigureAwait(false);
+				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpContent.Dispose();
+				httpClient.Dispose();
+
+				// Desserializa o objeto mensagem
+				GsReturn gsReturn = JsonConvert.DeserializeObject<GsReturn>(resp);
+
+				// Devolve o Id da mensagem
+				return gsReturn.MessageId;
+
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("GsApi: SendText: " + ex);
+				httpClient.Dispose();
+				return string.Empty;
+			}
+
+		}
 		public async Task<Stream> GetVoice(string whatsAppAppname, string voiceID)
 		{
 			try
