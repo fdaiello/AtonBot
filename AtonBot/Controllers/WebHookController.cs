@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
 using GsWhatsApp;
+using Microsoft.Extensions.Logging;
 
 namespace MrBot.Controllers
 {
@@ -34,6 +35,7 @@ namespace MrBot.Controllers
 		private readonly string userid;
 		private readonly string token;
 		private readonly GsWhatsAppClient _gsWhatsAppClient;
+		private readonly ILogger _logger;
 
 		// Pra enviar emails
 		private readonly IEmailService _EmailService;
@@ -41,13 +43,14 @@ namespace MrBot.Controllers
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient)
+		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient, ILogger logger)
 		{
 			_adapter = adapter;
 			_botDbContext = botDbContext;
 			_conversationReferences = conversationReferences;
 			_EmailService = emailService;
 			_gsWhatsAppClient = gsWhatsAppClient;
+			_logger = logger;
 			userid = configuration["MisterPostmanApi:userId"];
 			token = configuration["MisterPostmanApi:token"];
 		}
@@ -158,18 +161,29 @@ namespace MrBot.Controllers
 								// Se conseguiu enviar, e gerou messageid
 								if (!string.IsNullOrEmpty(activityId))
                                 {
-									// Salva registro em ChattingLog
+									// Cria registro em ChattingLog
 									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId };
+									// Se passou de 24 horas, marca que é HSM
+									if (Utility.HoraLocal().Subtract(customer.LastActivity).TotalHours >= 24)
+										chattingLog.IsHsm = true;
+									// e salva no banco
 									_botDbContext.ChattingLogs.Add(chattingLog);
 									await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 								}
 							}
 
-							// Envia por email
-							// await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+                            // Envia por email
+                            //try
+                            //{
+                            //    await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    _logger.LogError(ex.Message);
+                            //}
 
-							// Envia por SMS
-							await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+                            // Envia por SMS
+                            await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
 
 						}
 
@@ -177,6 +191,7 @@ namespace MrBot.Controllers
 						return new ContentResult()
 						{
 							Content = "<html><body>OK</body></html>",
+
 							ContentType = "text/html",
 							StatusCode = (int)HttpStatusCode.OK,
 						};

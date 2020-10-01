@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
 using GsWhatsApp;
+using System.Linq.Expressions;
 
 namespace MrBot.Controllers
 {
@@ -58,15 +59,29 @@ namespace MrBot.Controllers
 
 			//string whatsAppNumber = "551146733810";
 			//string customerWaNumber = "555191096510";
-			//string message = "Oi Felipe! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+			string message = "Oi Felipe! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+			string email = "felipedaiello@gmail.com";
+			string result = "ok";
 
-			//// Envia teste
-			//string messageid = await _gsWhatsAppClient.SendHsmText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+            //// Envia teste
+            //string messageid = await _gsWhatsAppClient.SendHsmText(whatsAppNumber, customerWaNumber, message).ConfigureAwait(false);
+
+            // Envia por email
+            try
+            {
+				await _EmailService.SendAsync(email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+			}
+			catch (Exception ex)
+            {
+				result = ex.Message;
+			}
+
+
 
 			// Devolve resposta Http
 			return new ContentResult()
 			{
-				Content = "<html><body>ok</body></html>",
+				Content = "<html><body>" + result + "</body></html>",
 				ContentType = "text/html",
 				StatusCode = (int)HttpStatusCode.OK,
 			};
