@@ -43,7 +43,7 @@ namespace MrBot.Controllers
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient, ILogger logger)
+		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient, ILogger<WebHookController> logger)
 		{
 			_adapter = adapter;
 			_botDbContext = botDbContext;
@@ -100,8 +100,8 @@ namespace MrBot.Controllers
 						// Mensagem que vamos enviar
 						string message = string.Empty;
 
-						// Se preencheu nome do tecnico e documento do tecnico, para  visita
-						if ((string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.NomeTecnicoVisita) | string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.DocTecnicoVisita)) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.NomeTecnicoVisita) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.DocTecnicoVisita))
+						// Se informou que todos os dados dos tecnicos foram adicionados
+						if ( apiDealWebhook.OldDeal.OtherProperties.DadosTecnicosVisitaAdicionados != AtonTecnicosVisitaInformados.Sim & apiDealWebhook.NewDeal.OtherProperties.DadosTecnicosVisitaAdicionados == AtonTecnicosVisitaInformados.Sim)
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Já temos o nome dos técnicos que farão a sua visita. Quando puder, entre em contato que lhe informo.";
 
@@ -134,8 +134,8 @@ namespace MrBot.Controllers
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Recebemos o seu comprovante de pagamento. Por favor, entre em contato para agendarmos sua instalação.";
 
-						// Apos os dados dos técnicos que vão fazer a visita terem sido informados
-						else if ((string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.NomeTecnico1) | string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.DocTecnico1) | string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.NomeTecnico2) | string.IsNullOrEmpty(apiDealWebhook.OldDeal.OtherProperties.DocTecnico2)) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.NomeTecnico1) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.DocTecnico1) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.NomeTecnico2) & !string.IsNullOrEmpty(apiDealWebhook.NewDeal.OtherProperties.DocTecnico2))
+						// Apos os dados dos técnicos que vão fazer a Instalacao terem sido informados
+						else if (apiDealWebhook.OldDeal.OtherProperties.DadosTecnicosInstalacaoAdicionados != AtonTecnicosInstalacaoInformados.Sim  & apiDealWebhook.NewDeal.OtherProperties.DadosTecnicosInstalacaoAdicionados == AtonTecnicosInstalacaoInformados.Sim)
 							// Monta a mensagem
 							message = $"Oi {customer.Name}! Já temos o nome dos técnicos que farão a sua instalação. Quando puder, entre em contato que lhe informo.";
 

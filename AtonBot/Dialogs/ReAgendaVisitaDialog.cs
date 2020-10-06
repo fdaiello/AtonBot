@@ -445,14 +445,10 @@ namespace MrBot.Dialogs
 			string infoTecnicos = string.Empty;
 
 			// Se tem dados do tecnico que fará a visita
-			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue))
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).FirstOrDefault().ObjectValueName != null)
 			{
-				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnicoVisita).FirstOrDefault().StringValue;
-				// Se tem documento do tecnico 
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue))
-					infoTecnicos += ", documento: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnicoVisita).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
+				infoTecnicos += (string)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).FirstOrDefault().ObjectValueName;
+
 				// Se tem a placa do tecnico que fará a visita
 				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue).Length > 1)
 					infoTecnicos += ", placa: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue + "\n";
@@ -463,10 +459,12 @@ namespace MrBot.Dialogs
 			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue))
 			{
 				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue + "\n";
-				infoTecnicos = "Estes são os técnicos que farão a sua visita:\n" + infoTecnicos;
+				if ( !string.IsNullOrEmpty(infoTecnicos))
+					infoTecnicos = "Estes são os técnicos que farão a sua visita:\n" + infoTecnicos;
 			}
 			else
-				infoTecnicos = "Este é o técnico que fará a sua visita:\n" + infoTecnicos;
+				if (!string.IsNullOrEmpty(infoTecnicos))
+					infoTecnicos = "Este é o técnico que fará a sua visita:\n" + infoTecnicos;
 
 			return infoTecnicos;
 		}

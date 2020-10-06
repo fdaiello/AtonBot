@@ -145,7 +145,7 @@ namespace MrBot.Dialogs
 				if (!string.IsNullOrEmpty(infoTecnicos) && !conversationData.TecnicosInstalacaoInformado)
                 {
 					// Informa os dados do(s) técnico(s)
-					await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estes são os técnicos que irão fazer sua instalação:\n" + infoTecnicos), cancellationToken).ConfigureAwait(false);
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text(infoTecnicos), cancellationToken).ConfigureAwait(false);
 
 					// Marca que já informou
 					conversationData.TecnicosInstalacaoInformado = true;
@@ -365,7 +365,7 @@ namespace MrBot.Dialogs
 			string dateStr = date.ToString("dd/MM");
 			var card = new HeroCard
 			{
-				Text = $"As informações para instalação são essas: 📝\n\nData: {dateStr} às {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nVoce confirma o agemento da instalação?",
+				Text = $"As informações para instalação são essas: 📝\n\nData: {dateStr} às {(string)stepContext.Values["horario"]}\nQuem acompanhará a visita técnica: {quemacompanha}\n\nVoce confirma o agendamento da instalação?",
 				Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -483,54 +483,78 @@ namespace MrBot.Dialogs
         {
 			string infoTecnicos = string.Empty;
 
-			// Se tem dados do tecnico1
-			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue))
+			// Se tem dados do tecnico que fará a Instalacao
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoInstalacao).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoInstalacao).FirstOrDefault().ObjectValueName != null)
 			{
-				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue;
-				// Se tem documento do tecnico 1
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue))
-					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
-				// Se tem a placa to tecnico 1
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
-			}
-			// Se tem dados do tecnico2
-			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue))
+				infoTecnicos += (string)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoInstalacao).FirstOrDefault().ObjectValueName;
+
+                //Se tem a placa do tecnico que fará a instalacao
+                if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoInstalacao).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoInstalacao).FirstOrDefault().StringValue).Length > 1)
+                    infoTecnicos += ", placa: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue + "\n";
+                else
+                    infoTecnicos += "\n";
+            }
+			// Se tem dados de outros técnicos
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosInstalacao).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosInstalacao).FirstOrDefault().BigStringValue))
 			{
-				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue;
-				// Se tem documento do tecnico 2
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue))
-					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
-				// Se tem a placa to tecnico 2
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
+				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosInstalacao).FirstOrDefault().BigStringValue + "\n";
+				if (!string.IsNullOrEmpty(infoTecnicos))
+					infoTecnicos = "Estes são os técnicos que farão a sua instalação:\n" + infoTecnicos;
 			}
-			// Se tem dados do tecnico3
-			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue))
-			{
-				infoTecnicos += (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue + "\n";
-				// Se tem documento do tecnico 3
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue))
-					infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue;
-				else
-					infoTecnicos += "\n";
-				// Se tem a placa to tecnico 3
-				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue).Length > 1)
-					infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue + "\n";
-				else
-					infoTecnicos += "\n";
-			}
+			else
+				if (!string.IsNullOrEmpty(infoTecnicos))
+				infoTecnicos = "Este é o técnico que fará a sua instalação:\n" + infoTecnicos;
 
 			return infoTecnicos;
-        }
+
+			//// Se tem dados do tecnico1
+			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue))
+			//{
+			//	infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue;
+			//	// Se tem documento do tecnico 1
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue))
+			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
+			//	else
+			//		infoTecnicos += "\n";
+			//	// Se tem a placa to tecnico 1
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue).Length > 1)
+			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue + "\n";
+			//	else
+			//		infoTecnicos += "\n";
+			//}
+			//// Se tem dados do tecnico2
+			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue))
+			//{
+			//	infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue;
+			//	// Se tem documento do tecnico 2
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue))
+			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue + "\n";
+			//	else
+			//		infoTecnicos += "\n";
+			//	// Se tem a placa to tecnico 2
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue).Length > 1)
+			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue + "\n";
+			//	else
+			//		infoTecnicos += "\n";
+			//}
+			//// Se tem dados do tecnico3
+			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue))
+			//{
+			//	infoTecnicos += (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue + "\n";
+			//	// Se tem documento do tecnico 3
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue))
+			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue;
+			//	else
+			//		infoTecnicos += "\n";
+			//	// Se tem a placa to tecnico 3
+			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue).Length > 1)
+			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue + "\n";
+			//	else
+			//		infoTecnicos += "\n";
+			//}
+
+			//return infoTecnicos;
+		}
 		// Tarefa de validação do Cpf
 		private async Task<bool> CpfValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
 		{
