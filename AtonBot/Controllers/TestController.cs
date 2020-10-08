@@ -24,6 +24,7 @@ using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
 using GsWhatsApp;
 using System.Linq.Expressions;
+using NETCore.MailKit.Infrastructure.Internal;
 
 namespace MrBot.Controllers
 {
@@ -75,8 +76,6 @@ namespace MrBot.Controllers
             {
 				result = ex.Message;
 			}
-
-
 
 			// Devolve resposta Http
 			return new ContentResult()

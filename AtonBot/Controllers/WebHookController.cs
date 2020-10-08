@@ -172,19 +172,18 @@ namespace MrBot.Controllers
 								}
 							}
 
-                            // Envia por email
-                            //try
-                            //{
-                            //    await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
-                            //}
-                            //catch (Exception ex)
-                            //{
-                            //    _logger.LogError(ex.Message);
-                            //}
+                            //Envia por email
+                            try
+                            {
+                                await _EmailService.SendAsync(customer.Email, "Aton Bot: notificação", message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex.Message);
+                            }
 
                             // Envia por SMS
                             await Utility.SendSMS(userid, token, customer.MobilePhone, message + "\n\nAton Bot\nwww.mpweb.me/-W123").ConfigureAwait(false);
-
 						}
 
 						// Devolve resposta Http

@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
+using Microsoft.Extensions.Logging;
 
 namespace MrBot.Bots
 {
@@ -58,8 +59,11 @@ namespace MrBot.Bots
 		// Ploomes Deal
 		private readonly Deal _deal;
 
+		// Logger
+		private readonly ILogger _logger;
+
 		// Mr Bot Class Constructor
-		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal, Contact contact)
+		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal, Contact contact, ILogger<MisterBot> logger)
 		{
 			// Injected objects
 			_conversationState = conversationState;
@@ -74,6 +78,7 @@ namespace MrBot.Bots
 			_ploomesclient = ploomesClient;
 			_contact = contact;
 			_deal = deal;
+			_logger = logger;
 		}
 
 		// Metodo executado a cada mensagem recebida
@@ -92,6 +97,9 @@ namespace MrBot.Bots
 		// Confere se o cliente está falando com um agente
 		protected async Task<bool> IsTalkingToAgent(string Id, ITurnContext<IMessageActivity> turnContext)
 		{
+			// Hora no Brasil
+			DateTime horalocal = Utility.HoraLocal();
+
 			// Consulta se o usuário já está cadastrado na base do Bot
 			Customer customer = _botDbContext.Customers
 						.Where(s => s.Id == Id)
@@ -118,6 +126,26 @@ namespace MrBot.Bots
 					// Copia os dados do Deal para o Deal injetada, compartilhada entre as classes
 					_deal.CopyFrom(deal);
 				}
+
+				// Se já faz mais de 12 horas que teve atividade
+				if (horalocal.Subtract(customer.LastActivity).TotalHours > 12 )
+				{
+					if (_conversationState != null)
+					{
+						try
+						{
+							// Delete the conversationState for the current conversation to prevent the
+							// bot from getting stuck in a error-loop caused by being in a bad state.
+							// ConversationState should be thought of as similar to "cookie-state" in a Web pages.
+							await _conversationState.DeleteAsync(turnContext).ConfigureAwait(false);
+						}
+						catch (Exception e)
+						{
+							_logger.LogError(e, $"Exception caught on attempting to Delete ConversationState : {e.Message}");
+						}
+					}
+					return false;
+				}
 			}
 
 			// Se já está na base, e está falando com um agente
@@ -128,7 +156,6 @@ namespace MrBot.Bots
 				string filename = await Utility.SaveAttachmentAsync(turnContext, _blobContainerClient).ConfigureAwait(false);
 
 				// Se já faz mais de 30 minutos que teve atividade ( com agente )
-				DateTime horalocal = Utility.HoraLocal();
 				if (horalocal.Subtract(customer.LastActivity).TotalMinutes > 30)
 				{
 					// Resseta o status do cliente
