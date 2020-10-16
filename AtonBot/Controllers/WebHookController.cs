@@ -162,7 +162,7 @@ namespace MrBot.Controllers
 								if (!string.IsNullOrEmpty(activityId))
                                 {
 									// Cria registro em ChattingLog
-									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId };
+									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId, Text=message };
 									// Se passou de 24 horas, marca que é HSM
 									if (Utility.HoraLocal().Subtract(customer.LastActivity).TotalHours >= 24)
 										chattingLog.IsHsm = true;

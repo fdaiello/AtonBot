@@ -127,8 +127,8 @@ namespace MrBot.Bots
 					_deal.CopyFrom(deal);
 				}
 
-				// Se já faz mais de 12 horas que teve atividade
-				if (horalocal.Subtract(customer.LastActivity).TotalHours > 12 )
+				// Se já faz mais de 24 horas que teve atividade
+				if (horalocal.Subtract(customer.LastActivity).TotalHours > 24 )
 				{
 					if (_conversationState != null)
 					{

@@ -19,6 +19,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
+using GsWhatsApp;
 
 namespace MrBot.Dialogs
 {
@@ -31,8 +32,9 @@ namespace MrBot.Dialogs
 		private readonly PloomesClient _ploomesclient;
 		private readonly Customer _customer;
 		private readonly Deal _deal;
+		private readonly GsWhatsAppClient _gsWhatsAppClient;
 
-		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, AskDateDialog askDateDialog)
+		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, AskDateDialog askDateDialog, GsWhatsAppClient gsWhatsAppClient)
 			: base(nameof(AgendaVisitaDialog))
 		{
 
@@ -43,6 +45,7 @@ namespace MrBot.Dialogs
 			_ploomesclient = ploomesClient;
 			_customer = customer;
 			_deal = deal;
+			_gsWhatsAppClient = gsWhatsAppClient;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -490,14 +493,23 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> AskAddressComplementAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca o número informado no passo anterior
-			string numero = (string)stepContext.Result;
+			string input = (string)stepContext.Result;
+
+			// Consula se digitou complemento junto
+			string numero;
+			string line2;
+			SplitAddressNumberAndLine2(input, out numero, out line2);
 
 			// Salva o número em variável persitente ao diálogo
 			stepContext.Values["numero"] = numero;
 
-			// Pergunta o complemento
-			return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Digite o complemento. Caso não tenha digite “não”. 📩") }, cancellationToken).ConfigureAwait(false);
-
+			// Se não informou o complemento
+			if (string.IsNullOrEmpty(line2))
+				// Pergunta o complemento
+				return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Digite o complemento. Caso não tenha digite “não”. 📩") }, cancellationToken).ConfigureAwait(false);
+			else
+				// Pula pro proximo passo, já passando o complemento digitado
+				return await stepContext.NextAsync(line2, cancellationToken).ConfigureAwait(false);
 		}
 
 		// Pergunta a Data desejada
@@ -714,6 +726,14 @@ namespace MrBot.Dialogs
 						msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
 					else
 						msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
+
+					// Marca OptIn do usuário
+					if (_customer.Id.Contains("-"))
+                    {
+						string appName = "AtonServices";
+						string recipient = _customer.Id.Split("-")[1];
+						_ = await _gsWhatsAppClient.OptIn(appName, recipient).ConfigureAwait(false);
+					}
 
 				}
 				else

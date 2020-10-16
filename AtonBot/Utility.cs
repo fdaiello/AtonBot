@@ -277,7 +277,7 @@ namespace MrBot
 		public static bool IsValidName(string name)
 		{
 			name = name.ToLower();
-			if (name.Length < 2 || name == "oi" || name == "nao" || name.StartsWith("não") || name == "cancelar" || name == "sair" || name == "voltar" || name == "menu" || name == "cancel" || name == "*cancelar*" || name.StartsWith("oi ") || name.StartsWith("sim ") || name == "sim" || name.Contains("gostaria") || name.Contains("testar"))
+			if (name.Length < 2 || name == "oi" || name == "sim" || name == "nao" || name.StartsWith("não") || name == "cancelar" || name == "sair" || name == "voltar" || name == "menu" || name == "cancel" || name == "*cancelar*" || name.StartsWith("oi ") || name.StartsWith("sim ") || name == "sim" || name.Contains("gostaria") || name.Contains("testar"))
 				return false;
 			else
 				return Regex.IsMatch(name, @"^[\p{L}\p{M}' \.\-]+$");

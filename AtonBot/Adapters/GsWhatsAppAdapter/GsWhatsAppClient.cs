@@ -140,6 +140,40 @@ namespace GsWhatsApp
 
 		}
 
+		public async Task<bool> OptIn(string appName, string customerNumber)
+		{
+
+			HttpClient httpClient = new HttpClient();
+			try
+			{
+				httpClient.DefaultRequestHeaders.Add("User-Agent", "GsApi/1.0");
+				httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+				httpClient.DefaultRequestHeaders.Add("Apikey", gsApiKey);
+				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+
+				string content = "user=" + customerNumber;
+
+				HttpContent httpContent = new StringContent(content, Encoding.UTF8);
+
+				httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+				Uri gsOptInUri = new Uri($"https://api.gupshup.io/sm/api/v1/app/opt/in/{appName}");
+				var httpResponseMessage = await httpClient.PostAsync(gsOptInUri, httpContent).ConfigureAwait(false);
+				string resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+				httpContent.Dispose();
+				httpClient.Dispose();
+				return true;
+
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("GsApi: SendText: " + ex);
+				httpClient.Dispose();
+				return false;
+			}
+
+		}
 		public async Task<string> SendHsmText(string whatsAppNumber, string destination, string text)
 		{
 
