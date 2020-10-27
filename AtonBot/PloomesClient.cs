@@ -406,8 +406,7 @@ namespace PloomesApi
 				content = JsonConvert.SerializeObject(deal);
 
 				// Retira informação de TimeZone das datas
-				content = content.Replace("+00:00\"", "\"");
-				content = content.Replace("-03:00\"", "\"");
+				content = content.Replace("+00:00\"", "\"").Replace("-03:00\"", "\"").Replace("-02:00\"", "\"");
 
 				// Chama a API para dar Patch no Deal
 				var client = new RestClient(serverUri.ToString() + $"/Deals({deal.Id})")
@@ -564,6 +563,18 @@ namespace PloomesApi
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
 				httpClient.Dispose();
+
+				//// Configuração de data/hora para correta desserialização de hora com padrão de time zone
+				//JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
+				//{
+				//	DateFormatHandling = DateFormatHandling.MicrosoftDateFormat,
+				//	DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind,
+				//	DateParseHandling = DateParseHandling.DateTimeOffset
+				//};
+				//ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp, jsonSerializerSettings);
+
+				// Retira informação de TimeZone das datas
+				resp = resp.Replace("+00:00\"", "\"").Replace("-03:00\"", "\"").Replace("-02:00\"", "\"");
 
 				// Desserializa o objeto mensagem
 				ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp);

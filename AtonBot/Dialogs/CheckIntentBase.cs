@@ -44,9 +44,9 @@ namespace MrBot.Dialogs
 		private readonly ILogger _logger;
 
 		// Customer
-		private Customer _customer;
+		private Contact _customer;
 
-		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, Customer customer )
+		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, Contact customer )
 			: base(childDialogId)
 		{
 			// Cognitive injected objects

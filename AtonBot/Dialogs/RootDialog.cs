@@ -29,11 +29,11 @@ namespace MrBot.Dialogs
 		private readonly ILogger _logger;
 		private readonly QnAMaker _qnaService;
 		private readonly double minScoreQna = 0.5;
-		private readonly Customer _customer;
+		private readonly Models.Contact _customer;
 		private readonly Deal _deal;
 		private readonly PloomesClient _ploomesClient;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
+		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Models.Contact customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -265,8 +265,8 @@ namespace MrBot.Dialogs
 			
 			try
 			{
-				// Cria um novo cliente
-				Customer customer = new Customer
+                // Cria um novo cliente
+                Models.Contact customer = new Models.Contact
 				{
 					Id = clientId,
 					FirstActivity = Utility.HoraLocal(),
@@ -277,7 +277,7 @@ namespace MrBot.Dialogs
 				};
 
 				//Insere o cliente no banco
-				_botDbContext.Customers.Add(customer);
+				_botDbContext.Contacts.Add(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				// Copia pra variavel injetada compartilhada entre as classes

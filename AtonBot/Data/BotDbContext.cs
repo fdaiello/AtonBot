@@ -11,7 +11,7 @@ namespace MrBot.Data
 		{
 
 		}
-		public DbSet<Customer> Customers { get; set; }                    // Clients
+		public DbSet<Contact> Contacts { get; set; }		              // Contacts or Clients
 		public DbSet<ChattingLog> ChattingLogs { get; set; }              // Messages
 		public DbSet<ExternalAccount> ExternalAccounts { get; set; }      // Messages
 		public DbSet<ApplicationUser> ApplicationUsers { get; set; }	  // Agents and administrators

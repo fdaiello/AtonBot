@@ -7,7 +7,7 @@ using System.Reflection;
 namespace MrBot.Models
 {
 	// Customer status says who the customer is talking to: bot / wating transfer / agent
-	public enum CustomerStatus
+	public enum ContactStatus
 	{
 		TalkingToBot,
 		TalkingToAgent,
@@ -22,7 +22,7 @@ namespace MrBot.Models
 		others
 	}
 	// User who connects to send and receave messages
-	public class Customer
+	public class Contact
 	{
 		[Key]
 		public string Id { get; set; }                                      // Primary Key, NOT identiy
@@ -43,7 +43,7 @@ namespace MrBot.Models
 
 		public ICollection<ChattingLog> ChatMessages { get; }              // list of all Messages sent or receaved by this 
 		public ICollection<ExternalAccount> ExternalAccounts { get; }      // list of all externa accounts this user can access on company database
-		public CustomerStatus Status { get; set; }                         // indicate who is talking with customer: Bot or Agent
+		public ContactStatus Status { get; set; }                         // indicate who is talking with customer: Bot or Agent
 		public int UnAnsweredCount { get; set; }                           // ananswered messages - by Agent - counter
 		public string ApplicationUserId { get; set; }                      // When an Agent talks to customer, Agent ID is saved here
 		public ChannelType ChannelType { get; set; }					   // it will whatsApp Number, bot save 
@@ -59,11 +59,11 @@ namespace MrBot.Models
 		public string Tag2 { get; set; }
 		public string Tag3 { get; set; }
 
-		public void CopyFrom(Customer customer)
+		public void CopyFrom(Contact contact)
         {
-			foreach (PropertyInfo property in typeof(Customer).GetProperties().Where(p => p.CanWrite))
+			foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
 			{
-				property.SetValue(this, property.GetValue(customer, null), null);
+				property.SetValue(this, property.GetValue(contact, null), null);
 			}
 		}
 

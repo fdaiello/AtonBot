@@ -94,7 +94,7 @@ namespace MrBot
 			BotDbContext botDbContext = new BotDbContext(optionsBuilder.Options);
 
 			// Insere a mensagem
-			ChattingLog chattingLog = new ChattingLog { Text = textmessage, Time = Utility.HoraLocal(), Source = source, Type = ChatMsgType.Text, CustomerId = customerid };
+			ChattingLog chattingLog = new ChattingLog { Text = textmessage, Time = Utility.HoraLocal(), Source = source, Type = ChatMsgType.Text, ContactId = customerid };
 			botDbContext.ChattingLogs.Add(chattingLog);
 			await botDbContext.SaveChangesAsync().ConfigureAwait(false);
 

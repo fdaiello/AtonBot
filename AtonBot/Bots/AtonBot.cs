@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MrBot.Bots
 {
-	public class MisterBot : ActivityHandler
+	public class AtonBot : ActivityHandler
 	{
 		// Conversation state - used by Dialog system
 		private readonly ConversationState _conversationState;
@@ -48,13 +48,13 @@ namespace MrBot.Bots
 		private readonly BlobContainerClient _blobContainerClient;
 
 		// Dados do cliente
-		private readonly Customer _customer;
+		private readonly Models.Contact _customer;
 
 		// Cliente para acessar a api do Ploomes
 		private readonly PloomesClient _ploomesclient;
 
 		// Ploomes Contact
-		private readonly Contact _contact;
+		private readonly PloomesApi.Contact _contact;
 
 		// Ploomes Deal
 		private readonly Deal _deal;
@@ -63,7 +63,7 @@ namespace MrBot.Bots
 		private readonly ILogger _logger;
 
 		// Mr Bot Class Constructor
-		public MisterBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Customer customer, PloomesClient ploomesClient, Deal deal, Contact contact, ILogger<MisterBot> logger)
+		public AtonBot(ConversationState conversationState, BotDbContext botContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IBotFrameworkHttpAdapter adapter, RootDialog rootdialog, WpushApi wpushApi, IConfiguration configuration, BlobContainerClient blobContainerClient, Models.Contact customer, PloomesClient ploomesClient, Deal deal, PloomesApi.Contact contact, ILogger<AtonBot> logger)
 		{
 			// Injected objects
 			_conversationState = conversationState;
@@ -100,8 +100,8 @@ namespace MrBot.Bots
 			// Hora no Brasil
 			DateTime horalocal = Utility.HoraLocal();
 
-			// Consulta se o usuário já está cadastrado na base do Bot
-			Customer customer = _botDbContext.Customers
+            // Consulta se o usuário já está cadastrado na base do Bot
+            Models.Contact customer = _botDbContext.Contacts
 						.Where(s => s.Id == Id)
 						.FirstOrDefault();
 
@@ -114,8 +114,8 @@ namespace MrBot.Bots
 				// Verifica se tem salvo na base local o ID do cliente salvo no Ploomes
 				if (!string.IsNullOrEmpty(_customer.Tag1) && int.TryParse(_customer.Tag1, out int ploomesClientId))
 				{
-					// Verifica se ja tem um Contact ( contato ) salvo para este Cliente
-					Contact contact = await _ploomesclient.GetContact(ploomesClientId).ConfigureAwait(false);
+                    // Verifica se ja tem um Contact ( contato ) salvo para este Cliente
+                    PloomesApi.Contact contact = await _ploomesclient.GetContact(ploomesClientId).ConfigureAwait(false);
 
 					// Copia os dados do Contact para o objeto injetado, compartilhado entre as classes
 					_contact.CopyFrom(contact);
@@ -149,7 +149,7 @@ namespace MrBot.Bots
 			}
 
 			// Se já está na base, e está falando com um agente
-			if (customer != null && customer.Status == CustomerStatus.TalkingToAgent)
+			if (customer != null && customer.Status == ContactStatus.TalkingToAgent)
 			{
 
 				// Salva o arquivo
@@ -159,7 +159,7 @@ namespace MrBot.Bots
 				if (horalocal.Subtract(customer.LastActivity).TotalMinutes > 30)
 				{
 					// Resseta o status do cliente
-					customer.Status = CustomerStatus.TalkingToBot;
+					customer.Status = ContactStatus.TalkingToBot;
 					_botDbContext.Update(customer);
 					await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 

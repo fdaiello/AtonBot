@@ -38,7 +38,7 @@ namespace MrBot.Models
 		public MessageSource Source { get; set; }               // Indicates which role sent message: user / bot / agent
 		public bool Read { get; set; }                          // Indicates if the message was read; Only used for messages destinated to Agents.
 		public DateTime Time { get; set; }                      // Date and time message was sent
-		public string CustomerId { get; set; }                  // Customer who sent or receved the message
+		public string ContactId { get; set; }                  // Customer who sent or receved the message
 		public string ApplicationUserId { get; set; }           // In case message was sent by Agent, Agent ID is saved here
 		public string ActivityId { get; set; }					// ActivityID
 		public MsgStatus Status { get; set; }					// None, Enqueued, Failed, Sent, Delivered, Read

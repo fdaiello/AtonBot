@@ -31,11 +31,11 @@ namespace MrBot.Dialogs
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Customer _customer;
-		private readonly Contact _contact;
+		private readonly Models.Contact _customer;
+		private readonly PloomesApi.Contact _contact;
 		private readonly Deal _deal;
 
-		public AgendaInstalacaoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, Contact contact, AskDateDialog askDateDialog)
+		public AgendaInstalacaoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal, PloomesApi.Contact contact, AskDateDialog askDateDialog)
 			: base(nameof(AgendaInstalacaoDialog))
 		{
 

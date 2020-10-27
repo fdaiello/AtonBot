@@ -30,11 +30,11 @@ namespace MrBot.Dialogs
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Customer _customer;
+		private readonly Models.Contact _customer;
 		private readonly Deal _deal;
 		private readonly GsWhatsAppClient _gsWhatsAppClient;
 
-		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, AskDateDialog askDateDialog, GsWhatsAppClient gsWhatsAppClient)
+		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal, AskDateDialog askDateDialog, GsWhatsAppClient gsWhatsAppClient)
 			: base(nameof(AgendaVisitaDialog))
 		{
 
@@ -674,8 +674,8 @@ namespace MrBot.Dialogs
 
 				else
 				{
-					// Confere se o Id salvo localmente, existe no Ploomes
-					Contact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
+                    // Confere se o Id salvo localmente, existe no Ploomes
+                    PloomesApi.Contact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
 					// Se achou
 					if ( contact.Id > 0 )
 						// Patch client
@@ -851,8 +851,8 @@ namespace MrBot.Dialogs
 		// Atualiza o registro do usuario
 		private async Task UpdateCustomer(WaterfallStepContext stepContext)
 		{
-			// Procura pelo registro do usuario
-			Customer customer = _botDbContext.Customers
+            // Procura pelo registro do usuario
+            Models.Contact customer = _botDbContext.Contacts
 								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 								.FirstOrDefault();
 
@@ -885,7 +885,7 @@ namespace MrBot.Dialogs
 					customer.Tag3 += " às " + (string)stepContext.Values["horario"];
 
 				// Salva o cliente no banco
-				_botDbContext.Customers.Update(customer);
+				_botDbContext.Contacts.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 			}

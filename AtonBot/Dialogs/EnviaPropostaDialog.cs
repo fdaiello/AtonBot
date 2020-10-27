@@ -29,10 +29,10 @@ namespace MrBot.Dialogs
 		private readonly BotDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Customer _customer;
+		private readonly Models.Contact _customer;
 		private readonly Deal _deal;
 
-		public EnviaPropostaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal)
+		public EnviaPropostaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal)
 			: base(nameof(EnviaPropostaDialog))
 		{
 

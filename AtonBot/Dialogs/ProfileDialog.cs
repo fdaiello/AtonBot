@@ -20,9 +20,9 @@ namespace MrBot.Dialogs
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly MisterBotRecognizer _recognizer;
-		private readonly Customer _customer;
+		private readonly Contact _customer;
 
-		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Customer customer)
+		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Contact customer)
 			: base(nameof(ProfileDialog))
 		{
 			// Injected Objects
@@ -158,7 +158,7 @@ namespace MrBot.Dialogs
 		private async Task UpdateCustomer(WaterfallStepContext stepContext)
 		{
 			// Procura pelo registro do usuario
-			Customer customer = _botDbContext.Customers
+			Contact customer = _botDbContext.Contacts
 								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 								.FirstOrDefault();
 
@@ -176,7 +176,7 @@ namespace MrBot.Dialogs
 				customer.LastActivity = Utility.HoraLocal();
 
 				// Salva o cliente no banco
-				_botDbContext.Customers.Update(customer);
+				_botDbContext.Contacts.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				// Copia pra variavel injetada compartilhada entre as classes

@@ -63,13 +63,13 @@ namespace MrBot.Middleware
 					string lasttext = "";
 
 					// Atualiza last activity do cliente
-					Customer customer = botDbContext.Customers.Where(s => s.Id == customerid).FirstOrDefault();
+					Contact customer = botDbContext.Contacts.Where(s => s.Id == customerid).FirstOrDefault();
 					if (customer != null)
 					{
 						customer.LastActivity = Utility.HoraLocal();
 
 						// Se está recebendo mensagem do Agente
-						if (customer.Status == CustomerStatus.TalkingToAgent & source != MessageSource.Customer)
+						if (customer.Status == ContactStatus.TalkingToAgent & source != MessageSource.Customer)
 							// Zera contador de mensagens
 							customer.UnAnsweredCount = 0;
 
@@ -82,7 +82,7 @@ namespace MrBot.Middleware
 								lasttext = message.Text;
 
 								// Cria um objeto chattinglog com os dados recebidos
-								ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = source, Type = message.Type, CustomerId = customerid, ActivityId= activity.Id, GroupId = customer.GroupId };
+								ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = source, Type = message.Type, ContactId = customerid, ActivityId= activity.Id, GroupId = customer.GroupId };
 								if (message.Type == ChatMsgType.Text)
 									chattingLog.Text = message.Text;
 								else if ( message.Type == ChatMsgType.Location)
@@ -119,12 +119,12 @@ namespace MrBot.Middleware
 						}
 
 						// Se está enviando mensagem pro Agente
-						if (customer.Status == CustomerStatus.TalkingToAgent & source == MessageSource.Customer)
+						if (customer.Status == ContactStatus.TalkingToAgent & source == MessageSource.Customer)
 							// Incrementa contador de mensagens não respondidas
 							customer.UnAnsweredCount += 1;
 
 						// Salva
-						botDbContext.Customers.Update(customer);
+						botDbContext.Contacts.Update(customer);
 						await botDbContext.SaveChangesAsync().ConfigureAwait(false);
 					}
 

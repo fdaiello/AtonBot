@@ -16,7 +16,7 @@ namespace MrBot
 		public int AskPriceCount { get; set; } = 0;
 
 		// Customer Info
-		public Customer Customer { get; set; }
+		public Contact Customer { get; set; }
 
 		// Number of intent recognition failed attempts
 		public int IntentNotRecognized { get; set; } = 0;

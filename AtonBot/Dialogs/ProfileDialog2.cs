@@ -66,7 +66,7 @@ namespace MrBot.Dialogs
 			string initmsg = "Eu preciso completar seu cadastro.";
 
 			// Localiza o registro do usuario na base do Bot
-			Customer customer = _botDbContext.Customers
+			Contact customer = _botDbContext.Contacts
 						.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 						.Include(t => t.ExternalAccounts)
 						.FirstOrDefault();
@@ -158,7 +158,7 @@ namespace MrBot.Dialogs
 		private async Task SaveCustomerData(WaterfallStepContext stepContext)
 		{
 			// Procura pelo registro do usuario
-			Customer customer = _botDbContext.Customers
+			Contact customer = _botDbContext.Contacts
 									.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 									.FirstOrDefault();
 
@@ -178,7 +178,7 @@ namespace MrBot.Dialogs
 				customer.Email = (string)stepContext.Values["email"];
 
 			// Salva o cliente no banco
-			_botDbContext.Customers.Update(customer);
+			_botDbContext.Contacts.Update(customer);
 			await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 			return;

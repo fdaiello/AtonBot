@@ -79,8 +79,8 @@ namespace MrBot.Controllers
 					
 					int contactId = apiDealWebhook.NewDeal.ContactId;
 
-					// Procura na base
-					Customer customer = _botDbContext.Customers.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
+                    // Procura na base
+                    Models.Contact customer = _botDbContext.Contacts.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
 
 					// Se achou o cliente na nossa base
 					if (customer != null)
@@ -113,7 +113,7 @@ namespace MrBot.Controllers
 							// Marca em Customer a data/hora que envioiu essa notificação - para enviar novamente 24 horas depois
 							customer.Tag3 = DateAndTime.Now.ToString(new CultureInfo("en-US"));
 							// Salva o cliente no banco
-							_botDbContext.Customers.Update(customer);
+							_botDbContext.Contacts.Update(customer);
 							await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 						}
 
@@ -125,7 +125,7 @@ namespace MrBot.Controllers
 							// Limpa tag 3 para não enviar novamente
 							customer.Tag3 = string.Empty;
 							// Salva o cliente no banco
-							_botDbContext.Customers.Update(customer);
+							_botDbContext.Contacts.Update(customer);
 							await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 						}
 
@@ -162,7 +162,7 @@ namespace MrBot.Controllers
 								if (!string.IsNullOrEmpty(activityId))
                                 {
 									// Cria registro em ChattingLog
-									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, CustomerId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId, Text=message };
+									ChattingLog chattingLog = new ChattingLog { Time = Utility.HoraLocal(), Source = MessageSource.Bot, Type = ChatMsgType.Text, ContactId = customer.Id, ActivityId = activityId, GroupId = customer.GroupId, Text=message };
 									// Se passou de 24 horas, marca que é HSM
 									if (Utility.HoraLocal().Subtract(customer.LastActivity).TotalHours >= 24)
 										chattingLog.IsHsm = true;

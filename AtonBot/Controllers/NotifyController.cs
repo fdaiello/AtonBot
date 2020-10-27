@@ -65,7 +65,7 @@ namespace MrBot.Controllers
 				};
 			else
 			{
-				Customer customer = _context.Customers.Where(s => s.Id == id).FirstOrDefault();
+				Contact customer = _context.Contacts.Where(s => s.Id == id).FirstOrDefault();
 
 				if (customer != null)
 				{

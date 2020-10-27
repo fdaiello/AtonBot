@@ -90,11 +90,11 @@ namespace MrBot.Dialogs
 
 
 				// Marca cliente com status Wating
-				Customer customer = _botDbContext.Customers
+				Contact customer = _botDbContext.Contacts
 									.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 									.FirstOrDefault();
-				customer.Status = CustomerStatus.WatingForAgent;
-				_botDbContext.Customers.Update(customer);
+				customer.Status = ContactStatus.WatingForAgent;
+				_botDbContext.Contacts.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				// Sends WebPush Notification for all Agents of this Customer Group
@@ -183,11 +183,11 @@ namespace MrBot.Dialogs
 				else
 				{
 					// Marca cliente com status Wating
-					Customer customer = _botDbContext.Customers
+					Contact customer = _botDbContext.Contacts
 										.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 										.FirstOrDefault();
-					customer.Status = CustomerStatus.WatingForAgent;
-					_botDbContext.Customers.Update(customer);
+					customer.Status = ContactStatus.WatingForAgent;
+					_botDbContext.Contacts.Update(customer);
 					await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 					// Envia email para os atendentes notificando que tem cliente para ser atendido

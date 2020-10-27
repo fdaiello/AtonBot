@@ -175,13 +175,13 @@ namespace MrBot
 			services.AddSingleton<MisterBotRecognizer>();
 
 			// Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
-			services.AddTransient<IBot, MisterBot>();
+			services.AddTransient<IBot, AtonBot>();
 
 			// Cria um Customer pra compartilhar entre os diálogos
-			services.AddScoped<Customer>();
+			services.AddScoped<Models.Contact>();
 
 			// Cria um Ploomes Contact para compartilhar entre os diálogos
-			services.AddScoped<Contact>();
+			services.AddScoped<PloomesApi.Contact>();
 
 			// Cria um Ploomes Deal para compartilhar entre os diálogos
 			services.AddScoped<Deal>();
