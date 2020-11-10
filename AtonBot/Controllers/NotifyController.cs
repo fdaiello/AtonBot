@@ -6,8 +6,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
@@ -23,13 +23,13 @@ namespace MrBot.Controllers
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
 		private readonly string _appId;
-		private readonly BotDbContext _context;
+		private readonly ApplicationDbContext _context;
 		private string proactivetext = "";
 
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public NotifyController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext context, ConcurrentDictionary<string, ConversationReference> conversationReferences)
+		public NotifyController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, ApplicationDbContext context, ConcurrentDictionary<string, ConversationReference> conversationReferences)
 		{
 			_adapter = adapter;
 			_appId = configuration["MicrosoftAppId"];

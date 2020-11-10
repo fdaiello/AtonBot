@@ -3,7 +3,7 @@
 //
 // Generated with Bot Builder V4 SDK Template for Visual Studio EchoBot v4.6.2
 
-using GsWhatsAppAdapter;
+using MisterBot.Infrastructure.Adaters.GsWhatsApp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
@@ -21,7 +21,7 @@ namespace MrBot.Controllers
 		private readonly IBotFrameworkHttpAdapter Adapter;
 		private readonly IBot Bot;
 
-		public WhatsAppBotController(WhatsAppAdapter adapter, IBot bot)
+		public WhatsAppBotController(GsWhatsAppAdapter adapter, IBot bot)
 		{
 			Adapter = adapter;
 			Bot = bot;

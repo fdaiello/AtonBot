@@ -10,8 +10,7 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -19,7 +18,8 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
-using GsWhatsApp;
+using ContactCenter.Infrastructure.Clients.GsWhatsApp;
+using ContactCenter.Core.Models;
 
 namespace MrBot.Dialogs
 {
@@ -27,14 +27,14 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Models.Contact _customer;
+		private readonly Contact _customer;
 		private readonly Deal _deal;
 		private readonly GsWhatsAppClient _gsWhatsAppClient;
 
-		public AgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal, AskDateDialog askDateDialog, GsWhatsAppClient gsWhatsAppClient)
+		public AgendaVisitaDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Contact customer, Deal deal, AskDateDialog askDateDialog, GsWhatsAppClient gsWhatsAppClient)
 			: base(nameof(AgendaVisitaDialog))
 		{
 
@@ -675,7 +675,7 @@ namespace MrBot.Dialogs
 				else
 				{
                     // Confere se o Id salvo localmente, existe no Ploomes
-                    PloomesApi.Contact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
+                    PloomesApi.PloomesContact contact = await _ploomesclient.GetContact(ploomesContactId).ConfigureAwait(false);
 					// Se achou
 					if ( contact.Id > 0 )
 						// Patch client
@@ -852,7 +852,7 @@ namespace MrBot.Dialogs
 		private async Task UpdateCustomer(WaterfallStepContext stepContext)
 		{
             // Procura pelo registro do usuario
-            Models.Contact customer = _botDbContext.Contacts
+            Contact customer = _botDbContext.Contacts
 								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 								.FirstOrDefault();
 

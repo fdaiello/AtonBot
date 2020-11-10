@@ -123,7 +123,7 @@ namespace PloomesApi
 			_logger = logger;
 		}
 
-		public async Task<int> PostContact(Contact contact)
+		public async Task<int> PostContact(PloomesContact contact)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -181,7 +181,7 @@ namespace PloomesApi
 			string content = string.Empty;
 			string resp = string.Empty;
 
-			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			PloomesContact contact = new PloomesContact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
 			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
@@ -248,7 +248,7 @@ namespace PloomesApi
 			string content = string.Empty;
 			string resp = string.Empty;
 
-			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			PloomesContact contact = new PloomesContact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
 			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
@@ -297,7 +297,7 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PatchContact( Contact contact)
+		public async Task<int> PatchContact( PloomesContact contact)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -510,11 +510,11 @@ namespace PloomesApi
 
 		}
 
-		public async Task<Contact> GetContact(int Id)
+		public async Task<PloomesContact> GetContact(int Id)
 		{
 			HttpClient httpClient = new HttpClient();
 			string resp = string.Empty;
-			Contact contact = new Contact();
+			PloomesContact contact = new PloomesContact();
 			try
 			{
 				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
@@ -710,7 +710,7 @@ namespace PloomesApi
 
 	}
 
-	public class Contact
+	public class PloomesContact
 	{
 		public int Id { get; set; }
 		public int TypeId { get; set; }
@@ -822,11 +822,11 @@ namespace PloomesApi
 			else
 				otherProperty.StringValue = name;
 		}
-		public void CopyFrom(Contact contact)
+		public void CopyFrom(PloomesContact contact)
 		{
 			if ( contact != null)
             {
-				foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
+				foreach (PropertyInfo property in typeof(PloomesContact).GetProperties().Where(p => p.CanWrite))
 				{
 					property.SetValue(this, property.GetValue(contact, null), null);
 				}
@@ -843,7 +843,7 @@ namespace PloomesApi
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
 		[JsonProperty("value")]
-		public List<Contact> Contacts { get; } = new List<Contact>();
+		public List<PloomesContact> Contacts { get; } = new List<PloomesContact>();
 
 	}
 	public class OtherProperty

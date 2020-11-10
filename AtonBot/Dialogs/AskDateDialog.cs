@@ -8,8 +8,8 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -23,13 +23,13 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Models.Contact _customer;
+		private readonly Contact _customer;
 		private readonly Deal _deal;
 
-		public AskDateDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, Models.Contact customer, Deal deal)
+		public AskDateDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, Contact customer, Deal deal)
 			: base(nameof(AskDateDialog))
 		{
 

@@ -6,8 +6,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -22,7 +22,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
-using GsWhatsApp;
+using ContactCenter.Infrastructure.Clients.GsWhatsApp;
 using System.Linq.Expressions;
 using NETCore.MailKit.Infrastructure.Internal;
 
@@ -33,7 +33,7 @@ namespace MrBot.Controllers
 	public class TestController : ControllerBase
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly string userid;
 		private readonly string token;
 		private readonly GsWhatsAppClient _gsWhatsAppClient;
@@ -44,7 +44,7 @@ namespace MrBot.Controllers
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public TestController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient)
+		public TestController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, ApplicationDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient)
 		{
 			_adapter = adapter;
 			_botDbContext = botDbContext;

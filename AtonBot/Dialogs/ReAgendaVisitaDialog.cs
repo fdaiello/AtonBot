@@ -11,8 +11,8 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -27,14 +27,14 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Models.Contact _customer;
-		private readonly PloomesApi.Contact _contact;
+		private readonly Contact _customer;
+		private readonly PloomesApi.PloomesContact _contact;
 		private readonly Deal _deal;
 
-		public ReAgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal, PloomesApi.Contact contact, AskDateDialog askDateDialog)
+		public ReAgendaVisitaDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Contact customer, Deal deal, PloomesApi.PloomesContact contact, AskDateDialog askDateDialog)
 			: base(nameof(ReAgendaVisitaDialog))
 		{
 

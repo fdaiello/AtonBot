@@ -11,8 +11,8 @@
 
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Core.Models;
+using ContactCenter.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
@@ -28,14 +28,14 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Models.Contact _customer;
-		private readonly PloomesApi.Contact _contact;
+		private readonly Contact _customer;
+		private readonly PloomesApi.PloomesContact _contact;
 		private readonly Deal _deal;
 
-		public AgendaInstalacaoDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Models.Contact customer, Deal deal, PloomesApi.Contact contact, AskDateDialog askDateDialog)
+		public AgendaInstalacaoDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Contact customer, Deal deal, PloomesApi.PloomesContact contact, AskDateDialog askDateDialog)
 			: base(nameof(AgendaInstalacaoDialog))
 		{
 

@@ -3,7 +3,6 @@
 // Felipe Daiello
 // fdaiello@misterpostman.com.br
 
-using GsWhatsAppAdapter;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -20,9 +19,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MrBot.Bots;
-using MrBot.Data;
+using ContactCenter.Data;
 using MrBot.Dialogs;
-using MrBot.Middleware;
+using MisterBot.Infrastructure.Middleware;
 using MrBot.CognitiveModels;
 using NETCore.MailKit.Extensions;
 using NETCore.MailKit.Infrastructure.Internal;
@@ -31,8 +30,12 @@ using System.Collections.Concurrent;
 using System.IO;
 using Azure.Storage.Blobs;
 using PloomesApi;
-using MrBot.Models;
-using GsWhatsApp;
+using MisterBot.Infrastructure.Adaters;
+using MisterBot.Infrastructure.Adaters.GsWhatsApp;
+using ContactCenter.Infrastructure.Clients.GsWhatsApp;
+using ContactCenter.Infrastructure.Clients.Wpush;
+using ContactCenter.Infrastructure.Clients.Speech;
+using ContactCenter.Core.Models;
 
 namespace MrBot
 {
@@ -71,11 +74,11 @@ namespace MrBot
 			// Create the Bot Framework Adapter with error handling enabled.
 			services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithTranscriptAndErrorHandler>();
 
-			// Create the WhatsApp Adapter with error handling enabled.
-			services.AddSingleton<WhatsAppAdapter, WhatsAppAdapterWithErrorHandler>();
+			// Create the GupShup WhatsApp Adapter with error handling enabled.
+			services.AddSingleton<GsWhatsAppAdapter, GsWhatsAppAdapterWithErrorHandler>();
 
 			//// Esta opção serve para trocar o banco para um SQL Server
-			services.AddDbContext<BotDbContext>(options =>
+			services.AddDbContext<ApplicationDbContext>(options =>
 					options.UseSqlServer(Configuration.GetConnectionString("BotContext"),
 					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(10).TotalSeconds)));
 
@@ -94,11 +97,11 @@ namespace MrBot
 			services.AddSingleton<ConcurrentDictionary<string, ConversationReference>>();
 
 			// Registra o Middleware que faz o log dos Chats - passa as configurações do MbContext
-			var optionsBuilder = new DbContextOptionsBuilder<BotDbContext>();
+			var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
 			optionsBuilder.UseSqlServer(Configuration.GetConnectionString("BotContext"),
 					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(20).TotalSeconds));
 
-			var transcriptMiddleware = new TranscriptLoggerMiddleware(new BotDbContextTranscriptStore(optionsBuilder, _logger));
+			var transcriptMiddleware = new TranscriptLoggerMiddleware(new DbContextTranscriptStore(optionsBuilder, _logger));
 			services.AddSingleton(transcriptMiddleware);
 
 			//Add MailKit
@@ -121,10 +124,15 @@ namespace MrBot
 				});
 			});
 
-			// WebPushApi
+			// WebPush Client
 			IConfigurationSection wpushsettings = Configuration.GetSection("WebPushR");
 			services.Configure<WpushSettings>(wpushsettings);
-			services.AddSingleton<WpushApi>();
+			services.AddSingleton<WpushClient>();
+
+			// Speech Client
+			IConfigurationSection speechSettings = Configuration.GetSection("Speech");
+			services.Configure<SpeechSettings>(speechSettings);
+			services.AddSingleton<SpeechClient>();
 
 			// Ploomes Api
 			IConfigurationSection ploomessettings = Configuration.GetSection("PloomesApi");
@@ -178,18 +186,18 @@ namespace MrBot
 			services.AddTransient<IBot, AtonBot>();
 
 			// Cria um Customer pra compartilhar entre os diálogos
-			services.AddScoped<Models.Contact>();
+			services.AddScoped<Contact>();
 
 			// Cria um Ploomes Contact para compartilhar entre os diálogos
-			services.AddScoped<PloomesApi.Contact>();
+			services.AddScoped<PloomesApi.PloomesContact>();
 
 			// Cria um Ploomes Deal para compartilhar entre os diálogos
 			services.AddScoped<Deal>();
 
 			// Get Gs ( GupShupAPI ) Settings & API
-			GsWhatsAppOptions gsWhatsAppOptions = new GsWhatsAppOptions(Configuration["GsSettings:GsApiKey"], new Uri(Configuration["GsSettings:GsApiUri"]), new Uri(Configuration["GsSettings:GsMediaUri"]));
-			GsWhatsAppClient gsWhatsAppClient = new GsWhatsAppClient(gsWhatsAppOptions);
-			services.AddSingleton(gsWhatsAppClient);
+			IConfigurationSection gsSettings = Configuration.GetSection("GsSettings");
+			services.Configure<GsWhatsAppSettings>(gsSettings);
+			services.AddSingleton<GsWhatsAppClient>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

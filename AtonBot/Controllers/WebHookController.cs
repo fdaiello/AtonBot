@@ -6,8 +6,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -21,7 +21,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using NETCore.MailKit.Core;
 using Microsoft.VisualBasic;
-using GsWhatsApp;
+using ContactCenter.Infrastructure.Clients.GsWhatsApp;
 using Microsoft.Extensions.Logging;
 
 namespace MrBot.Controllers
@@ -31,7 +31,7 @@ namespace MrBot.Controllers
 	public class WebHookController : ControllerBase
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly string userid;
 		private readonly string token;
 		private readonly GsWhatsAppClient _gsWhatsAppClient;
@@ -43,7 +43,7 @@ namespace MrBot.Controllers
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient, ILogger<WebHookController> logger)
+		public WebHookController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, ApplicationDbContext botDbContext, ConcurrentDictionary<string, ConversationReference> conversationReferences, IEmailService emailService, GsWhatsAppClient gsWhatsAppClient, ILogger<WebHookController> logger)
 		{
 			_adapter = adapter;
 			_botDbContext = botDbContext;
@@ -80,12 +80,12 @@ namespace MrBot.Controllers
 					int contactId = apiDealWebhook.NewDeal.ContactId;
 
                     // Procura na base
-                    Models.Contact customer = _botDbContext.Contacts.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
+                    Contact customer = _botDbContext.Contacts.Where(s => s.Tag1 == contactId.ToString()).FirstOrDefault();
 
 					// Se achou o cliente na nossa base
 					if (customer != null)
 					{
-						// Busca o whatsAppNumber do grupo do qual este customerid participa
+						// Busca o whatsAppNumber do grupo do qual este ContactId participa
 						string whatsAppNumber = string.Empty ;
 						Group uGroup = _botDbContext.Groups.Where(p => p.Id == customer.GroupId).FirstOrDefault();
 						// Se nao achou

@@ -7,8 +7,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using MrBot.CognitiveModels;
 using System.Linq;
 using System.Threading;
@@ -19,17 +19,17 @@ namespace MrBot.Dialogs
 	public class ProfileDialog2 : ComponentDialog
 	{
 		private const int maxprompts = 3;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _DbContext;
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly IConfiguration _configuration;
 		private readonly ConversationState _conversationState;
 		private readonly MisterBotRecognizer _recognizer;
 
-		public ProfileDialog2(BotDbContext botContext, DialogDictionary dialogDictionary, IConfiguration configuration, IBotTelemetryClient telemetryClient, ConversationState conversationState, MisterBotRecognizer recognizer)
+		public ProfileDialog2(ApplicationDbContext applicationDbContext, DialogDictionary dialogDictionary, IConfiguration configuration, IBotTelemetryClient telemetryClient, ConversationState conversationState, MisterBotRecognizer recognizer)
 			: base(nameof(ProfileDialog2))
 		{
 			// Injected Objects
-			_botDbContext = botContext;
+			_DbContext = applicationDbContext;
 			_dialogDictionary = dialogDictionary;
 			_configuration = configuration;
 			_conversationState = conversationState;
@@ -66,7 +66,7 @@ namespace MrBot.Dialogs
 			string initmsg = "Eu preciso completar seu cadastro.";
 
 			// Localiza o registro do usuario na base do Bot
-			Contact customer = _botDbContext.Contacts
+			Contact contact = _DbContext.Contacts
 						.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 						.Include(t => t.ExternalAccounts)
 						.FirstOrDefault();
@@ -78,23 +78,23 @@ namespace MrBot.Dialogs
 			stepContext.Values["email"] = string.Empty;
 
 			// Salva em variavel do waterfall, se tem ou nao sobrenome salvo
-			stepContext.Values["askemail"] = string.IsNullOrEmpty(customer.Email);
+			stepContext.Values["askemail"] = string.IsNullOrEmpty(contact.Email);
 
 			// Salva em variavel do waterfall, se tem ou nao telefone salvo
-			stepContext.Values["askphone"] = string.IsNullOrEmpty(customer.MobilePhone) || !Utility.IsValidPhone(customer.MobilePhone);
+			stepContext.Values["askphone"] = string.IsNullOrEmpty(contact.MobilePhone) || !Utility.IsValidPhone(contact.MobilePhone);
 
 			// Se falta algum dado
-			if (string.IsNullOrEmpty(customer.Name) || !customer.FullName.Contains(" ") || string.IsNullOrEmpty(customer.MobilePhone) || !Utility.IsValidPhone(customer.MobilePhone))
+			if (string.IsNullOrEmpty(contact.Name) || !contact.FullName.Contains(" ") || string.IsNullOrEmpty(contact.MobilePhone) || !Utility.IsValidPhone(contact.MobilePhone))
 				// avisa que tem que preencher o cadastro
-				await stepContext.Context.SendActivityAsync(initmsg).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text(initmsg),cancellationToken).ConfigureAwait(false);
 			else
 				// Encerra o diálogo
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				return await stepContext.EndDialogAsync(null,cancellationToken).ConfigureAwait(false);
 
 			// Se tem nome 
-			if (!string.IsNullOrEmpty(customer.Name))
+			if (!string.IsNullOrEmpty(contact.Name))
 				// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
-				return await stepContext.NextAsync(customer.FullName, cancellationToken).ConfigureAwait(false);
+				return await stepContext.NextAsync(contact.FullName, cancellationToken).ConfigureAwait(false);
 
 			else
 				// pergunta o nome do cliente
@@ -116,7 +116,7 @@ namespace MrBot.Dialogs
 				return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Qual é o seu sobrenome?") }, cancellationToken).ConfigureAwait(false);
 			else
 				// pula pro proximo passo
-				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
+				return await stepContext.NextAsync(string.Empty,cancellationToken).ConfigureAwait(false);
 
 		}
 		// Pergunta o telefone
@@ -134,7 +134,7 @@ namespace MrBot.Dialogs
 				return await stepContext.PromptAsync("PhonePrompt", new PromptOptions { Prompt = MessageFactory.Text("Por favor, me informe o seu telefone celular, com o DDD."), RetryPrompt = MessageFactory.Text("Preciso um celular válido pra completar seu cadastro.") }, cancellationToken).ConfigureAwait(false);
 			else
 				// pula pro proximo passo
-				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
+				return await stepContext.NextAsync(string.Empty,cancellationToken).ConfigureAwait(false);
 		}
 
 		private async Task<DialogTurnResult> SaveProfile2StepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
@@ -150,7 +150,7 @@ namespace MrBot.Dialogs
 			await SaveCustomerData(stepContext).ConfigureAwait(false);
 
 			// Encerra o diálogo
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(null,cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -158,7 +158,7 @@ namespace MrBot.Dialogs
 		private async Task SaveCustomerData(WaterfallStepContext stepContext)
 		{
 			// Procura pelo registro do usuario
-			Contact customer = _botDbContext.Contacts
+			Contact customer = _DbContext.Contacts
 									.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 									.FirstOrDefault();
 
@@ -178,8 +178,8 @@ namespace MrBot.Dialogs
 				customer.Email = (string)stepContext.Values["email"];
 
 			// Salva o cliente no banco
-			_botDbContext.Contacts.Update(customer);
-			await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+			_DbContext.Contacts.Update(customer);
+			await _DbContext.SaveChangesAsync().ConfigureAwait(false);
 
 			return;
 		}

@@ -15,7 +15,7 @@ using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
 using MrBot.CognitiveModels;
 using Azure.Storage.Blobs;
-using MrBot.Models;
+using ContactCenter.Core.Models;
 
 namespace MrBot.Dialogs
 {

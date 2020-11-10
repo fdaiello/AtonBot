@@ -4,8 +4,8 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using MrBot.CognitiveModels;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -16,13 +16,13 @@ namespace MrBot.Dialogs
 	public class ProfileDialog : ComponentDialog
 	{
 		private const int maxprompts = 2;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly MisterBotRecognizer _recognizer;
 		private readonly Contact _customer;
 
-		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Contact customer)
+		public ProfileDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Contact customer)
 			: base(nameof(ProfileDialog))
 		{
 			// Injected Objects

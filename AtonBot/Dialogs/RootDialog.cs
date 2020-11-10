@@ -13,8 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Bot.Schema;
 using Microsoft.Bot.Builder.AI.QnA;
 using Azure.Storage.Blobs;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using MrBot.CognitiveModels;
 using PloomesApi;
 using System.Globalization;
@@ -23,17 +23,17 @@ namespace MrBot.Dialogs
 {
 	public class RootDialog : CheckIntentBase
 	{
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly ILogger _logger;
 		private readonly QnAMaker _qnaService;
 		private readonly double minScoreQna = 0.5;
-		private readonly Models.Contact _customer;
+		private readonly Contact _customer;
 		private readonly Deal _deal;
 		private readonly PloomesClient _ploomesClient;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Models.Contact customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
+		public RootDialog(ConversationState conversationState, ApplicationDbContext botContext, DialogDictionary dialogDictionary, Contact customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -253,20 +253,20 @@ namespace MrBot.Dialogs
 			string channelID = activity.ChannelId;
 
 			// Mapeia o canal
-			ChannelType channelType;
+			ChatChannelType channelType;
 			if (channelID == "whatsapp")
-				channelType = ChannelType.WhatsApp;
+				channelType = ChatChannelType.WhatsApp;
 			else if (channelID == "webchat")
-				channelType = ChannelType.WebChat;
+				channelType = ChatChannelType.WebChat;
 			else if (channelID == "facebook")
-				channelType = ChannelType.Facebook;
+				channelType = ChatChannelType.Facebook;
 			else
-				channelType = ChannelType.others;
+				channelType = ChatChannelType.others;
 			
 			try
 			{
                 // Cria um novo cliente
-                Models.Contact customer = new Models.Contact
+                Contact customer = new Contact
 				{
 					Id = clientId,
 					FirstActivity = Utility.HoraLocal(),
