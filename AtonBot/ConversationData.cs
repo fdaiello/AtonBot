@@ -13,13 +13,13 @@ namespace MrBot
 		// Last service
 		public string Service { get; set; }
 
-		public int AskPriceCount { get; set; } = 0;
+		public int AskPriceCount { get; set; }
 
 		// Customer Info
 		public Contact Customer { get; set; }
 
 		// Number of intent recognition failed attempts
-		public int IntentNotRecognized { get; set; } = 0;
+		public int IntentNotRecognized { get; set; }
 
 		// NextAvailableDates 
 		public List<DateTime> NextAvailableDates { get; } = new List<DateTime>();

@@ -865,18 +865,10 @@ namespace MrBot.Dialogs
 					customer.Name = Utility.FirstName((string)stepContext.Values["nomecompleto"]);
 					customer.FullName = (string)stepContext.Values["nomecompleto"];
 				}
-				if (!string.IsNullOrEmpty((string)stepContext.Values["cep"]))
-					customer.Zip = (string)stepContext.Values["cep"];
 				if (stepContext.Values["ploomesId"] != null)
 					customer.Tag1 = (string)stepContext.Values["ploomesId"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["ploomesDealId"]))
 					customer.Tag2 = (string)stepContext.Values["ploomesDealId"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["cidade"]))
-					customer.City = (string)stepContext.Values["cidade"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["uf"]))
-					customer.State = (string)stepContext.Values["uf"];
-				if (!string.IsNullOrEmpty((string)stepContext.Values["bairro"]))
-					customer.Neighborhood = (string)stepContext.Values["bairro"];
 				if (!string.IsNullOrEmpty((string)stepContext.Values["email"]))
 					customer.Email = (string)stepContext.Values["email"];
 				if (stepContext.Values["data"] != null)
