@@ -79,7 +79,7 @@ namespace MrBot
 
 			//// Esta opção serve para trocar o banco para um SQL Server
 			services.AddDbContext<ApplicationDbContext>(options =>
-					options.UseSqlServer(Configuration.GetConnectionString("BotContext"),
+					options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),
 					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(10).TotalSeconds)));
 
 			// Create the storage client we'll be using for User and Conversation state.
@@ -98,7 +98,7 @@ namespace MrBot
 
 			// Registra o Middleware que faz o log dos Chats - passa as configurações do MbContext
 			var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-			optionsBuilder.UseSqlServer(Configuration.GetConnectionString("BotContext"),
+			optionsBuilder.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),
 					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(20).TotalSeconds));
 
 			var transcriptMiddleware = new TranscriptLoggerMiddleware(new DbContextTranscriptStore(optionsBuilder, _logger));
