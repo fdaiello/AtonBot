@@ -75,8 +75,8 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Me desculpe, ocorreu algum erro. Não recebi o seu CEP. Vou ter que recomeçar."), cancellationToken).ConfigureAwait(false);
 
 				// Encera
-				await stepContext.CancelAllDialogsAsync().ConfigureAwait(false);
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				await stepContext.CancelAllDialogsAsync(cancellationToken).ConfigureAwait(false);
+				return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 
 			// Procura as opções de data com base no CEP informado
@@ -87,7 +87,7 @@ namespace MrBot.Dialogs
 
 			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 			conversationData.ResetAvailableDates();
 			foreach ( DateTime availableDate in nextAvailableDates)
 				conversationData.AddAvailableDate(availableDate);
@@ -96,7 +96,7 @@ namespace MrBot.Dialogs
 			var card = new HeroCard
 			{
 				Title = $"Agendamento {_dialogDictionary.Emoji.Calendar}",
-				Text = "Obrigado pela informação. Para seu endereço temos as seguintes datas disponíveis:",
+				Text = "Muito obrigado pelas informações. Temos as seguintes opções disponíveis para agendarmos uma visita técnica no seu endereço:",
 				Buttons = new List<CardAction> { }
 			};
 
@@ -145,7 +145,7 @@ namespace MrBot.Dialogs
 
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 				// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
 				choice = choice.Replace("-", "/").Replace("dia ", "");
@@ -164,7 +164,7 @@ namespace MrBot.Dialogs
 				}
 
 				// Pula pro proximo passo
-				return await stepContext.NextAsync().ConfigureAwait(false);
+				return await stepContext.NextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 
 		}
@@ -193,7 +193,7 @@ namespace MrBot.Dialogs
 
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 			// Busca novamente as datas disponíveis
 			List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;
@@ -228,7 +228,7 @@ namespace MrBot.Dialogs
 			{
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 				// Busca novamente as datas disponíveis
 				List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;

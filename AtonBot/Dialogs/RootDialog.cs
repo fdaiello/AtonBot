@@ -133,7 +133,7 @@ namespace MrBot.Dialogs
 			{
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 				// Salva a primeira pergunta que o cliente fez
 				conversationData.FirstQuestion = string.Empty;
@@ -166,7 +166,7 @@ namespace MrBot.Dialogs
 			}
 			else if ( _deal.StageId == AtonStageId.PropostaRealizada)
             {
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estamos trabalhando na sua proposta, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá, {_customer.Name}! Estamos trabalhando na sua proposta, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
 			}
 			else if (_deal.StageId == AtonStageId.ValidacaoDaVisitaeProposta || _deal.StageId == AtonStageId.PropostaApresentada)
 			{
@@ -199,7 +199,7 @@ namespace MrBot.Dialogs
 
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(),cancellationToken).ConfigureAwait(false);
 
 				// Confere se tem boleto, e ainda não enviou
 				if (!conversationData.BoletoEnviado && _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
@@ -212,16 +212,16 @@ namespace MrBot.Dialogs
 					if (attachment != null && !string.IsNullOrEmpty(attachment.Url))
 					{
 						// Envia o anexo
-						await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Já vou lhe enviar...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+						await Utility.EnviaAnexo(stepContext, "Boleto", $"Olá {_customer.Name}! O pessoal do Financeiro já me passou o boleto referente à segunda parcela. Segue abaixo ...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
 
 						// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
-						Task.Delay(3000).Wait();
+						Task.Delay(3000, cancellationToken).Wait(cancellationToken);
 
 						// Marca no ojeto persistente da conversa, que já enviou o boleto
 						conversationData.BoletoEnviado = true;
 
 						// E encerra o diálogo
-						return await stepContext.EndDialogAsync().ConfigureAwait(false);
+						return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -236,7 +236,7 @@ namespace MrBot.Dialogs
 				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
 			}
 
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		}
 

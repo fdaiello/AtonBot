@@ -69,7 +69,7 @@ namespace MrBot.Controllers
 			else
 			{
 
-				if (Request.ContentType != null && Request.ContentType.StartsWith("application/json"))
+				if (Request.ContentType != null && Request.ContentType.StartsWith("application/json",StringComparison.OrdinalIgnoreCase))
                 {
 
 					// Desserializa o conteudo do POST.
@@ -103,13 +103,13 @@ namespace MrBot.Controllers
 						// Se informou que todos os dados dos tecnicos foram adicionados
 						if ( apiDealWebhook.OldDeal.OtherProperties.DadosTecnicosVisitaAdicionados != AtonTecnicosVisitaInformados.Sim & apiDealWebhook.NewDeal.OtherProperties.DadosTecnicosVisitaAdicionados == AtonTecnicosVisitaInformados.Sim)
 							// Monta a mensagem
-							message = $"Oi {customer.Name}! Já temos o nome dos técnicos que farão a sua visita. Quando puder, entre em contato que lhe informo.";
+							message = $"Oi {customer.Name}! ). Já temos os nomes dos técnicos que farão a sua visita. Posso informar?";
 
 						// Se foi validada a proposta
 						else if (apiDealWebhook.OldDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada & apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao == AtonResultadoValicacao.Validada)
 						{
 							// Monta a mensagem
-							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+							message = $"Oi {customer.Name}! Sua proposta está pronta! Posso apresentá-la? Lembrando que uma cópia será enviada também para o seu e-mail.";
 							// Marca em Customer a data/hora que envioiu essa notificação - para enviar novamente 24 horas depois
 							customer.Tag3 = DateAndTime.Now.ToString(new CultureInfo("en-US"));
 							// Salva o cliente no banco
@@ -121,7 +121,7 @@ namespace MrBot.Controllers
 						else if (apiDealWebhook.NewDeal.OtherProperties.ResultadoValidacao != AtonResultadoValicacao.Validada && apiDealWebhook.NewDeal.StageId == AtonStageId.ValidacaoDaVisitaeProposta && DateTime.TryParse(customer.Tag3, out DateTime dtNotificacaoProposta) && dtNotificacaoProposta.Subtract(DateTime.Now).TotalHours > 24)
 						{
 							// Monta a mensagem
-							message = $"Oi {customer.Name}! Sua proposta está pronta. Me chame quando eu puder lhe enviar.";
+							message = $"Oi {customer.Name}! Sua proposta está pronta! Posso apresentá-la? Lembrando que uma cópia foi enviada para o seu e-mail.";
 							// Limpa tag 3 para não enviar novamente
 							customer.Tag3 = string.Empty;
 							// Salva o cliente no banco
@@ -137,7 +137,7 @@ namespace MrBot.Controllers
 						// Apos os dados dos técnicos que vão fazer a Instalacao terem sido informados
 						else if (apiDealWebhook.OldDeal.OtherProperties.DadosTecnicosInstalacaoAdicionados != AtonTecnicosInstalacaoInformados.Sim  & apiDealWebhook.NewDeal.OtherProperties.DadosTecnicosInstalacaoAdicionados == AtonTecnicosInstalacaoInformados.Sim)
 							// Monta a mensagem
-							message = $"Oi {customer.Name}! Já temos o nome dos técnicos que farão a sua instalação. Quando puder, entre em contato que lhe informo.";
+							message = $"Oi {customer.Name}! ). Já temos os nomes dos técnicos que farão a sua instalação. Posso informar? ";
 
 						// Após o boleto ter sido anexado
 						else if (apiDealWebhook.OldDeal.OtherProperties.BoletoAttachmentId == 0 & apiDealWebhook.NewDeal.OtherProperties.BoletoAttachmentId != 0)

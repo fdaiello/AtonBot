@@ -115,7 +115,7 @@ namespace MrBot.Controllers
 		{
 			// If you encounter permission-related errors when sending this message, see
 			// https://aka.ms/BotTrustServiceUrl
-			await turnContext.SendActivityAsync(proactivetext).ConfigureAwait(false);
+			await turnContext.SendActivityAsync(proactivetext, cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 

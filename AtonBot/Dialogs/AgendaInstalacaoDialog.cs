@@ -103,7 +103,7 @@ namespace MrBot.Dialogs
 
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 			// Confere se tem boleto, e ainda não enviou
 			if (!conversationData.BoletoEnviado && _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
@@ -119,7 +119,7 @@ namespace MrBot.Dialogs
 					await Utility.EnviaAnexo(stepContext, "Boleto", "O pessoal do Financeiro já me passou o seu boleto de pagamento da segunda parcela. Já vou lhe enviar...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
 
 					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
-					Task.Delay(3000).Wait();
+					Task.Delay(3000, cancellationToken).Wait(cancellationToken);
 
 					// Da mensagem
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Precisando algo mais, é só me chamar."), cancellationToken).ConfigureAwait(false);
@@ -128,7 +128,7 @@ namespace MrBot.Dialogs
 					conversationData.BoletoEnviado = true;
 
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 			}
 
@@ -151,7 +151,7 @@ namespace MrBot.Dialogs
 					conversationData.TecnicosInstalacaoInformado = true;
 
 					// Finaliza
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 
 				// Busca a data
@@ -159,12 +159,12 @@ namespace MrBot.Dialogs
 				DateTime horarioAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioInstalacao).FirstOrDefault().DateTimeValue;
 
 				// Informa que a instalação está agendada, e confirma a data e hora
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Nós agendamos sua instalação para o dia {dataAgendamento:dd/MM} às {horarioAgendamento:HH:mm}. 📝"), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá {_customer.Name}, sua instalação está agendada para o dia {dataAgendamento:dd/MM} às {horarioAgendamento:HH:mm}. 📝"), cancellationToken).ConfigureAwait(false);
 
 				// Create a HeroCard with options for the user to interact with the bot.
 				var card = new HeroCard
 				{
-					Text = "Você quer reagendar ?",
+					Text = "Gostaria de reagendar?",
 					Buttons = new List<CardAction>
 					{
 					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -184,7 +184,7 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Vamos agendar a sua instalação?"), cancellationToken).ConfigureAwait(false);
 
 				// Pula pro proximo passo
-				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
+				return await stepContext.NextAsync(string.Empty, cancellationToken).ConfigureAwait(false);
 			}
 
 		}
@@ -201,7 +201,7 @@ namespace MrBot.Dialogs
 			if (choice == "n" | choice == "nao" | choice == "não")
 			{
 				// Finaliza o diálogo atual
-				await stepContext.EndDialogAsync().ConfigureAwait(false);
+				await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 				// Chama o diálogo que pergunta se quer atendimento humano
 				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
@@ -210,7 +210,7 @@ namespace MrBot.Dialogs
 			else
 			{
 				// pula pro proximo passo
-				return await stepContext.NextAsync(string.Empty).ConfigureAwait(false);
+				return await stepContext.NextAsync(string.Empty, cancellationToken).ConfigureAwait(false);
 			}
 		}
 		// Se ainda não tem CPF
@@ -226,7 +226,7 @@ namespace MrBot.Dialogs
 
 			else
 				// se já tem CPF ou CNPJ salvo, pula pro proximo passo
-				return await stepContext.NextAsync(null).ConfigureAwait(false);
+				return await stepContext.NextAsync(null, cancellationToken).ConfigureAwait(false);
 		}
 		// Salva o CPF digitado no passo anterior
 		// Consulta opções de datas com base no CEP, oferece opçoes, pergunta data
@@ -259,7 +259,7 @@ namespace MrBot.Dialogs
 
 			// Ponteiro para os dados persistentes da conversa
 			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 			// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
 			choice = choice.Replace("-", "/").Replace("dia ", "");
@@ -410,7 +410,7 @@ namespace MrBot.Dialogs
 
 				// Confirma se conseguiu inserir corretamente o Lead
 				if (ploomesDealId != 0)
-					msg = $"Ok! Obrigado. 👌\nSua instalação está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local. 👨‍🔧" + _dialogDictionary.Emoji.ThumbsUp;
+					msg = $"Ok! Obrigado pelo seu contato. 👌\nSua instalação está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local. 👨‍🔧" + _dialogDictionary.Emoji.ThumbsUp;
 				else
 					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
 
@@ -425,7 +425,7 @@ namespace MrBot.Dialogs
 				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Ok, NÃO fizemos alterações, e mantemos a data original."), cancellationToken).ConfigureAwait(false);
 
 			// Termina este diálogo
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 		// Validação: Sim ou Nâo
@@ -507,53 +507,6 @@ namespace MrBot.Dialogs
 
 			return infoTecnicos;
 
-			//// Se tem dados do tecnico1
-			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue))
-			//{
-			//	infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico1).FirstOrDefault().StringValue;
-			//	// Se tem documento do tecnico 1
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue))
-			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico1).FirstOrDefault().StringValue + "\n";
-			//	else
-			//		infoTecnicos += "\n";
-			//	// Se tem a placa to tecnico 1
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue).Length > 1)
-			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico1).FirstOrDefault().StringValue + "\n";
-			//	else
-			//		infoTecnicos += "\n";
-			//}
-			//// Se tem dados do tecnico2
-			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue))
-			//{
-			//	infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico2).FirstOrDefault().StringValue;
-			//	// Se tem documento do tecnico 2
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue))
-			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico2).FirstOrDefault().StringValue + "\n";
-			//	else
-			//		infoTecnicos += "\n";
-			//	// Se tem a placa to tecnico 2
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue).Length > 1)
-			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico2).FirstOrDefault().StringValue + "\n";
-			//	else
-			//		infoTecnicos += "\n";
-			//}
-			//// Se tem dados do tecnico3
-			//if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue))
-			//{
-			//	infoTecnicos += (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeTecnico3).FirstOrDefault().StringValue + "\n";
-			//	// Se tem documento do tecnico 3
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue))
-			//		infoTecnicos += ", documento: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocTecnico3).FirstOrDefault().StringValue;
-			//	else
-			//		infoTecnicos += "\n";
-			//	// Se tem a placa to tecnico 3
-			//	if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).Any() && !string.IsNullOrEmpty((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue).Length > 1)
-			//		infoTecnicos += ", placa: " + (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnico3).FirstOrDefault().StringValue + "\n";
-			//	else
-			//		infoTecnicos += "\n";
-			//}
-
-			//return infoTecnicos;
 		}
 		// Tarefa de validação do Cpf
 		private async Task<bool> CpfValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)

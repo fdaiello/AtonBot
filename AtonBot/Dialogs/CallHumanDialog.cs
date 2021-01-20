@@ -124,7 +124,7 @@ namespace MrBot.Dialogs
 						await _wpushClient.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), applicationUser.WebPushId).ConfigureAwait(false);
 					}
 					// Confere se foi acionado direto por intençao
-					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Em breve alguém vai conectar e teclar com você. Por favor, aguarde ...";
+					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Por favor, aguarde (você receberá o contato da nossa equipe).";
 				}
 
 				if (stepContext.Options != null)
@@ -147,7 +147,7 @@ namespace MrBot.Dialogs
 				stepContext.Values["inworkinghurs"] = "nao";
 
 				// Avisa o cliente que estamos fora do horario de expediente
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"O horário de atendimento é de 2a a 6a feira das 09:00 as 18:00. Posso agendar para {atendente} entrar em contato a partir {NextWorkingDay()}."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá! O nosso horário de atendimento é de 2ª a 6ª feira das 09:00 às 18:00. Entraremos em contato com você no próximo dia útil. Qual é o melhor horário para você?"), cancellationToken).ConfigureAwait(false);
 
 				// Pergunta qual o horário de sua preferência
 				return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text(_dialogDictionary.Emoji.AlarmClock + " Qual é o melhor horário para você?") }, cancellationToken).ConfigureAwait(false);

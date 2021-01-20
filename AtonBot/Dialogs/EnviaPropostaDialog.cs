@@ -102,13 +102,13 @@ namespace MrBot.Dialogs
 				if (quote != null && !string.IsNullOrEmpty(quote.DocumentUrl))
 				{
 					// Envia o PDF com a proposta
-					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Já vou lhe enviar ...", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+					await EnviaPDF(stepContext, "Proposta_Comercial", "Segue abaixo a sua proposta ...", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
 
 					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
-					Task.Delay(3000).Wait();
+					Task.Delay(3000, cancellationToken).Wait(cancellationToken);
 
 					// Da mensagem par ler e chamar quando quiser continuar
-					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, analise, e me chame quando quiser aprovar, e agendar sua instalação. Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, analise sua proposta com calma e me chame quando quiser aprovar e agendar sua instalação. Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br ou pelo telefone 11 4673-3810."), cancellationToken).ConfigureAwait(false);
 
 					// Muda o estágio do Lead para Proposta Apresentada
 					_deal.StageId = AtonStageId.PropostaApresentada;
@@ -120,7 +120,7 @@ namespace MrBot.Dialogs
 					conversationData.PropostaEnviada = true;
 
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 				else
 				{
@@ -128,7 +128,7 @@ namespace MrBot.Dialogs
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Sua proposta está pronta e validada. Contudo, eu não estou conseguindo buscar sua proposta no sistema. {_dialogDictionary.Emoji.DisapointedFace}"), cancellationToken).ConfigureAwait(false);
 
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 
 			}
@@ -159,7 +159,7 @@ namespace MrBot.Dialogs
 			else
             {
 				// Pede para resolver dúvidas por email
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Tudo bem então. Caso mude de ideia, é só me chamar. Se ficou com alguma dúvida, entre em contato pelo email atonservices@atonservices.com.br ou telefone 11 4673-3810. Agradecemos seu contato."), cancellationToken).ConfigureAwait(false);
 
 				// Marca o campo Proposta Aceita com False
 				_deal.MarcaPropostaAceita(false);
@@ -169,7 +169,7 @@ namespace MrBot.Dialogs
 			}
 
 			// Finaliza o diálogo
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 		// Validação: Sim ou Nâo
 		private async Task<bool> YesNoValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
