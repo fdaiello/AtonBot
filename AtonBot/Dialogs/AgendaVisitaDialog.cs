@@ -120,6 +120,8 @@ namespace MrBot.Dialogs
 			stepContext.Values["end"] = string.Empty;
 			stepContext.Values["numero"] = string.Empty;
 			stepContext.Values["complemento"] = string.Empty;
+			stepContext.Values["marcacarregador"] = string.Empty;
+			stepContext.Values["pretendeadquirir"] = string.Empty;
 
 			// Valida que achou o registro
 			if (_customer != null)
@@ -715,7 +717,15 @@ namespace MrBot.Dialogs
 					DateTime horario = date.AddHours(Int16.Parse(strHorario.Replace(":00", ""), CultureInfo.InvariantCulture));
 
 					// Obtem a string que diz qual é a opção de instalação
-					string opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
+					string opcaodeInstalacao = string.Empty;
+					try
+					{
+						opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
+					}
+					catch
+					{
+
+					}
 
 					// Salva os dados das variáveis do diálogo no objeto Deal injetado e compartilhado
 					_deal.Title = (string)stepContext.Values["nomecompleto"];
