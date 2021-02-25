@@ -15,7 +15,7 @@ using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
 using MrBot.CognitiveModels;
 using Azure.Storage.Blobs;
-using MrBot.Models;
+using ContactCenter.Core.Models;
 
 namespace MrBot.Dialogs
 {
@@ -44,9 +44,9 @@ namespace MrBot.Dialogs
 		private readonly ILogger _logger;
 
 		// Customer
-		private Customer _customer;
+		private Contact _customer;
 
-		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, Customer customer)
+		public CheckIntentBase(string childDialogId, ConversationState conversationState, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, Contact customer )
 			: base(childDialogId)
 		{
 			// Cognitive injected objects
@@ -106,7 +106,7 @@ namespace MrBot.Dialogs
 
 				innerDc.Context.Activity.Text = userinput;
 
-				if (userinput == "cancelar" | userinput == "cancela" | userinput == "sair" | userinput == "voltar" | userinput == "menu" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa")
+				if (userinput == "cancelar" | userinput == "cancela" | userinput == "sair" | userinput == "voltar" | userinput == "cancel" | userinput == "reiniciar" | userinput == "reiniciar conversa" | userinput.Contains("errei") | userinput.Contains("errado"))
 				{
 					// Envia mensagem
 					string text;
@@ -116,6 +116,8 @@ namespace MrBot.Dialogs
 						text = "Ok, saindo ...";
 					else if (userinput == "voltar")
 						text = "Ok, voltando ...";
+					else if (userinput == "errado" || userinput == "errei")
+						text = "Tudo bem ... vamos tentar recomeçar então.";
 					else
 						text = "Ok, cancelando...";
 					var message = MessageFactory.Text(text, text, InputHints.IgnoringInput);

@@ -13,6 +13,8 @@ using RestSharp;
 using System.Reflection;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
+using Microsoft.Rest.Serialization;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 
 namespace PloomesApi
 {
@@ -32,19 +34,36 @@ namespace PloomesApi
 		public const string OpcaoDeInstalacao = "deal_80E104C6-6594-4783-8A90-F158ED5490C8";
 		public const string EhCondominio = "deal_EFCA3F4E-1EDA-42F4-BA5C-F889E20C6010";
 		public const string ResultadoValidacao = "deal_A52843BA-8989-41B8-B8DB-6401AB645D42";
-		public const string TecnicoResponsavel = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
-		public const string DocumentoDoTecnico = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
+		public const string NomeTecnicoVisita = "deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9";
+		public const string DocTecnicoVisita = "deal_39FB2467-8E59-4B85-A786-910028568BDE";
+
+		public const string NomeeDocTecnicoVisita = "deal_1F83496A-C7C5-43BE-9A2A-96EC7F95EF41";
+		public const string DadosTecnicosVisitaAdicionados = "deal_F2373262-7F23-46F4-960D-EA30C9A2ED14";
+
+		public const string OutrosTecnicosVisita = "deal_E32A69AD-0D90-4B88-B641-B4D4153FE211";
+		public const string PlacaTecnicoVisita = "deal_FEEA9A5B-F08F-4C42-A562-32E2051C3FFD";
+
 		public const string PropostaRevisada = "deal_A7409213-F8DE-43B6-9A6E-A5B9606C045C";
 		public const string PropostaAceita = "deal_D0F8DBEA-C425-4B66-BC51-9429A601DC1E";
 		public const string Comprovante1aParcelaIdentificado = "deal_B37F48D5-A16D-423B-8553-872F8626E811";
 		public const string DataInstalacao = "deal_C31EF5DB-21F3-453D-AEC2-09961D2D183B";
 		public const string HorarioInstalacao = "deal_DB83C020-BB92-4EB6-A01B-0D80A7BD1847";
+
 		public const string NomeTecnico1 = "deal_2657388F-8F9D-4C4C-BDE8-233EC455C604";
 		public const string DocTecnico1 = "deal_07980D96-E24E-4FE8-99DD-DDA0974015E3";
+		public const string PlacaTecnico1 = "deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4";
 		public const string NomeTecnico2 = "deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E";
 		public const string DocTecnico2 = "deal_9C48007E-B4AB-47D8-918A-D90436056253";
+		public const string PlacaTecnico2 = "deal_5AB70F3A-D3BB-4214-90E5-12AAE0246FCF";
 		public const string NomeTecnico3 = "deal_34F45D74-54D7-4541-8E72-4828D7FF09A5";
 		public const string DocTecnico3 = "deal_70B6D1A9-9F14-47C8-BF42-698866E6B248";
+		public const string PlacaTecnico3 = "deal_38C90A1B-01D3-4F7F-89F2-0ED90E903DB5";
+
+		public const string NomeeDocTecnicoInstalacao = "deal_C0A60F4D-02B2-46E2-AA0D-4AA7C05E34D6";
+		public const string OutrosTecnicosInstalacao = "deal_17ECA629-40F6-405F-985D-B1DC2681693C";
+		public const string PlacaTecnicoInstalacao = "deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4";
+		public const string DadosTecnicosInstalacaoAdicionados = "deal_8B3F56FC-5AAE-406D-BF0D-E1C5DE1BC6A0";
+
 		public const string BoletoAttachmentId = "deal_37E5E69F-5708-42DE-8356-6D3BAC437A6C";
 	}
 	// Ids dos Periodos
@@ -74,6 +93,15 @@ namespace PloomesApi
 	{
 		public const int Validada = 7992541;
 	}
+	public static class AtonTecnicosVisitaInformados
+    {
+		public const int Sim = 9837480;
+
+	}
+	public static class AtonTecnicosInstalacaoInformados
+    {
+		public const int Sim = 9849044;
+	}
 	// Ploomes API
 	// Classe para fazer as chamadas da API Ploomes CRM - Cadastro de Leads
 	public class PloomesClient
@@ -95,7 +123,7 @@ namespace PloomesApi
 			_logger = logger;
 		}
 
-		public async Task<int> PostContact(Contact contact)
+		public async Task<int> PostContact(PloomesContact contact)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -153,7 +181,7 @@ namespace PloomesApi
 			string content = string.Empty;
 			string resp = string.Empty;
 
-			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			PloomesContact contact = new PloomesContact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
 			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
@@ -220,7 +248,7 @@ namespace PloomesApi
 			string content = string.Empty;
 			string resp = string.Empty;
 
-			Contact contact = new Contact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
+			PloomesContact contact = new PloomesContact { Name = name, Email = email, ZipCode = zipcode, TypeId = 2, Neighborhood = neighborhood, StreetAddress = streetaddress, StreetAddressNumber = streetaddressnumber, StreetAddressLine2 = streetaddressline2 };
 			contact.AddPhone(phonenumber);
 			contact.AddOtherStringProperty(ContactPropertyId.QuemAcompanhaVisita, quemacompanha);
 			contact.AddOtherStringProperty(ContactPropertyId.Name, name);
@@ -269,7 +297,7 @@ namespace PloomesApi
 			}
 
 		}
-		public async Task<int> PatchContact( Contact contact)
+		public async Task<int> PatchContact( PloomesContact contact)
 		{
 			string content = string.Empty;
 			string resp = string.Empty;
@@ -378,8 +406,7 @@ namespace PloomesApi
 				content = JsonConvert.SerializeObject(deal);
 
 				// Retira informação de TimeZone das datas
-				content = content.Replace("+00:00\"", "\"");
-				content = content.Replace("-03:00\"", "\"");
+				content = content.Replace("+00:00\"", "\"").Replace("-03:00\"", "\"").Replace("-02:00\"", "\"");
 
 				// Chama a API para dar Patch no Deal
 				var client = new RestClient(serverUri.ToString() + $"/Deals({deal.Id})")
@@ -483,11 +510,11 @@ namespace PloomesApi
 
 		}
 
-		public async Task<Contact> GetContact(int Id)
+		public async Task<PloomesContact> GetContact(int Id)
 		{
 			HttpClient httpClient = new HttpClient();
 			string resp = string.Empty;
-			Contact contact = new Contact();
+			PloomesContact contact = new PloomesContact();
 			try
 			{
 				httpClient.DefaultRequestHeaders.Add("User-Agent", "Aton-Bot");
@@ -495,7 +522,7 @@ namespace PloomesApi
 				httpClient.DefaultRequestHeaders.Add("User-Key", userKey);
 				httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
-				Uri postContactUri = new Uri(serverUri.ToString() + $"/Contacts?$filter=Id+eq+{Id}");
+				Uri postContactUri = new Uri(serverUri.ToString() + $"/Contacts?$filter=Id+eq+{Id}&$expand=OtherProperties");
 				var httpResponseMessage = await httpClient.GetAsync(postContactUri).ConfigureAwait(false);
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -536,6 +563,18 @@ namespace PloomesApi
 				resp = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
 				httpClient.Dispose();
+
+				//// Configuração de data/hora para correta desserialização de hora com padrão de time zone
+				//JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
+				//{
+				//	DateFormatHandling = DateFormatHandling.MicrosoftDateFormat,
+				//	DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind,
+				//	DateParseHandling = DateParseHandling.DateTimeOffset
+				//};
+				//ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp, jsonSerializerSettings);
+
+				// Retira informação de TimeZone das datas
+				resp = resp.Replace("+00:00\"", "\"").Replace("-03:00\"", "\"").Replace("-02:00\"", "\"");
 
 				// Desserializa o objeto mensagem
 				ApiDealsResponse apiDealsResponse = JsonConvert.DeserializeObject<ApiDealsResponse>(resp);
@@ -671,7 +710,7 @@ namespace PloomesApi
 
 	}
 
-	public class Contact
+	public class PloomesContact
 	{
 		public int Id { get; set; }
 		public int TypeId { get; set; }
@@ -755,9 +794,9 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
-		internal void AddOtherProperty(string fieldkey, string stringvalue, object  integervalue, object datetimevalue, object boolvalue)
+		internal void AddOtherProperty(string fieldkey, string stringvalue, object  integervalue, object datetimevalue, object boolvalue, object objectValueName)
 		{
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue });
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue, ObjectValueName = objectValueName });
 		}
 		public void MarcaQuemAcompanhaVisita(string quemAcompanhaVisita)
 		{
@@ -783,17 +822,17 @@ namespace PloomesApi
 			else
 				otherProperty.StringValue = name;
 		}
-		public void CopyFrom(Contact contact)
+		public void CopyFrom(PloomesContact contact)
 		{
 			if ( contact != null)
             {
-				foreach (PropertyInfo property in typeof(Contact).GetProperties().Where(p => p.CanWrite))
+				foreach (PropertyInfo property in typeof(PloomesContact).GetProperties().Where(p => p.CanWrite))
 				{
 					property.SetValue(this, property.GetValue(contact, null), null);
 				}
 				foreach (OtherProperty otherProperty in contact.OtherProperties)
 				{
-					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue, otherProperty.ObjectValueName);
 				}
 			}
 		}
@@ -804,16 +843,18 @@ namespace PloomesApi
 		[JsonProperty("@odata.context")]
 		public string Odata { get; set; }
 		[JsonProperty("value")]
-		public List<Contact> Contacts { get; } = new List<Contact>();
+		public List<PloomesContact> Contacts { get; } = new List<PloomesContact>();
 
 	}
 	public class OtherProperty
 	{
 		public string FieldKey { get; set; }
 		public string StringValue { get; set; }
+		public string BigStringValue { get; set; }
 		public object DateTimeValue { get; set; }
 		public object IntegerValue { get; set; }
 		public object BoolValue { get; set; }
+		public object ObjectValueName { get; set; }
 	}
 	public class ApiDealsResponse
 	{
@@ -888,9 +929,9 @@ namespace PloomesApi
 		{
 			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, BoolValue = boolValue });
 		}
-        internal void AddOtherProperty(string fieldkey, string stringvalue, object integervalue, object datetimevalue, object boolvalue)
+        internal void AddOtherProperty(string fieldkey, string stringvalue, object integervalue, object datetimevalue, object boolvalue, string bigstringvalue, object objectValueName)
         {
-			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue }); 
+			this.OtherProperties.Add(new OtherProperty { FieldKey = fieldkey, StringValue = stringvalue, IntegerValue = integervalue, DateTimeValue = datetimevalue, BoolValue = boolvalue, BigStringValue = bigstringvalue, ObjectValueName = objectValueName }); 
         }
 		public void CopyFrom(Deal deal)
 		{
@@ -902,7 +943,7 @@ namespace PloomesApi
 				}
 				foreach (OtherProperty otherProperty in deal.OtherProperties)
 				{
-					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue);
+					this.AddOtherProperty(otherProperty.FieldKey, otherProperty.StringValue, otherProperty.IntegerValue, otherProperty.DateTimeValue, otherProperty.BoolValue, otherProperty.BigStringValue, otherProperty.ObjectValueName);
 				}
 			}
 		}
@@ -1169,9 +1210,13 @@ namespace PloomesApi
 	public class OtherProperties
 	{
 		[JsonProperty("deal_C1D65315-78E7-47B8-AC04-53CE12C4F7C9")]
-		public string TecnicoResposavel { get; set; }
+		public string NomeTecnicoVisita { get; set; }
 		[JsonProperty("deal_39FB2467-8E59-4B85-A786-910028568BDE")]
-		public string DocumentoDoTecnico { get; set; }
+		public string DocTecnicoVisita { get; set; }
+		[JsonProperty("deal_E32A69AD-0D90-4B88-B641-B4D4153FE211")]
+		public string OutrosTecnicosVisita { get; set; }
+		[JsonProperty("deal_FEEA9A5B-F08F-4C42-A562-32E2051C3FFD")]
+		public string PlacaTecnicoVisita { get; set; }
 		[JsonProperty("deal_A52843BA-8989-41B8-B8DB-6401AB645D42")]
 		public int ResultadoValidacao { get; set; }
 		[JsonProperty("deal_B37F48D5-A16D-423B-8553-872F8626E811")]
@@ -1182,15 +1227,27 @@ namespace PloomesApi
 		[JsonProperty("deal_2657388F-8F9D-4C4C-BDE8-233EC455C604")]
 		public string NomeTecnico1 { get; set; } 
 		[JsonProperty("deal_07980D96-E24E-4FE8-99DD-DDA0974015E3")]
-		public string DocTecnico1 { get; set; } 
+		public string DocTecnico1 { get; set; }
+		[JsonProperty("deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4")]
+		public string PlacaTecnico1 { get; set; }
 		[JsonProperty("deal_9C1F883A-FFB8-43EE-8CF2-214682FCD10E")]
 		public string NomeTecnico2 { get; set; }
 		[JsonProperty("deal_9C48007E-B4AB-47D8-918A-D90436056253")]
 		public string DocTecnico2 { get; set; } 
+		[JsonProperty("deal_5AB70F3A-D3BB-4214-90E5-12AAE0246FCF")]
+		public string PlacaTecnico2 { get; set; }
 		[JsonProperty("deal_34F45D74-54D7-4541-8E72-4828D7FF09A5")]
 		public string NomeTecnico3 { get; set; }
 		[JsonProperty("deal_70B6D1A9-9F14-47C8-BF42-698866E6B248")]
 		public string DocTecnico3 { get; set; }
+		[JsonProperty("deal_38C90A1B-01D3-4F7F-89F2-0ED90E903DB5")]
+		public string PlacaTecnico3 {get; set;}
+		[JsonProperty("deal_F2373262-7F23-46F4-960D-EA30C9A2ED14")]
+		public int DadosTecnicosVisitaAdicionados { get; set; }
+		[JsonProperty("deal_C0A60F4D-02B2-46E2-AA0D-4AA7C05E34D6")]
+		public string NomeEDocTecnicoInstalacao { get; set; }
+		[JsonProperty("deal_8B3F56FC-5AAE-406D-BF0D-E1C5DE1BC6A0")]
+		public int DadosTecnicosInstalacaoAdicionados { get; set; }
 	}
 #pragma warning disable CA1812
 	internal class State

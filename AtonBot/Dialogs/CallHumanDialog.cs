@@ -4,32 +4,33 @@ using Correios;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using NETCore.MailKit.Core;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ContactCenter.Infrastructure.Clients.Wpush;
 
 namespace MrBot.Dialogs
 {
 	public class CallHumanDialog : ComponentDialog
 	{
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
-		private readonly WpushApi _wpushApi;
+		private readonly ApplicationDbContext _botDbContext;
+		private readonly WpushClient _wpushClient;
 		private readonly IEmailService _emailService;
 		private readonly IConfiguration _configuration;
 
-		public CallHumanDialog(BotDbContext botDbContext, DialogDictionary dialogDictionary, WpushApi wpushApi, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2)
+		public CallHumanDialog(ApplicationDbContext botDbContext, DialogDictionary dialogDictionary, WpushClient wpushClient, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2)
 			: base(nameof(CallHumanDialog))
 		{
 
 			// Injected objects
 			_dialogDictionary = dialogDictionary;
 			_botDbContext = botDbContext;
-			_wpushApi = wpushApi;
+			_wpushClient = wpushClient;
 			_emailService = emailService;
 			_configuration = configuration;
 
@@ -90,12 +91,12 @@ namespace MrBot.Dialogs
 
 
 				// Marca cliente com status Wating
-				Customer customer = _botDbContext.Customers
+				Contact customer = _botDbContext.Contacts
 									.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 									.FirstOrDefault();
-				customer.Status = CustomerStatus.WatingForAgent;
-				_botDbContext.Customers.Update(customer);
-				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+				customer.Status = ContactStatus.WatingForAgent;
+				_botDbContext.Contacts.Update(customer);
+				await _botDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 				// Sends WebPush Notification for all Agents of this Customer Group
 				IQueryable<ApplicationUser> applicationUsers = _botDbContext.ApplicationUsers
@@ -109,7 +110,7 @@ namespace MrBot.Dialogs
 				{
 					// Notifica o atendente informado
 					string webPushId = applicationUsers.Where(p => p.NickName == nickname).FirstOrDefault().WebPushId;
-					await _wpushApi.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), webPushId).ConfigureAwait(false);
+					await _wpushClient.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), webPushId).ConfigureAwait(false);
 
 					// Confere se foi acionado direto por intençao
 					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para {atendente}, que em breve vai se conectar e teclar com você. Enquanto isto, eu estou por aqui.";
@@ -120,10 +121,10 @@ namespace MrBot.Dialogs
 					foreach (ApplicationUser applicationUser in applicationUsers)
 					{
 						// Sends WebPush Notification for this Agent
-						await _wpushApi.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), applicationUser.WebPushId).ConfigureAwait(false);
+						await _wpushClient.SendNotification("Aton Bot", "Tem um cliente solicitando atendimento!", _configuration.GetValue<string>($"ChatUrl"), applicationUser.WebPushId).ConfigureAwait(false);
 					}
 					// Confere se foi acionado direto por intençao
-					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Em breve alguém vai conectar e teclar com você. Por favor, aguarde ...";
+					msgtoshow = $"Eu enviei uma notificação {_dialogDictionary.Emoji.LoudSpeaker} para os atendentes. Por favor, aguarde (você receberá o contato da nossa equipe).";
 				}
 
 				if (stepContext.Options != null)
@@ -131,7 +132,7 @@ namespace MrBot.Dialogs
 					// Envia a mensagem
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text(msgtoshow), cancellationToken).ConfigureAwait(false);
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(null,cancellationToken).ConfigureAwait(false);
 				}
 				else
 				{
@@ -146,7 +147,7 @@ namespace MrBot.Dialogs
 				stepContext.Values["inworkinghurs"] = "nao";
 
 				// Avisa o cliente que estamos fora do horario de expediente
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"O horário de atendimento é de 2a a 6a feira das 09:00 as 18:00. Posso agendar para {atendente} entrar em contato a partir {NextWorkingDay()}."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá! O nosso horário de atendimento é de 2ª a 6ª feira das 09:00 às 18:00. Entraremos em contato com você no próximo dia útil. Qual é o melhor horário para você?"), cancellationToken).ConfigureAwait(false);
 
 				// Pergunta qual o horário de sua preferência
 				return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text(_dialogDictionary.Emoji.AlarmClock + " Qual é o melhor horário para você?") }, cancellationToken).ConfigureAwait(false);
@@ -183,12 +184,12 @@ namespace MrBot.Dialogs
 				else
 				{
 					// Marca cliente com status Wating
-					Customer customer = _botDbContext.Customers
+					Contact customer = _botDbContext.Contacts
 										.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 										.FirstOrDefault();
-					customer.Status = CustomerStatus.WatingForAgent;
-					_botDbContext.Customers.Update(customer);
-					await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
+					customer.Status = ContactStatus.WatingForAgent;
+					_botDbContext.Contacts.Update(customer);
+					await _botDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 					// Envia email para os atendentes notificando que tem cliente para ser atendido
 					await _emailService.SendAsync(_configuration.GetValue<string>($"EmailAlert"), "Pedido de Atendimento", $"O cliente {customer.Name}, telefone {customer.MobilePhone} entrou no BOT e pediu para ser atendido por {atendente}.\r\n\r\n{lasttypedinfo}.").ConfigureAwait(false);
@@ -197,14 +198,14 @@ namespace MrBot.Dialogs
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Estarei notificando {atendente} para entrare em contato com você."), cancellationToken).ConfigureAwait(false);
 
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(null,cancellationToken).ConfigureAwait(false);
 				}
 
 			}
 			// Se está dentro, já finalizou tudo no passo anterior
 			else
 				// Finaliza este dialogo
-				return await stepContext.EndDialogAsync().ConfigureAwait(false);
+				return await stepContext.EndDialogAsync(null,cancellationToken).ConfigureAwait(false);
 
 		}
 

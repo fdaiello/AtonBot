@@ -6,8 +6,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
@@ -23,13 +23,13 @@ namespace MrBot.Controllers
 	{
 		private readonly IBotFrameworkHttpAdapter _adapter;
 		private readonly string _appId;
-		private readonly BotDbContext _context;
+		private readonly ApplicationDbContext _context;
 		private string proactivetext = "";
 
 		// Dependency injected dictionary for storing ConversationReference objects used in NotifyController to proactively message users
 		private readonly ConcurrentDictionary<string, ConversationReference> _conversationReferences;
 
-		public NotifyController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, BotDbContext context, ConcurrentDictionary<string, ConversationReference> conversationReferences)
+		public NotifyController(IBotFrameworkHttpAdapter adapter, IConfiguration configuration, ApplicationDbContext context, ConcurrentDictionary<string, ConversationReference> conversationReferences)
 		{
 			_adapter = adapter;
 			_appId = configuration["MicrosoftAppId"];
@@ -65,7 +65,7 @@ namespace MrBot.Controllers
 				};
 			else
 			{
-				Customer customer = _context.Customers.Where(s => s.Id == id).FirstOrDefault();
+				Contact customer = _context.Contacts.Where(s => s.Id == id).FirstOrDefault();
 
 				if (customer != null)
 				{
@@ -115,7 +115,7 @@ namespace MrBot.Controllers
 		{
 			// If you encounter permission-related errors when sending this message, see
 			// https://aka.ms/BotTrustServiceUrl
-			await turnContext.SendActivityAsync(proactivetext).ConfigureAwait(false);
+			await turnContext.SendActivityAsync(proactivetext, cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 

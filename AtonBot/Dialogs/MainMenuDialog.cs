@@ -5,8 +5,8 @@ using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
 using Microsoft.Bot.Builder.AI.QnA;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,12 +23,12 @@ namespace MrBot.Dialogs
 		private readonly DialogDictionary _dialogDictionary;
 
 		// Contexto de dados do Bot
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 
 		// Conversation persistent data
 		private readonly ConversationState _conversationState;
 
-		public MainMenuDialog(BotDbContext botContext, DialogDictionary dialogDictionary, CallHumanDialog callHumanDialog, QuerAtendimentoDialog querAtendimentoDialog, IBotTelemetryClient telemetryClient, ConversationState conversationState)
+		public MainMenuDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, CallHumanDialog callHumanDialog, QuerAtendimentoDialog querAtendimentoDialog, IBotTelemetryClient telemetryClient, ConversationState conversationState)
 			: base(nameof(MainMenuDialog))
 		{
 

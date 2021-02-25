@@ -15,6 +15,9 @@ using System.Threading;
 using Microsoft.Bot.Builder.AI.QnA;
 using MrBot.Dialogs;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Web;
 
 namespace MrBot
 {
@@ -274,7 +277,7 @@ namespace MrBot
 		public static bool IsValidName(string name)
 		{
 			name = name.ToLower();
-			if (name.Length < 2 || name == "oi" || name == "nao" || name.StartsWith("não") || name == "cancelar" || name == "sair" || name == "voltar" || name == "menu" || name == "cancel" || name == "*cancelar*" || name.StartsWith("oi ") || name.StartsWith("sim ") || name == "sim" || name.Contains("gostaria") || name.Contains("testar"))
+			if (name.Length < 2 || name == "oi" || name == "sim" || name == "nao" || name.StartsWith("não") || name == "cancelar" || name == "sair" || name == "voltar" || name == "menu" || name == "cancel" || name == "*cancelar*" || name.StartsWith("oi ") || name.StartsWith("sim ") || name == "sim" || name.Contains("gostaria") || name.Contains("testar"))
 				return false;
 			else
 				return Regex.IsMatch(name, @"^[\p{L}\p{M}' \.\-]+$");
@@ -635,6 +638,27 @@ namespace MrBot
 
 			// Envia o anexo para o cliente
 			await stepContext.Context.SendActivityAsync(reply, cancellationToken).ConfigureAwait(false);
+		}
+		// Envia um SMS - API Mister Postman
+		public static async Task<bool> SendSMS(string userId, string token, string phonenumber, string smstext)
+		{
+
+			string MPGatewayUri = "http://www.misterpostman.com.br/gateway.aspx?UserID=" + userId + "&Token=" + token +"&NroDestino=" + phonenumber + "&Mensagem=" + HttpUtility.UrlEncode(smstext) + "&Descricao=Bot";
+
+			HttpClient client = new HttpClient();
+			client.DefaultRequestHeaders.Accept.Clear();
+			client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			client.DefaultRequestHeaders.Add("User-Agent", "MrBot-2020");
+
+			string response = await client.GetStringAsync(new Uri(MPGatewayUri)).ConfigureAwait(false);
+
+			client.Dispose();
+
+			if (response.ToLower().Contains("ok"))
+				return true;
+			else
+				return false;
+
 		}
 
 	}

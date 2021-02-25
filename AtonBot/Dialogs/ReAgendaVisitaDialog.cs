@@ -11,8 +11,8 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -27,14 +27,14 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Customer _customer;
-		private readonly Contact _contact;
+		private readonly Contact _customer;
+		private readonly PloomesApi.PloomesContact _contact;
 		private readonly Deal _deal;
 
-		public ReAgendaVisitaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal, Contact contact)
+		public ReAgendaVisitaDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Contact customer, Deal deal, PloomesApi.PloomesContact contact, AskDateDialog askDateDialog)
 			: base(nameof(ReAgendaVisitaDialog))
 		{
 
@@ -53,7 +53,6 @@ namespace MrBot.Dialogs
 			// Adiciona um diálogo de prompt de texto para continuar
 			AddDialog(new TextPrompt("sim_nao", YesNoValidatorAsync));
 			// Adiciona um diálogo de prompt de texto com validação das datas
-			AddDialog(new TextPrompt("dateprompt", DateValidatorAsync));
 			// Adiciona um diálogo de prompt de texto para validar o turno
 			AddDialog(new TextPrompt("turnoprompt",TurnoValidatorAsync));
 			// Adiciona um diálogo de prompt de texto para validar o horario da manha
@@ -62,6 +61,8 @@ namespace MrBot.Dialogs
 			AddDialog(new TextPrompt("HorarioTardePrompt", HorarioTardeValidatorAsync));
 			// Adiciona um diálogo de texto sem validação
 			AddDialog(new TextPrompt("TextPrompt"));
+			// Adiciona um diálogo de texto com validaçao de Nome
+			AddDialog(new TextPrompt("NamePrompt", NameValidatorAsync));
 
 			// Adiciona um dialogo WaterFall com os 2 passos: Mostra as opções, Executa as opções
 			AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
@@ -77,6 +78,7 @@ namespace MrBot.Dialogs
 			}));
 
 			AddDialog(querAtendimentoDialog);
+			AddDialog(askDateDialog);
 
 			// Configura para iniciar no WaterFall Dialog
 			InitialDialogId = nameof(WaterfallDialog);
@@ -89,8 +91,12 @@ namespace MrBot.Dialogs
 		//       Quer fazer um novo reagendamento?
 		private async Task<DialogTurnResult> AskReQuerAgendarStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
+			// Ponteiro para os dados persistentes da conversa
+			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
+			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+
 			// Monta frase com informação do tecnico
-			string tecnicoInfo = string.Empty;
+			string infoTecnicos = string.Empty;
 
 			// Initialize values
 			stepContext.Values["ploomesId"] = string.Empty;
@@ -103,35 +109,29 @@ namespace MrBot.Dialogs
 				// Verifica se já tem um Deal ( Negócio ) salvo para este Cliente
 				if ( _deal != null && _deal.Id > 0 && _deal.OtherProperties != null)
 				{
+
+					// Busca informação ( nome e documento ) dos tecnicos
+					infoTecnicos = GetInfoTecnicosVisita();
+
+					// Se tem informações dos técnicos, e ainda não repassou para o cliente
+					if (!string.IsNullOrEmpty(infoTecnicos) && !conversationData.TecnicosVisitaInformado)
+					{
+						// Informa os dados do(s) técnico(s)
+						await stepContext.Context.SendActivityAsync(MessageFactory.Text(infoTecnicos), cancellationToken).ConfigureAwait(false);
+
+						// Marca que já informou
+						conversationData.TecnicosVisitaInformado = true;
+
+						// Finaliza
+						return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					}
+
 					// Busca a data e a hora
 					DateTime dataAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DataVisitaTecnica).FirstOrDefault().DateTimeValue;
 					DateTime horaAgendamento = (DateTime)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.HorarioVisita).FirstOrDefault().DateTimeValue;
 
 					// Envia frase de reagendamento
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Nós agendamos uma visita técnica para o dia {dataAgendamento:dd/MM} às {horaAgendamento:HH:mm} 📝."), cancellationToken).ConfigureAwait(false);
-
-					String tecnicoResponsavel;
-					String documentoDoTecnico;
-					// Se achou a data de agendamento
-					if (dataAgendamento != null)
-						// Se tem dados do tecnico
-						if (_deal.StageId == AtonStageId.VisitaAgendada && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).Any())
-                        {
-							// Adiciona o nome do tecnico a frase inicial
-							tecnicoResponsavel = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TecnicoResponsavel).FirstOrDefault().StringValue;
-							if (!string.IsNullOrEmpty(tecnicoResponsavel))
-							tecnicoInfo += $"\nO técnico responsável é: {tecnicoResponsavel}";
-							// Adiciona o documento do tecnico a frase inicial
-							documentoDoTecnico = (String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.DocumentoDoTecnico).FirstOrDefault().StringValue;
-							if (!string.IsNullOrEmpty(documentoDoTecnico))
-								tecnicoInfo += $", documento {documentoDoTecnico}.";
-							else
-								tecnicoInfo += ".";
-
-							// Informa os dados do tecnico
-							await stepContext.Context.SendActivityAsync(MessageFactory.Text(tecnicoInfo), cancellationToken).ConfigureAwait(false);
-						}
-
 
 					// Create a HeroCard with options for the user to interact with the bot.
 					var card = new HeroCard
@@ -192,38 +192,8 @@ namespace MrBot.Dialogs
 			// Busca o cep do Contact
 			string cep = _contact.ZipCode.ToString();
 
-			// Procura as opções de data com base no CEP informado
-			List<DateTime> nextAvailableDates= GetNextAvailableDates(cep);
-
-			// Salva as datas disponiveis em variavel persistente
-			stepContext.Values["nextAvailableDates"] = nextAvailableDates;
-
-			// Salva as datas disponíveis no conversationData - para poder se acessado na função de validação
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
-			foreach ( DateTime availableDate in nextAvailableDates)
-				conversationData.AddAvailableDate(availableDate);
-
-			// Monta HeroCard para perguntar a data desejada, dentro das opções disponíveis
-			var card = new HeroCard
-			{
-				Title = $"Agendamento {_dialogDictionary.Emoji.Calendar}",
-				Text = "Obrigado pela informação. Para seu endereço temos as seguintes datas disponíveis:",
-				Buttons = new List<CardAction> { }
-			};
-
-			// Adiciona botões para as datas disponíveis
-			for ( int x = 0; x <= nextAvailableDates.Count-1; x++)
-				card.Buttons.Add(new CardAction(ActionTypes.ImBack, title: nextAvailableDates[x].ToString("dd/MM", CultureInfo.InvariantCulture), value: nextAvailableDates[x]));
-			
-			// Send the card(s) to the user as an attachment to the activity
-			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
-
-			// Aguarda uma resposta
-			string retryText = "Por favor, escolha uma destas datas: ";
-			foreach (DateTime nextavailabledate in nextAvailableDates)
-				retryText += " " + nextavailabledate.ToString("dd/MM", CultureInfo.InvariantCulture);
-			return await stepContext.PromptAsync("dateprompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text(retryText) }, cancellationToken).ConfigureAwait(false);
+			// Chama o diálogo que pergunta a data desejada, dando opções com base no CEP do cliente
+			return await stepContext.BeginDialogAsync(nameof(AskDateDialog), cep, cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -290,7 +260,7 @@ namespace MrBot.Dialogs
 				Text = "Por favor, escolha o horário:",
 			};
 
-			if ( turno == "manhã" || turno == "manha")
+			if ( turno == "manhã" || turno == "manha" || turno == "m")
 				card.Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: $"08:00", value: "08:00"),
@@ -312,7 +282,7 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			if (turno == "manhã" || turno == "manha" )
+			if (turno == "manhã" || turno == "manha" || turno =="m" )
 				return await stepContext.PromptAsync("HorarioManhaPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 8, 9, 10 ou 11 horas.") }, cancellationToken).ConfigureAwait(false);
 			else
 				return await stepContext.PromptAsync("HorarioTardePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, escolha um destes horários: 14, 15, 16 ou 17 horas.") }, cancellationToken).ConfigureAwait(false);
@@ -326,8 +296,7 @@ namespace MrBot.Dialogs
 			stepContext.Values["horario"] = horario;
 
 			// pergunta o nome da pessoa que vai estar no local
-			return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?") }, cancellationToken).ConfigureAwait(false);
-
+			return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para finalizar, por favor digite o nome de quem irá acompanhar a visita técnica?"), RetryPrompt = MessageFactory.Text("Desculpe, não entendi. Por favor, digite o nome de quem acompanhará a visita. Ou digite 'cancelar'.") }, cancellationToken).ConfigureAwait(false);
 		}
 		private async Task<DialogTurnResult> ConfirmaDadosStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
@@ -388,9 +357,16 @@ namespace MrBot.Dialogs
 					// Altera o Negocio no Ploomoes - Patch Deal
 					ploomesDealId = await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
+				// Se alterou o nome da pessoa que acompanha
+				if (_contact.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaVisita) != null && (string)stepContext.Values["quemacompanha"] != _contact.OtherProperties.Where(p => p.FieldKey == ContactPropertyId.QuemAcompanhaVisita).FirstOrDefault().StringValue)
+                {
+					_contact.MarcaQuemAcompanhaVisita((string)stepContext.Values["quemacompanha"]);
+					await _ploomesclient.PatchContact(_contact).ConfigureAwait(false);
+                }
+
 				// Confirma se conseguiu inserir corretamente o Lead
 				if (ploomesDealId != 0)
-					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} está agendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
+					msg = $"Ok! Obrigado. Sua visita técnica {_dialogDictionary.Emoji.ManMechanic} foi reagendada para o dia {((DateTime)stepContext.Values["data"]).ToString("dd/MM", CultureInfo.InvariantCulture)} às {(string)stepContext.Values["horario"]}.\nAntes da visita disponibilizaremos informações do técnico que irá ao local." + _dialogDictionary.Emoji.ThumbsUp;
 				else
 					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu agendamento. {_dialogDictionary.Emoji.DisapointedFace}";
 
@@ -425,7 +401,7 @@ namespace MrBot.Dialogs
 
 			// Verifica se o que o cliente digitou manhã ou tarde
 			string choice = promptContext.Context.Activity.Text.ToLower();
-			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde";
+			IsValid = choice == "manhã" || choice == "manha" || choice == "tarde" || choice=="t" || choice =="m";
 
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
@@ -454,60 +430,44 @@ namespace MrBot.Dialogs
 			// retorna
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
 		}
-
-		// Valida as datas
-		private async Task<bool> DateValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		// Valida um nome
+		private async Task<bool> NameValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
 		{
+			string typed = promptContext.Context.Activity.Text.Trim();
 
-			// Busca o que foi digitado
-			string choice = (string)promptContext.Context.Activity.Text;
-			choice = choice.PadLeft(2, '0');
-
-			// Ponteiro para os dados persistentes da conversa
-			var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-			var conversationData = await conversationStateAccessors.GetAsync(promptContext.Context, () => new ConversationData()).ConfigureAwait(false);
-
-			// Substitui hifen por barra ( se digitar 15-05 vira 15/07 pra achar a data ), e retira palavra dia, caso tenha sido digitado
-			choice = choice.Replace("-", "/").Replace("dia ","");
-
-			// Busca novamente as datas disponíveis
-			List<DateTime> nextAvailableDates = conversationData.NextAvailableDates;
-			// Array com as escolhas em format string dd/MM
-			List<string> validchoices= new List<string>();
-
-			// Adiciona as datas e os dia das datas as possibilidaes de validação- pra validar se o cliente digitar somente o dia
-			foreach (DateTime data in nextAvailableDates)
-			{
-				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture));
-				validchoices.Add(data.ToString("dd/MM", CultureInfo.InvariantCulture).Split("/")[0]);
-			}
-
-			// Devolve true or false se a escolha esta dentro da lista de datas disponíveis
-			return validchoices.Contains(choice);
+			return await Task.FromResult(Utility.IsValidName(typed)).ConfigureAwait(false);
 		}
-		// Busca as próximas datas disponiveis, com base no CEP informado
-		private static List<DateTime> GetNextAvailableDates(string cep)
+		// Procura nos campos personalizados do Deal, os nomes, documento e placa do tecnico reponsáveis pela visita
+		// Confere se tem dado no campo Outros Tecnicos.
+		// Devolve string com uma linha formatada com as informações encontradas.
+		private string GetInfoTecnicosVisita()
 		{
-			List<DateTime> nextAvailableDates = new List<DateTime>();
+			string infoTecnicos = string.Empty;
 
-			//TODO: Lógica para obter as próximas datas disponíveis
-			int choicesQuantity = 3;
-			int nextDateDelay = 7;
-			int icep = int.Parse(Utility.ClearStringNumber(cep));
-			if ( Utility.CepIsCapital(icep) )
+			// Se tem dados do tecnico que fará a visita
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).FirstOrDefault().ObjectValueName != null)
 			{
-				nextDateDelay = 5;
+				infoTecnicos += (string)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.NomeeDocTecnicoVisita).FirstOrDefault().ObjectValueName;
+
+				// Se tem a placa do tecnico que fará a visita
+				if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue) && ((String)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue).Length > 1)
+					infoTecnicos += ", placa: " + _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.PlacaTecnicoVisita).FirstOrDefault().StringValue + "\n";
+				else
+					infoTecnicos += "\n";
 			}
-			DateTime nextDate = DateTime.Today.AddDays(nextDateDelay+1); 
-
-			do
+			// Se tem dados de outros técnicos
+			if (_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).Any() && !string.IsNullOrEmpty(_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue))
 			{
-				nextDate = Utility.GetNextWorkingDay(nextDate);
-				nextAvailableDates.Add(nextDate);
+				infoTecnicos += _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.OutrosTecnicosVisita).FirstOrDefault().BigStringValue + "\n";
+				if ( !string.IsNullOrEmpty(infoTecnicos))
+					infoTecnicos = "Estes são os técnicos que farão a sua visita:\n" + infoTecnicos;
+			}
+			else
+				if (!string.IsNullOrEmpty(infoTecnicos))
+					infoTecnicos = "Este é o técnico que fará a sua visita:\n" + infoTecnicos;
 
-			} while (nextAvailableDates.Count < choicesQuantity);
-
-			return nextAvailableDates;
+			return infoTecnicos;
 		}
+
 	}
 }

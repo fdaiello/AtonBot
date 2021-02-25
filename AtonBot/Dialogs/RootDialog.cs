@@ -13,8 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Bot.Schema;
 using Microsoft.Bot.Builder.AI.QnA;
 using Azure.Storage.Blobs;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using MrBot.CognitiveModels;
 using PloomesApi;
 using System.Globalization;
@@ -23,17 +23,17 @@ namespace MrBot.Dialogs
 {
 	public class RootDialog : CheckIntentBase
 	{
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly ILogger _logger;
 		private readonly QnAMaker _qnaService;
 		private readonly double minScoreQna = 0.5;
-		private readonly Customer _customer;
+		private readonly Contact _customer;
 		private readonly Deal _deal;
 		private readonly PloomesClient _ploomesClient;
 
-		public RootDialog(ConversationState conversationState, BotDbContext botContext, DialogDictionary dialogDictionary, Customer customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
+		public RootDialog(ConversationState conversationState, ApplicationDbContext botContext, DialogDictionary dialogDictionary, Contact customer, Deal deal, ProfileDialog profileDialog, MisterBotRecognizer recognizer, CallHumanDialog callHumanDialog, IBotTelemetryClient telemetryClient, Templates lgTemplates, BlobContainerClient blobContainerClient, ILogger<RootDialog> logger, IQnAMakerConfiguration services, QnAMakerMultiturnDialog qnAMakerMultiturnDialog, AgendaVisitaDialog agendaVisitaDialog, ReAgendaVisitaDialog reagendaVisitaDialog, EnviaPropostaDialog enviaPropostaDialog, AgendaInstalacaoDialog agendaInstalacaoDialog, QuerAtendimentoDialog querAtendimentoDialog, PloomesClient ploomesClient)
 			: base(nameof(RootDialog), conversationState, recognizer, callHumanDialog, telemetryClient, lgTemplates, blobContainerClient, logger, services, qnAMakerMultiturnDialog, customer)
 		{
 			// Injected objects
@@ -133,7 +133,7 @@ namespace MrBot.Dialogs
 			{
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(), cancellationToken).ConfigureAwait(false);
 
 				// Salva a primeira pergunta que o cliente fez
 				conversationData.FirstQuestion = string.Empty;
@@ -166,7 +166,7 @@ namespace MrBot.Dialogs
 			}
 			else if ( _deal.StageId == AtonStageId.PropostaRealizada)
             {
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text("Estamos trabalhando na sua proposta, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá, {_customer.Name}! Estamos trabalhando na sua proposta, e em breve vamos lhe enviar."), cancellationToken).ConfigureAwait(false);
 			}
 			else if (_deal.StageId == AtonStageId.ValidacaoDaVisitaeProposta || _deal.StageId == AtonStageId.PropostaApresentada)
 			{
@@ -199,7 +199,7 @@ namespace MrBot.Dialogs
 
 				// Ponteiro para os dados persistentes da conversa
 				var conversationStateAccessors = _conversationState.CreateProperty<ConversationData>(nameof(ConversationData));
-				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
+				var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData(),cancellationToken).ConfigureAwait(false);
 
 				// Confere se tem boleto, e ainda não enviou
 				if (!conversationData.BoletoEnviado && _deal.OtherProperties != null && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).Any() && _deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue != null && (long)_deal.OtherProperties.Where(p => p.FieldKey == DealPropertyId.BoletoAttachmentId).FirstOrDefault().IntegerValue > 0)
@@ -212,10 +212,16 @@ namespace MrBot.Dialogs
 					if (attachment != null && !string.IsNullOrEmpty(attachment.Url))
 					{
 						// Envia o anexo
-						await Utility.EnviaAnexo(stepContext, "Boleto", "Aqui está o boleto de pagamento", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+						await Utility.EnviaAnexo(stepContext, "Boleto", $"Olá {_customer.Name}! O pessoal do Financeiro já me passou o boleto referente à segunda parcela. Segue abaixo ...", attachment.Url, attachment.ContentType, cancellationToken).ConfigureAwait(false);
+
+						// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
+						Task.Delay(3000, cancellationToken).Wait(cancellationToken);
 
 						// Marca no ojeto persistente da conversa, que já enviou o boleto
 						conversationData.BoletoEnviado = true;
+
+						// E encerra o diálogo
+						return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -230,7 +236,7 @@ namespace MrBot.Dialogs
 				return await stepContext.BeginDialogAsync(nameof(QuerAtendimentoDialog), null, cancellationToken).ConfigureAwait(false);
 			}
 
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -247,20 +253,20 @@ namespace MrBot.Dialogs
 			string channelID = activity.ChannelId;
 
 			// Mapeia o canal
-			ChannelType channelType;
+			ChatChannelType channelType;
 			if (channelID == "whatsapp")
-				channelType = ChannelType.WhatsApp;
+				channelType = ChatChannelType.WhatsApp;
 			else if (channelID == "webchat")
-				channelType = ChannelType.WebChat;
+				channelType = ChatChannelType.WebChat;
 			else if (channelID == "facebook")
-				channelType = ChannelType.Facebook;
+				channelType = ChatChannelType.Facebook;
 			else
-				channelType = ChannelType.others;
+				channelType = ChatChannelType.others;
 			
 			try
 			{
-				// Cria um novo cliente
-				Customer customer = new Customer
+                // Cria um novo cliente
+                Contact customer = new Contact
 				{
 					Id = clientId,
 					FirstActivity = Utility.HoraLocal(),
@@ -271,7 +277,7 @@ namespace MrBot.Dialogs
 				};
 
 				//Insere o cliente no banco
-				_botDbContext.Customers.Add(customer);
+				_botDbContext.Contacts.Add(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				// Copia pra variavel injetada compartilhada entre as classes

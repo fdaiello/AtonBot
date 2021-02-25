@@ -11,8 +11,8 @@
 
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using PloomesApi;
@@ -26,13 +26,13 @@ namespace MrBot.Dialogs
 	{
 		// Dicionario de frases e ícones 
 		private readonly DialogDictionary _dialogDictionary;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly ConversationState _conversationState;
 		private readonly PloomesClient _ploomesclient;
-		private readonly Customer _customer;
+		private readonly Contact _customer;
 		private readonly Deal _deal;
 
-		public EnviaPropostaDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Customer customer, Deal deal)
+		public EnviaPropostaDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, IBotTelemetryClient telemetryClient, PloomesClient ploomesClient, QuerAtendimentoDialog querAtendimentoDialog, Contact customer, Deal deal)
 			: base(nameof(EnviaPropostaDialog))
 		{
 
@@ -75,15 +75,12 @@ namespace MrBot.Dialogs
 			var conversationData = await conversationStateAccessors.GetAsync(stepContext.Context, () => new ConversationData()).ConfigureAwait(false);
 
 			// Se já apresentou a proposta antes
-			if ( conversationData.PropostaEnviada)
+			if (conversationData.PropostaEnviada & _deal.StageId == AtonStageId.PropostaApresentada)
             {
-				// Avisa que a proposta está pronta, mas deu erro e não conseguiu obter no sistema.
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Você conseguiu avalia a proposta?"), cancellationToken).ConfigureAwait(false);
-
 				// Pergunta se podemos prosseguir com a proposta? Sim / Não
 				var card = new HeroCard
 				{
-					Text = $"Podemos prosseguir?",
+					Text = $"Você conseguiu avalia a proposta? Podemos prosseguir?",
 					Buttons = new List<CardAction>
 					{
 						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -92,12 +89,6 @@ namespace MrBot.Dialogs
 				};
 				// Send the card(s) to the user as an attachment to the activity
 				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
-
-				// Muda o estágio do Lead para Proposta Apresentada
-				_deal.StageId = AtonStageId.PropostaApresentada;
-
-				// Patch Deal
-				await _ploomesclient.PatchDeal(_deal).ConfigureAwait(false);
 
 				// Aguarda uma resposta
 				return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
@@ -111,20 +102,13 @@ namespace MrBot.Dialogs
 				if (quote != null && !string.IsNullOrEmpty(quote.DocumentUrl))
 				{
 					// Envia o PDF com a proposta
-					await EnviaPDF(stepContext, "Proposta_Comercial", "Sua proposta comercial está pronta. Aqui está o PDF com a mesma:", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
+					await EnviaPDF(stepContext, "Proposta_Comercial", "Segue abaixo a sua proposta ...", quote.DocumentUrl, cancellationToken).ConfigureAwait(false);
 
-					// Pergunta se podemos prosseguir com a proposta? Sim / Não
-					var card = new HeroCard
-					{
-						Text = $"Podemos prosseguir com a proposta?",
-						Buttons = new List<CardAction>
-					{
-						new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
-						new CardAction(ActionTypes.ImBack, title: "Não", value: "não"),
-					},
-					};
-					// Send the card(s) to the user as an attachment to the activity
-					await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
+					// Espera pra dar tempo da mensagem carregar, e não chegar depois da proxima mensagem
+					Task.Delay(3000, cancellationToken).Wait(cancellationToken);
+
+					// Da mensagem par ler e chamar quando quiser continuar
+					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Por favor, analise sua proposta com calma e me chame quando quiser aprovar e agendar sua instalação. Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br ou pelo telefone 11 4673-3810."), cancellationToken).ConfigureAwait(false);
 
 					// Muda o estágio do Lead para Proposta Apresentada
 					_deal.StageId = AtonStageId.PropostaApresentada;
@@ -135,8 +119,8 @@ namespace MrBot.Dialogs
 					// Marca que apresentou a proposta
 					conversationData.PropostaEnviada = true;
 
-					// Aguarda uma resposta
-					return await stepContext.PromptAsync("sim_nao", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite: Sim ou Não") }, cancellationToken).ConfigureAwait(false);
+					// Finaliza o diálogo
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 				else
 				{
@@ -144,7 +128,7 @@ namespace MrBot.Dialogs
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Sua proposta está pronta e validada. Contudo, eu não estou conseguindo buscar sua proposta no sistema. {_dialogDictionary.Emoji.DisapointedFace}"), cancellationToken).ConfigureAwait(false);
 
 					// Finaliza o diálogo
-					return await stepContext.EndDialogAsync().ConfigureAwait(false);
+					return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 
 			}
@@ -175,7 +159,7 @@ namespace MrBot.Dialogs
 			else
             {
 				// Pede para resolver dúvidas por email
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Em caso de alguma dúvida entre em contato pelo email atonservices@atonservices.com.br"), cancellationToken).ConfigureAwait(false);
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Tudo bem então. Caso mude de ideia, é só me chamar. Se ficou com alguma dúvida, entre em contato pelo email atonservices@atonservices.com.br ou telefone 11 4673-3810. Agradecemos seu contato."), cancellationToken).ConfigureAwait(false);
 
 				// Marca o campo Proposta Aceita com False
 				_deal.MarcaPropostaAceita(false);
@@ -185,7 +169,7 @@ namespace MrBot.Dialogs
 			}
 
 			// Finaliza o diálogo
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 		// Validação: Sim ou Nâo
 		private async Task<bool> YesNoValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)

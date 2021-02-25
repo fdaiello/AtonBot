@@ -4,8 +4,8 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using MrBot.CognitiveModels;
-using MrBot.Data;
-using MrBot.Models;
+using ContactCenter.Data;
+using ContactCenter.Core.Models;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -16,13 +16,13 @@ namespace MrBot.Dialogs
 	public class ProfileDialog : ComponentDialog
 	{
 		private const int maxprompts = 2;
-		private readonly BotDbContext _botDbContext;
+		private readonly ApplicationDbContext _botDbContext;
 		private readonly DialogDictionary _dialogDictionary;
 		private readonly ConversationState _conversationState;
 		private readonly MisterBotRecognizer _recognizer;
-		private readonly Customer _customer;
+		private readonly Contact _customer;
 
-		public ProfileDialog(BotDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Customer customer)
+		public ProfileDialog(ApplicationDbContext botContext, DialogDictionary dialogDictionary, ConversationState conversationState, MisterBotRecognizer recognizer, IBotTelemetryClient telemetryClient, Contact customer)
 			: base(nameof(ProfileDialog))
 		{
 			// Injected Objects
@@ -57,18 +57,10 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> NameStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Se apresenta
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Oi. Eu sou um Bot {_dialogDictionary.Emoji.InformationDeskPerson}.\nEstou aqui para fazer o agendamento da instalação do seu carregador Volvo.{_dialogDictionary.Emoji.Automobile}\nCaso queira reiniciar a conversa em algum momento, digite “Cancelar”."), cancellationToken).ConfigureAwait(false);
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá! Eu sou a Luiza, atendente da Aton Services e estou aqui para agendar a instalação do seu carregador ou Tomada. {_dialogDictionary.Emoji.InformationDeskPerson}\nCaso queira reiniciar a conversa, é só digitar Cancelar a qualquer momento."), cancellationToken).ConfigureAwait(false);
 
-			//// Se tem nome vindo do canal
-			//if (!string.IsNullOrEmpty(stepContext.Context.Activity.From.Name.Trim()) && (stepContext.Context.Activity.ChannelId == "facebook" | stepContext.Context.Activity.ChannelId == "whatsapp"))
-			//{
-			//	// pula a pergunta do Nome, e ja devolve como resposta o nome que recebeu
-			//	return await stepContext.NextAsync(stepContext.Context.Activity.From.Name, cancellationToken).ConfigureAwait(false);
-
-			//}
-			//else
-				// pergunta o nome do cliente
-				return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para iniciarmos, por favor digite seu nome completo."), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
+			// pergunta o nome do cliente
+			return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para iniciarmos, por favor digite seu nome completo."), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
 		}
 
 		// Pergunta o Telefone
@@ -150,7 +142,7 @@ namespace MrBot.Dialogs
 			}
 
 			// Termina este diálogo
-			return await stepContext.EndDialogAsync().ConfigureAwait(false);
+			return await stepContext.EndDialogAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		}
 
@@ -158,7 +150,7 @@ namespace MrBot.Dialogs
 		private async Task UpdateCustomer(WaterfallStepContext stepContext)
 		{
 			// Procura pelo registro do usuario
-			Customer customer = _botDbContext.Customers
+			Contact customer = _botDbContext.Contacts
 								.Where(s => s.Id == stepContext.Context.Activity.From.Id)
 								.FirstOrDefault();
 
@@ -176,7 +168,7 @@ namespace MrBot.Dialogs
 				customer.LastActivity = Utility.HoraLocal();
 
 				// Salva o cliente no banco
-				_botDbContext.Customers.Update(customer);
+				_botDbContext.Contacts.Update(customer);
 				await _botDbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				// Copia pra variavel injetada compartilhada entre as classes
