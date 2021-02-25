@@ -748,11 +748,12 @@ namespace MrBot.Dialogs
 				else
 					msg = $"Me desculpe, mas ocorreu algum erro e não consegui salvar o seu cadastro. {_dialogDictionary.Emoji.DisapointedFace}";
 
+				// Envia resposta para o cliente
+				await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
+
 				// Salva os dados do Customer no banco de dados
 				await UpdateCustomer(stepContext).ConfigureAwait(false);
 
-				// Envia resposta para o cliente
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 			}
 			else
 				// Envia resposta para o cliente
