@@ -259,9 +259,9 @@ namespace MrBot.Dialogs
 			else if (channelID == "webchat")
 				channelType = ChatChannelType.WebChat;
 			else if (channelID == "facebook")
-				channelType = ChatChannelType.Facebook;
+				channelType = ChatChannelType.Messenger;
 			else
-				channelType = ChatChannelType.others;
+				channelType = ChatChannelType.other;
 			
 			try
 			{
