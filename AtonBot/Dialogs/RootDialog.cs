@@ -244,8 +244,8 @@ namespace MrBot.Dialogs
 		private async Task CreateCustomer(Activity activity)
 		{
 
-			// Busca o grupo no qual o usuario deve ser inserido - conforme nome do Bot - appName
-			int groupId = await GetGroupId(activity).ConfigureAwait(false);
+			// Busca o grupo no qual o usuario deve ser inserido - Ficou HardCoded em função de mudança da base, e necessidade de resolver rápido.
+			int groupId = 3;
 
 			// Id do usuario
 			string clientId = activity.From.Id;
@@ -259,9 +259,9 @@ namespace MrBot.Dialogs
 			else if (channelID == "webchat")
 				channelType = ChatChannelType.WebChat;
 			else if (channelID == "facebook")
-				channelType = ChatChannelType.Facebook;
+				channelType = ChatChannelType.Messenger ;
 			else
-				channelType = ChatChannelType.others;
+				channelType = ChatChannelType.other;
 			
 			try
 			{
@@ -290,23 +290,6 @@ namespace MrBot.Dialogs
 				if (ex.InnerException != null)
 					_logger.LogError(ex.InnerException.Message);
 			}
-		}
-		// Busca o grupo no qual o usuário deve ser inserido - com base na identificação do Bot
-		private async Task<int> GetGroupId(Activity activity)
-		{
-			// Busca a identificação do Bot
-			string appName = activity.Recipient.Id;
-			if (activity.ChannelId == "webchat")
-				appName = activity.From.Name;
-
-			// Busca o Grupo no banco
-			Group groups = await _botDbContext.Groups.Where(p => p.BotName == appName).FirstOrDefaultAsync().ConfigureAwait(false);
-
-			if (groups == null)
-				return 1;
-			else
-				return groups.Id;
-
 		}
 	}
 }

@@ -85,12 +85,8 @@ namespace MrBot.Controllers
 					// Se achou o cliente na nossa base
 					if (customer != null)
 					{
-						// Busca o whatsAppNumber do grupo do qual este ContactId participa
-						string whatsAppNumber = string.Empty ;
-						Group uGroup = _botDbContext.Groups.Where(p => p.Id == customer.GroupId).FirstOrDefault();
-						// Se nao achou
-						if (uGroup != null)
-							whatsAppNumber = uGroup.WhatsAppNumber;
+						// whatsAppNumber da empresa ( HardCoded - buscava do Banco, mas foi feita uma mudança, e foi mais rapido resolver assim ).
+						string whatsAppNumber = "551146733810";
 
 						// Busca o telefone do WhatsApp do cliente - segunda parte do Id, apos o traco
 						string customerWaNumber = string.Empty;
