@@ -59,7 +59,7 @@ namespace MrBot.Dialogs
 			// Adiciona um diálogo de prompt de texto para validar o horario da tarde
 			AddDialog(new TextPrompt("HorarioTardePrompt", HorarioTardeValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao da marca do carregador
-			AddDialog(new TextPrompt("MarcaPrompt", MarcaValidatorAsync));
+			AddDialog(new TextPrompt("MarcaCarregadorPrompt", MarcaCarregadorValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao de CEP
 			AddDialog(new TextPrompt("CepPrompt", CEPValidatorAsync));
 			// Adiciona um diálogo de texto sem validação
@@ -68,8 +68,8 @@ namespace MrBot.Dialogs
 			AddDialog(new TextPrompt("EmailPrompt", EmailValidatorAsync));
 			// Adiciona um diálogo de texto com validaçao de Nome
 			AddDialog(new TextPrompt("NamePrompt", NameValidatorAsync));
-			// Adiciona um diálogo de texto com validaçao da pergunta Pretende Adquirir
-			AddDialog(new TextPrompt("PretendePrompt", PretendeAdquirirValidatorAsync));
+			// Adiciona um diálogo de texto com validaçao da pergunta Marca do Veículo
+			AddDialog(new TextPrompt("MarcaVeiculoPrompt", MarcaVeiculoValidatorAsync));
 
 			// Adiciona um dialogo WaterFall com os 2 passos: Mostra as opções, Executa as opções
 			AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
@@ -77,7 +77,7 @@ namespace MrBot.Dialogs
 				AskOpcao1StepAsync,
 				AskLastNameStepAsync,
 				AskEmailStepAsync,
-				AskPretendeAdquirirStepAsync,
+				AskMarcaVeiculoStepAsync,
 				AskMarcaCarregadorStepAsync,
 				AskEcondominioStepAsync,
 				AskTemAutorizacaoCondominioStepAsync,
@@ -124,8 +124,8 @@ namespace MrBot.Dialogs
 			stepContext.Values["end"] = string.Empty;
 			stepContext.Values["numero"] = string.Empty;
 			stepContext.Values["complemento"] = string.Empty;
+			stepContext.Values["marcaveiculo"] = string.Empty;
 			stepContext.Values["marcacarregador"] = string.Empty;
-			stepContext.Values["pretendeadquirir"] = string.Empty;
 
 			// Valida que achou o registro
 			if (_customer != null)
@@ -260,8 +260,8 @@ namespace MrBot.Dialogs
 				return await stepContext.NextAsync(string.Empty, cancellationToken).ConfigureAwait(false);
 
 		}
-		// Ja adquiriu o carregador
-		private async Task<DialogTurnResult> AskPretendeAdquirirStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+		// Marca do veículo
+		private async Task<DialogTurnResult> AskMarcaVeiculoStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Busca a opção informada no passo anterior
 			string email = ((string)stepContext.Result).ToLower();
@@ -278,12 +278,15 @@ namespace MrBot.Dialogs
 			// Create a HeroCard with options for the user to interact with the bot.
 			var card = new HeroCard
 			{
-				Text = "Pretende adquirir um carregador Volvo Enel X ou precisa apenas da instalação de uma tomada apropriada para o veículo híbrido ou elétrico? ⚡",
+				Text = "Qual a marca do seu veículo? 🚗",
 				Buttons = new List<CardAction>
 				{
-					new CardAction(ActionTypes.ImBack, title: "Pretendo adquirir carregador Volvo", value: "Pretendo adquirir carregador Volvo"),
-					new CardAction(ActionTypes.ImBack, title: "Preciso só da Instalação de tomada", value: "Preciso só da Instalação de tomada"),
-					new CardAction(ActionTypes.ImBack, title: "Adquiri um carregador de outra marca", value: "Adquiri um carregador de outra marca"),
+					new CardAction(ActionTypes.ImBack, title: "1- Volvo", value: "1"),
+					new CardAction(ActionTypes.ImBack, title: "2- BMW", value: "2"),
+					new CardAction(ActionTypes.ImBack, title: "3- Audi", value: "3"),
+					new CardAction(ActionTypes.ImBack, title: "4- Porsche", value: "4"),
+					new CardAction(ActionTypes.ImBack, title: "5- Mercedes-Benz", value: "5"),
+					new CardAction(ActionTypes.ImBack, title: "6- Outros", value: "6")
 				},
 			};
 
@@ -291,62 +294,38 @@ namespace MrBot.Dialogs
 			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
 			// Aguarda uma resposta
-			return await stepContext.PromptAsync("PretendePrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Desculpe, não entendi. Informe se pretende adquirir, se precisa só uma tomada, ou se comprou um carregador de outra marca.") }, cancellationToken).ConfigureAwait(false);
+			return await stepContext.PromptAsync("MarcaVeiculoPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Desculpe, não entendi. Informe a marca do seu veículo: 1-Volvo; 2-BMW; 3-Audi; 4-Porsche; 5-Mercedes; 6-Outros") }, cancellationToken).ConfigureAwait(false);
 
 		}
-		// Verifica qual opção foi digitada na pergunta "Pretende adquirir ..."
-		//		Se respondeu que adquiriu de outra marca
-		//          Pergunta a Marca
-		//      Else
-		//		    Pula pro proximo passo
+		// Tipo de carregador que quer instalar
 		private async Task<DialogTurnResult> AskMarcaCarregadorStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 
 			// Busca a opção informada no passo anterior
 			string typed = ((string)stepContext.Result).ToLower();
 
-			if (typed.Contains("outra"))
-            {
-				stepContext.Values["adquiriucarregador"] = "sim";
-				stepContext.Values["pretendeadquirir"] = "não";
+			// Salva a opção digitada
+			stepContext.Values["marcaveiculo"] = typed;
 
-				// Create a HeroCard with options for the user to interact with the bot.
-				var card = new HeroCard
+			// Create a HeroCard with options for the user to interact with the bot.
+			var card = new HeroCard
+			{
+				Text = "Pretende instalar ⚡:",
+				Buttons = new List<CardAction>
 				{
-					Text = "Qual a marca? 🌐",
-					Buttons = new List<CardAction>
-					{
-						new CardAction(ActionTypes.ImBack, title: "Efacec", value: "Efacec"),
-						new CardAction(ActionTypes.ImBack, title: "Schneider", value: "Schneider"),
-						new CardAction(ActionTypes.ImBack, title: "Outros", value: "Outros"),
-						new CardAction(ActionTypes.ImBack, title: "Não sei informar", value: "Não sei informar"),
-					},
-				};
+					new CardAction(ActionTypes.ImBack, title: "1- Volvo Wallbox", value: "1"),
+					new CardAction(ActionTypes.ImBack, title: "2- BMW i Wallbox", value: "2"),
+					new CardAction(ActionTypes.ImBack, title: "3- Porsche Mobile Charger Connect", value: "3"),
+					new CardAction(ActionTypes.ImBack, title: "4- Tomada tipo industrial", value: "4"),
+					new CardAction(ActionTypes.ImBack, title: "5- Outros", value: "5"),
+				},
+			};
 
-				// Send the card(s) to the user as an attachment to the activity
-				await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
+			// Send the card(s) to the user as an attachment to the activity
+			await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(card.ToAttachment()), cancellationToken).ConfigureAwait(false);
 
-				// Aguarda uma resposta
-				return await stepContext.PromptAsync("MarcaPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite uma destas oções: Enel X, Efacec, Schneider, Outros, Não sei informar") }, cancellationToken).ConfigureAwait(false);
-
-
-			}
-			else if (typed.Contains("tomada"))
-            {
-				stepContext.Values["adquiriucarregador"] = "sim";
-				stepContext.Values["pretendeadquirir"] = "não";
-
-				return await stepContext.NextAsync("tomada", cancellationToken).ConfigureAwait(false);
-
-			}
-			else
-            {
-				// Salva em variável persistente a informaçao se adquiriu carregador
-				stepContext.Values["adquiriucarregador"] = "não";
-				stepContext.Values["pretendeadquirir"] = "sim";
-
-				return await stepContext.NextAsync("pretendo", cancellationToken).ConfigureAwait(false);
-			}
+			// Aguarda uma resposta
+			return await stepContext.PromptAsync("MarcaCarregadorPrompt", new PromptOptions { Prompt = null, RetryPrompt = MessageFactory.Text("Por favor, digite um número de 1 a 5 conforme as opções: 1- Volvo Wallbox; 2- BMW i Wallbox; 3- Porsche Mobile Charger Connect; 4- Tomada tipo industrial; 5- Outros.") }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// Pergunta Se o local é condominio
@@ -355,21 +334,8 @@ namespace MrBot.Dialogs
 			// Busca a opção informada no passo anterior
 			string choice = (string)stepContext.Result;
 
-
-			// Consulta a resposta do diálogo anterior pra saber o que foi perguntado
-			if ( choice != "pretendo" & choice != "tomada")
-            {
-				// Passo anterior perguntou a marca
-				stepContext.Values["marcacarregador"] = choice;
-
-				// Padroniza o que foi digitado
-				string[] validBrands = new string[] { "Enel X", "Efacec", "Schneider", "Outros", "Não sei informar" };
-
-				// Salva o valor padronizado
-				foreach (string row in validBrands)
-					if (row.ToUpperInvariant().Contains(choice.ToUpperInvariant()))
-						stepContext.Values["marcacarregador"] = row;
-			}
+			// Passo anterior perguntou a marca
+			stepContext.Values["marcacarregador"] = choice;
 
 			// Pergunta se o local é um condominio
 			var card = new HeroCard
@@ -451,7 +417,7 @@ namespace MrBot.Dialogs
 			}
 			else
 				// Pergunta o CEP
-				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Poderia por favor nos informar o CEP do local de instalação para checarmos a disponibilidade de nossos técnicos em sua região? {_dialogDictionary.Emoji.OpenMailBox}"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
+				return await stepContext.PromptAsync("CepPrompt", new PromptOptions { Prompt = MessageFactory.Text($"Por gentileza, informe o CEP do local de instalação para checarmos a disponibilidade de nossos técnicos em sua região? {_dialogDictionary.Emoji.OpenMailBox}"), RetryPrompt = MessageFactory.Text("Este não é um Cep válido. Por favor, digite novamente no formato 00000-000") }, cancellationToken).ConfigureAwait(false);
 
 		}
 		// Pergunta o numero do endereço
@@ -699,15 +665,7 @@ namespace MrBot.Dialogs
 					DateTime horario = date.AddHours(Int16.Parse(strHorario.Replace(":00", ""), CultureInfo.InvariantCulture));
 
 					// Obtem a string que diz qual é a opção de instalação
-					string opcaodeInstalacao = string.Empty;
-					try
-					{
-						opcaodeInstalacao = OpcaoDeInstalacao((string)stepContext.Values["adquiriucarregador"], (string)stepContext.Values["marcacarregador"], (string)stepContext.Values["pretendeadquirir"]);
-					}
-					catch
-					{
-
-					}
+					string opcaodeInstalacao = (string)stepContext.Values["marcaveiculo"] + "; " + (string)stepContext.Values["marcacarregador"];
 
 					// Salva os dados das variáveis do diálogo no objeto Deal injetado e compartilhado
 					_deal.Title = (string)stepContext.Values["nomecompleto"];
@@ -829,14 +787,14 @@ namespace MrBot.Dialogs
 			return await Task.FromResult(IsValid).ConfigureAwait(false);
 		}
 		// Tarefa de validação da Marca do carregador
-		private async Task<bool> MarcaValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		private async Task<bool> MarcaCarregadorValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
 		{
 			string typedBrand = promptContext.Context.Activity.Text.Trim().ToUpperInvariant();
-			string[] validBrands = new string[] { "Enel X", "Efacec", "Schneider", "Outros", "Não sei informar" };
+			string[] validBrands = new string[] { "1", "2", "3", "4", "5", "Volvo", "BMW", "Porsche", "tomada", "outros" };
 
 			foreach (string row in validBrands)
 			{
-				if (row.ToUpperInvariant().Contains(typedBrand))
+				if (row.ToUpperInvariant().Contains(typedBrand.ToUpperInvariant()))
 				{
 					return await Task.FromResult(true).ConfigureAwait(false);
 				}
@@ -851,11 +809,11 @@ namespace MrBot.Dialogs
 			return await Task.FromResult(Utility.IsValidName(typed)).ConfigureAwait(false);
 		}
 		// Valida a pergunta "Pretende aquirir ...."
-		private async Task<bool> PretendeAdquirirValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+		private async Task<bool> MarcaVeiculoValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
 		{
 			string typed = promptContext.Context.Activity.Text.Trim();
 
-			return await Task.FromResult(typed.Contains("pretendo") | typed.Contains("tomada") | typed.Contains("outra")).ConfigureAwait(false);
+			return await Task.FromResult(typed.Contains("1") | typed.Contains("2") | typed.Contains("3") | typed.Contains("4") | typed.Contains("5") | typed.Contains("6") | typed.ToLower().Contains("volvo") | typed.ToLower().Contains("bmw") | typed.ToLower().Contains("audi") | typed.ToLower().Contains("porche") | typed.ToLower().Contains("mercede") | typed.Contains("outro")).ConfigureAwait(false);
 		}
 
 		// Atualiza o registro do usuario
@@ -960,15 +918,5 @@ namespace MrBot.Dialogs
 			}
 			return;
         }
-		// Obtem a opcao de instalacao
-		private static string OpcaoDeInstalacao ( string adquiriucarregador, string marcacarregador, string pretendeaquirir)
-        {
-			if (adquiriucarregador == "sim")
-				return marcacarregador;
-			else if (pretendeaquirir == "sim")
-				return "Pretendo adquirir";
-			else
-				return "Instalação de tomada";
-		}
 	}
 }
