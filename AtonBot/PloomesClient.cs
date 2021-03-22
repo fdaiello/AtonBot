@@ -63,6 +63,7 @@ namespace PloomesApi
 		public const string OutrosTecnicosInstalacao = "deal_17ECA629-40F6-405F-985D-B1DC2681693C";
 		public const string PlacaTecnicoInstalacao = "deal_E45BAFC7-10A6-42E0-A75C-30460D0C42B4";
 		public const string DadosTecnicosInstalacaoAdicionados = "deal_8B3F56FC-5AAE-406D-BF0D-E1C5DE1BC6A0";
+		public const string TipoDaInstalacao = "deal_C50D4091-5E3A-4BD0-B3FA-DEC89C0CF6C6";
 
 		public const string BoletoAttachmentId = "deal_37E5E69F-5708-42DE-8356-6D3BAC437A6C";
 	}
@@ -984,6 +985,14 @@ namespace PloomesApi
 				this.AddOtherDateTimeProperty(DealPropertyId.HorarioVisita, horarioVisita);
 			else
 				otherProperty.DateTimeValue = horarioVisita;
+		}
+		public void MarcaTipoDaInstalacao(string tipoDaInstalacao)
+		{
+			OtherProperty otherProperty = this.OtherProperties.Where(p => p.FieldKey == DealPropertyId.TipoDaInstalacao).FirstOrDefault();
+			if (otherProperty == null)
+				this.AddOtherStringProperty(DealPropertyId.TipoDaInstalacao, tipoDaInstalacao);
+			else
+				otherProperty.StringValue = tipoDaInstalacao;
 		}
 		public void MarcaOpcaoInstalacao(string opcaodeinstalacao)
 		{

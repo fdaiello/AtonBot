@@ -665,14 +665,14 @@ namespace MrBot.Dialogs
 					DateTime horario = date.AddHours(Int16.Parse(strHorario.Replace(":00", ""), CultureInfo.InvariantCulture));
 
 					// Obtem a string que diz qual é a opção de instalação
-					string opcaodeInstalacao = (string)stepContext.Values["marcaveiculo"] + "; " + (string)stepContext.Values["marcacarregador"];
+					string opcaodeInstalacao = TraduzMarcaCarregador((string)stepContext.Values["marcacarregador"]);
 
 					// Salva os dados das variáveis do diálogo no objeto Deal injetado e compartilhado
 					_deal.Title = (string)stepContext.Values["nomecompleto"];
 					_deal.MarcaDataVisitaTecnica((DateTime)stepContext.Values["data"]);
 					_deal.MarcaPeriodoVisitaTecnica((string)stepContext.Values["periodo"]);
 					_deal.MarcaHorarioVisitaTecnica(horario);
-					_deal.MarcaOpcaoInstalacao(opcaodeInstalacao);
+					_deal.MarcaTipoDaInstalacao(opcaodeInstalacao);
 					_deal.MarcaEhCondominio((string)stepContext.Values["ehcondominio"] == "sim");
 					_deal.ContactId = ploomesContactId;
 
@@ -800,6 +800,21 @@ namespace MrBot.Dialogs
 				}
 			}
 			return await Task.FromResult(false).ConfigureAwait(false);
+		}
+		private static string TraduzMarcaCarregador ( string input)
+        {
+			string[] validBrands = new string[] { "1", "2", "3", "4", "5", "Volvo", "BMW", "Porsche", "tomada", "outros" };
+			string[] normalizedBrands = new string[] { "Volvo Wallbox", "BMW i Wallbox", "Porsche Mobile Charger Connect", "Tomada tipo industrial", "Outros"};
+
+			for (int x= 0; x<=5; x++)
+			{
+				if (validBrands[x].ToUpperInvariant().Contains(input.ToUpperInvariant()))
+				{
+					return normalizedBrands[x];
+				}
+			}
+
+			return string.Empty;
 		}
 		// Valida um nome
 		private async Task<bool> NameValidatorAsync(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
