@@ -265,13 +265,12 @@ namespace MrBot.Dialogs
 		{
 			List<DateTime> nextAvailableDates = new List<DateTime>();
 
-			//TODO: Lógica para obter as próximas datas disponíveis
 			int choicesQuantity = 3;
-			int nextDateDelay = 7;
+			int nextDateDelay = 10;
 			int icep = int.Parse(Utility.ClearStringNumber(cep));
 			if ( Utility.CepIsCapital(icep) )
 			{
-				nextDateDelay = 5;
+				nextDateDelay = 10; // Antes, capital tinha outra intervalo de data.
 			}
 			DateTime nextDate = DateTime.Today.AddDays(nextDateDelay+1); 
 
