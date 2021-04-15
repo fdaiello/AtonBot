@@ -272,7 +272,7 @@ namespace MrBot.Dialogs
 			{
 				nextDateDelay = 10; // Antes, capital tinha outra intervalo de data.
 			}
-			DateTime nextDate = DateTime.Today.AddDays(nextDateDelay+1); 
+			DateTime nextDate = DateTime.Today.AddDays(nextDateDelay); 
 
 			do
 			{
