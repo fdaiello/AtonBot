@@ -249,24 +249,15 @@ namespace MrBot.Dialogs
 
 			// Id do usuario
 			string clientId = activity.From.Id;
-			// ChannelId
-			string channelID = activity.ChannelId;
 
 			// Mapeia o canal
-			ChatChannelType channelType;
-			if (channelID == "whatsapp")
-				channelType = ChatChannelType.WhatsApp;
-			else if (channelID == "webchat")
-				channelType = ChatChannelType.WebChat;
-			else if (channelID == "facebook")
-				channelType = ChatChannelType.Messenger;
-			else
-				channelType = ChatChannelType.other;
-			
+			ChannelType channelType = ChannelType.WhatsApp;
+			string channelId = "551146733810";
+
 			try
 			{
-                // Cria um novo cliente
-                Contact customer = new Contact
+				// Cria um novo cliente
+				Contact customer = new Contact
 				{
 					Id = clientId,
 					FirstActivity = Utility.HoraLocal(),
@@ -274,6 +265,7 @@ namespace MrBot.Dialogs
 					GroupId = groupId,
 					ChannelType = channelType,
 					Channel = string.Empty,
+					ChatChannelId = channelId
 				};
 
 				//Insere o cliente no banco
