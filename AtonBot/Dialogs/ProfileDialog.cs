@@ -57,7 +57,7 @@ namespace MrBot.Dialogs
 		private async Task<DialogTurnResult> NameStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
 		{
 			// Se apresenta
-			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá! Eu sou o Felipe, atendente da Aton Services e estou aqui para agendar a instalação do seu carregador ou Tomada. 👨\nCaso queira reiniciar a conversa, é só digitar Cancelar a qualquer momento."), cancellationToken).ConfigureAwait(false);
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Olá! Eu sou o Felipe, atendente robô da Aton Services e farei o agendamento da sua visita técnica *gratuita* para instalação do seu carregador ou tomada. 👨\nCaso queira reiniciar a conversa, é só digitar Cancelar a qualquer momento.Você pode também entrar em contato pelo nosso telefone 11 4673 - 3810."), cancellationToken).ConfigureAwait(false);
 
 			// pergunta o nome do cliente
 			return await stepContext.PromptAsync("NamePrompt", new PromptOptions { Prompt = MessageFactory.Text("Para iniciarmos, por favor digite seu nome completo."), RetryPrompt = MessageFactory.Text("Qual é o seu nome? por gentileza ...") }, cancellationToken).ConfigureAwait(false);
