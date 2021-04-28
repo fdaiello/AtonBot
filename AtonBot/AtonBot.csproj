@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AssemblyName>Mister-Bot</AssemblyName>
+    <UserSecretsId>4849308d-eea9-45dd-ba67-131c8ba6415d</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,16 @@
     <Content Remove="wwwroot\Logs\**" />
     <EmbeddedResource Remove="wwwroot\Logs\**" />
     <None Remove="wwwroot\Logs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Responses\MainResponses.pt-BR.lg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Responses\MainResponses.pt-BR.lg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -27,8 +38,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.14" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Client" Version="5.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

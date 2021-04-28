@@ -83,14 +83,14 @@ namespace MrBot
 					opts => opts.CommandTimeout((int)TimeSpan.FromSeconds(10).TotalSeconds)));
 
 			// Create the storage client we'll be using for User and Conversation state.
-			var statestorage = new AzureBlobStorage(Configuration.GetValue<string>($"AzureStorageConnStr"), Configuration.GetValue<string>($"BotStateContainer"));
+			var statestorage = new AzureBlobStorage(Configuration.GetValue<string>($"BlobStorageConnStr"), Configuration.GetValue<string>($"BotStateContainer"));
 
 			// Conversation state - usado pelo sistema de Dialogos
 			var conversationState = new ConversationState(statestorage);
 			services.AddSingleton(conversationState);
 
 			// Create the storage client used to upload media files
-			BlobContainerClient blobContainerClient = new BlobContainerClient(Configuration.GetValue<string>($"AzureStorageConnStr"), Configuration.GetValue<string>($"FileContainer"));
+			BlobContainerClient blobContainerClient = new BlobContainerClient(Configuration.GetValue<string>($"BlobStorageConnStr"), Configuration.GetValue<string>($"FileContainer"));
 			services.AddSingleton(blobContainerClient);
 
 			// Create a global hashset for our ConversationReferences

@@ -156,8 +156,8 @@ namespace MrBot.Bots
 				// Salva o arquivo
 				string filename = await Utility.SaveAttachmentAsync(turnContext, _blobContainerClient).ConfigureAwait(false);
 
-				// Se já faz mais de 30 minutos que teve atividade ( com agente )
-				if (horalocal.Subtract(customer.LastActivity).TotalMinutes > 30)
+				// Se já faz mais de 6 horas que teve atividade com atendente
+				if (horalocal.Subtract(customer.LastActivity).TotalHours > 5)
 				{
 					// Resseta o status do cliente
 					customer.Status = ContactStatus.TalkingToBot;
