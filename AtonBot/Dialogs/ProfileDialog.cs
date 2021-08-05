@@ -86,28 +86,14 @@ namespace MrBot.Dialogs
 				// Deixa o nome em branco
 				stepContext.Values["nomecompleto"] = string.Empty;
 
-			// Confere se a conexão e whatsapp, entao o Id é o telefone 
-			if (stepContext.Context.Activity.ChannelId == "whatsapp" )
-			{
-				// Extracts WhatsApp customer number inserted at Activity.From.ID
-				string mobilephone;
-				if (stepContext.Context.Activity.From.Id.Contains("-"))
-					mobilephone = stepContext.Context.Activity.From.Id.Split("-")[1];
-				else
-					mobilephone = stepContext.Context.Activity.From.Id;
 
-				// pula a pergunta do Celular, e ja devolve como resposta o ID do cliente
-				return await stepContext.NextAsync(mobilephone, cancellationToken).ConfigureAwait(false);
-			}
-			else
-			{
-				// Responde para o usuário
-				var msg = $"É um prazer lhe atender, {Utility.FirstName((string)stepContext.Values["nomecompleto"])}. " + _dialogDictionary.Emoji.ThumbsUp;
-				await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
+			// Responde para o usuário
+			var msg = $"É um prazer lhe atender, {Utility.FirstName((string)stepContext.Values["nomecompleto"])}. " + _dialogDictionary.Emoji.ThumbsUp;
+			await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken).ConfigureAwait(false);
 
-				// Pergunta o celular do cliente
-				return await stepContext.PromptAsync("PhonePrompt", new PromptOptions { Prompt = MessageFactory.Text("Você pode me infomar o seu celular, com DDD?"), RetryPrompt = MessageFactory.Text("Por favor, informe seu celular, com o código DDD.") }, cancellationToken).ConfigureAwait(false);
-			}
+			// Pergunta o celular do cliente
+			return await stepContext.PromptAsync("PhonePrompt", new PromptOptions { Prompt = MessageFactory.Text("Você pode me infomar o seu celular, com DDD?"), RetryPrompt = MessageFactory.Text("Por favor, informe seu celular, com o código DDD.") }, cancellationToken).ConfigureAwait(false);
+
 		}
 
 		private async Task<DialogTurnResult> SaveProfileStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
