@@ -23,9 +23,9 @@ namespace MrBot.Dialogs
 		private readonly WpushClient _wpushClient;
 		private readonly IEmailService _emailService;
 		private readonly IConfiguration _configuration;
-		private readonly ILogger _logger;
+		private readonly ILogger<CallHumanDialog> _logger;
 
-		public CallHumanDialog(ApplicationDbContext botDbContext, DialogDictionary dialogDictionary, WpushClient wpushClient, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2, ILogger logger)
+		public CallHumanDialog(ApplicationDbContext botDbContext, DialogDictionary dialogDictionary, WpushClient wpushClient, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2, ILogger<CallHumanDialog> logger)
 			: base(nameof(CallHumanDialog))
 		{
 
