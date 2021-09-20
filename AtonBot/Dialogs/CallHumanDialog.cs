@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ContactCenter.Infrastructure.Clients.Wpush;
+using Microsoft.Extensions.Logging;
 
 namespace MrBot.Dialogs
 {
@@ -21,8 +22,9 @@ namespace MrBot.Dialogs
 		private readonly WpushClient _wpushClient;
 		private readonly IEmailService _emailService;
 		private readonly IConfiguration _configuration;
+		private readonly ILogger<CallHumanDialog> _logger;
 
-		public CallHumanDialog(ApplicationDbContext botDbContext, DialogDictionary dialogDictionary, WpushClient wpushClient, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2)
+		public CallHumanDialog(ApplicationDbContext botDbContext, DialogDictionary dialogDictionary, WpushClient wpushClient, IEmailService emailService, IConfiguration configuration, IBotTelemetryClient telemetryClient, ProfileDialog2 profileDialog2, ILogger<CallHumanDialog> logger)
 			: base(nameof(CallHumanDialog))
 		{
 
@@ -32,6 +34,7 @@ namespace MrBot.Dialogs
 			_wpushClient = wpushClient;
 			_emailService = emailService;
 			_configuration = configuration;
+			_logger = logger;
 
 			// Set the telemetry client for this and all child dialogs.
 			this.TelemetryClient = telemetryClient;
@@ -190,8 +193,15 @@ namespace MrBot.Dialogs
 					_botDbContext.Contacts.Update(customer);
 					await _botDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-					// Envia email para os atendentes notificando que tem cliente para ser atendido
-					await _emailService.SendAsync(_configuration.GetValue<string>($"EmailAlert"), "Pedido de Atendimento", $"O cliente {customer.Name}, telefone {customer.MobilePhone} entrou no BOT e pediu para ser atendido por {atendente}.\r\n\r\n{lasttypedinfo}.").ConfigureAwait(false);
+                    try
+                    {
+						// Envia email para os atendentes notificando que tem cliente para ser atendido
+						await _emailService.SendAsync(_configuration.GetValue<string>($"EmailAlert"), "Pedido de Atendimento", $"O cliente {customer.Name}, telefone {customer.MobilePhone} entrou no BOT e pediu para ser atendido por {atendente}.\r\n\r\n{lasttypedinfo}.").ConfigureAwait(false);
+					}
+					catch ( System.Exception ex)
+                    {
+						_logger.LogError(ex.Message);
+                    }
 
 					// Avisa o cliente que está avisando para os atendentes entrarem em contato
 					await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Estarei notificando {atendente} para entrare em contato com você."), cancellationToken).ConfigureAwait(false);
