@@ -1,6 +1,5 @@
 ﻿// MrBot 2020
 // Diálogo para chamar um atendente humano
-using Correios;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Extensions.Configuration;
