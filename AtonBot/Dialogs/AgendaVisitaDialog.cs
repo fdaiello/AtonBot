@@ -183,6 +183,7 @@ namespace MrBot.Dialogs
 			var card = new HeroCard
 			{
 				Text = initialText,
+				Title = "Visita",
 				Buttons = new List<CardAction>
 				{
 					new CardAction(ActionTypes.ImBack, title: "Sim", value: "sim"),
@@ -340,6 +341,7 @@ namespace MrBot.Dialogs
 			// Pergunta se o local é um condominio
 			var card = new HeroCard
 			{
+				Title = "Local",
 				Text = "O local é um condomínio? 🏘",
 				Buttons = new List<CardAction>
 				{
@@ -374,6 +376,7 @@ namespace MrBot.Dialogs
 				{
 					var card = new HeroCard
 					{
+						Title = "Autorização",
 						Text = "Você já tem a autorização do condomínio? 📄",
 						Buttons = new List<CardAction>
 					{
