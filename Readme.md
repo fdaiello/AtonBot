@@ -2,7 +2,7 @@
 Virtual Assistant project for scheduling the installation of electric car chargers for the company Aton.
 
 # Scope
-Confirmation of scheduling intent
+Confirmation of scheduling intent \n
 Customer name identification
 Customer Zip ID
 Suggested dates, based on a table that defines locations and deadlines for installation, according to region
