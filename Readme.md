@@ -1,20 +1,23 @@
-#Aton Bot
-Projeto de Assistente Virtual para agendamento da instalação de carregadores de carros elétricos, para a empresa Aton.
+# Aton Bot
+Virtual Assistant project for scheduling the installation of electric car chargers for the company Aton.
 
-#Escopo
-Confirmação da intenção de agendamento
-Identificação do nome do cliente
-Identificação do Cep do cliente
-Sugestão de datas, com base em consulta em tabela que define localidades e prazos para instalação, conforme a região
-Identificação da data escolhida pelo cliente
-Identificação do turno escolhido pelo cliente
-Confirmação do agendamento
-Cadastro do Lead (dados do cliente) com a data e hora escolhida par
+# Scope
+Confirmation of scheduling intent
+Customer name identification
+Customer Zip ID
+Suggested dates, based on a table that defines locations and deadlines for installation, according to region
+Identification of the date chosen by the customer
+Identification of the shift chosen by the customer
+Schedule confirmation
+Lead Registration (customer data) with the date and time chosen for
 
-#Desenvolvido com
+# Integrations
+Rest APIS to Ploomes CRM
+
+# Developed with
 NetCore 3.1
 Microsoft Bot Framework 4.8
 
-#Projetado por
+# Designed by
 Felipe Daiello
 felipedaiello@gmail.com
