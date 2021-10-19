@@ -14,6 +14,13 @@ Virtual Assistant project for scheduling the installation of electric car charge
 # Integrations
 - Rest APIS to Ploomes CRM
 
+# Dependencies
+- Contact Center Cor ( Classes )
+- Contact Center Data ( DB Context and Migrations )
+- Contact Center Helpers ( Speech Recognition and Audio Conversions )
+- Contact Center Infrastructure ( WhatsApp Adatpers )
+- Mister Bot Infrastructure ( Bot Framework )
+
 # Developed with
 - NetCore 3.1
 - Microsoft Bot Framework 4.8
